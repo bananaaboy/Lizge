@@ -10,6 +10,8 @@
 
 import { fromAudioBuffer, type AudioData } from './wav'
 
+export { mixToMono } from './wav'
+
 let sharedContext: AudioContext | null = null
 
 /** A single lazily created AudioContext, resumed on first user gesture. */
@@ -101,16 +103,6 @@ export function normalizePeak(audio: AudioData, targetDbfs = -0.3): AudioData {
   }
   if (peak <= 0) return audio
   return applyGain(audio, 10 ** (targetDbfs / 20) / peak)
-}
-
-export function mixToMono(audio: AudioData): AudioData {
-  if (audio.channels.length === 1) return audio
-  const frames = audio.channels[0].length
-  const mono = new Float32Array(frames)
-  for (const channel of audio.channels) {
-    for (let i = 0; i < frames; i += 1) mono[i] += channel[i] / audio.channels.length
-  }
-  return { channels: [mono], sampleRate: audio.sampleRate }
 }
 
 /**

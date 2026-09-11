@@ -7,8 +7,7 @@
  */
 
 import { magnitudeOf, stft } from './fft'
-import { mixToMono } from './audio'
-import type { AudioData } from './wav'
+import { mixToMono, type AudioData } from './wav'
 
 export interface OnsetOptions {
   /** Higher keeps only the clearest hits. */

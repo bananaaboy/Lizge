@@ -20,7 +20,7 @@ const PANELS: { id: PanelId; label: string; summary: string }[] = [
   { id: 'converter', label: 'Konverter', summary: 'Formate über FFmpeg WASM' },
   { id: 'stems', label: 'Spuren', summary: 'Gesang, Schlagzeug, Bass, Rest' },
   { id: 'normalize', label: 'Lautheit', summary: 'EBU R128 messen und angleichen' },
-  { id: 'sampler', label: 'Sampler', summary: 'Schneiden, loopen, transponieren' },
+  { id: 'sampler', label: 'Chopper', summary: 'An Transienten oder im Raster zerlegen' },
 ]
 
 function PanelTabs() {

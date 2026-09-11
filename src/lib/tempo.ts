@@ -13,9 +13,8 @@
  * string pad — and the returned confidence says which one you gave it.
  */
 
-import { mixToMono } from './audio'
 import { magnitudeOf, stft } from './fft'
-import type { AudioData } from './wav'
+import { mixToMono, type AudioData } from './wav'
 
 export interface TempoEstimate {
   bpm: number
@@ -32,21 +31,36 @@ const MIN_BPM = 60
 const MAX_BPM = 200
 
 /** Spectral flux: the summed positive change across the spectrum per frame. */
-function onsetEnvelope(audio: AudioData): { envelope: Float32Array; frameRate: number } {
+function onsetEnvelope(audio: AudioData): {
+  envelope: Float32Array
+  frameRate: number
+  /** Mean spectral change relative to spectral level — how transient the material is. */
+  activity: number
+} {
   const mono = mixToMono(audio).channels[0]
   const spec = stft(mono, FFT_SIZE, HOP_SIZE)
   const magnitude = magnitudeOf(spec)
   const { frames, bins } = spec
 
   const envelope = new Float32Array(frames)
+  let fluxTotal = 0
+  let levelTotal = 0
   for (let f = 1; f < frames; f += 1) {
     let sum = 0
+    let level = 0
     for (let b = 0; b < bins; b += 1) {
-      const delta = magnitude[f * bins + b] - magnitude[(f - 1) * bins + b]
+      const now = magnitude[f * bins + b]
+      const delta = now - magnitude[(f - 1) * bins + b]
       if (delta > 0) sum += delta
+      level += now
     }
     envelope[f] = sum
+    fluxTotal += sum
+    levelTotal += level
   }
+  // A sustained tone barely changes frame to frame; a drum loop changes a lot.
+  // This separates "no rhythm here" from "rhythm I could not pin down".
+  const activity = levelTotal > 0 ? fluxTotal / levelTotal : 0
 
   // Subtract a local mean so a loud section does not dominate the correlation.
   const smoothed = new Float32Array(frames)
@@ -60,12 +74,12 @@ function onsetEnvelope(audio: AudioData): { envelope: Float32Array; frameRate: n
     smoothed[f] = Math.max(0, envelope[f] - mean)
   }
 
-  return { envelope: smoothed, frameRate: audio.sampleRate / HOP_SIZE }
+  return { envelope: smoothed, frameRate: audio.sampleRate / HOP_SIZE, activity }
 }
 
 /** Estimates tempo and where the grid starts. */
 export function estimateTempo(audio: AudioData): TempoEstimate {
-  const { envelope, frameRate } = onsetEnvelope(audio)
+  const { envelope, frameRate, activity } = onsetEnvelope(audio)
   const frames = envelope.length
   if (frames < 64) return { bpm: 120, confidence: 0, offsetSeconds: 0 }
 
@@ -112,7 +126,11 @@ export function estimateTempo(audio: AudioData): TempoEstimate {
   let variance = 0
   for (let lag = minLag; lag <= maxLag; lag += 1) variance += (scores[lag] - mean) ** 2
   const deviation = Math.sqrt(variance / Math.max(1, count))
-  const confidence = deviation > 0 ? Math.max(0, Math.min(1, (bestScore - mean) / (6 * deviation))) : 0
+  const sharpness = deviation > 0 ? Math.max(0, Math.min(1, (bestScore - mean) / (6 * deviation))) : 0
+  // Both have to hold: the correlation peak must stand out *and* the material
+  // must have transients at all. A held chord satisfies the first on its own.
+  const transient = Math.max(0, Math.min(1, activity / 0.035))
+  const confidence = sharpness * transient
 
   const bpm = (60 * frameRate) / bestLag
   return {
