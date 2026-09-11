@@ -328,67 +328,52 @@ export function DownloaderPanel() {
   }
 
   const PATHS: { id: Mode; label: string; hint: string; disabled: boolean }[] = [
-    { id: 'direct', label: 'Direkter Link', hint: 'Der Browser holt die Datei selbst.', disabled: false },
-    { id: 'hls', label: 'HLS-Stream', hint: 'Segmente laden, lokal zu MP4 fassen.', disabled: false },
+    { id: 'direct', label: 'Direkt', hint: 'Der Browser holt die Datei selbst.', disabled: false },
+    { id: 'hls', label: 'HLS', hint: 'Segmente laden, lokal zu MP4 fassen.', disabled: false },
     {
       id: 'service',
-      label: 'Portal über Dienst',
-      hint: serviceEnabled
-        ? 'Läuft über einen fremden Server.'
-        : 'Muss unten eingeschaltet werden.',
+      label: 'Portal',
+      hint: serviceEnabled ? 'Läuft über einen fremden Server.' : 'Muss unten eingeschaltet werden.',
       disabled: !serviceEnabled,
     },
   ]
 
   const canStart = Boolean(url.trim()) && (effectiveMode !== 'service' || Boolean(service.endpoint))
 
+  const pathNote =
+    detectedPortal && effectiveMode !== 'service'
+      ? serviceEnabled
+        ? 'Portale lassen den Browser nicht direkt heran — hier den Weg „Portal“ wählen.'
+        : 'Portale brauchen die Option unten.'
+      : PATHS.find((path) => path.id === effectiveMode)?.hint
+
   return (
-    <div className="grid gap-[21px] lg:grid-cols-[minmax(0,1fr)_360px]">
-      <Card tone="keylime">
-        <Eyebrow>Downloader</Eyebrow>
-        <h2 className="display-md mt-[11px] mb-[14px]">Medien laden</h2>
-        <p className="max-w-[62ch] text-body leading-[1.6] text-prose/85">
-          Adresse einfügen — der Weg ergibt sich daraus. Direkte Links und HLS-Streams holt der
-          Browser selbst, ohne Server dazwischen. Portale wie YouTube gehen nur über einen
-          Extraktions-Dienst, und der muss weiter unten ausdrücklich eingeschaltet werden.
-        </p>
+    <div className="grid gap-[18px] lg:grid-cols-[minmax(0,1fr)_320px]">
+      <Card tone="keylime" size="compact">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-[14px] gap-y-[4px]">
+          <Eyebrow>Downloader</Eyebrow>
+          <span className="text-[12px] text-muted">Adresse einfügen — der Weg ergibt sich daraus.</span>
+        </div>
 
-        {/* ---- address ---------------------------------------------------- */}
-        <div className="mt-[28px] flex flex-col gap-[18px]">
-          <Field
-            label="Adresse"
-            /* Describes what will actually happen, including after a manual
-               override — not merely what the address looked like. */
-            hint={
-              !url.trim()
-                ? 'Audio, Video, Playlist oder Portal-Link.'
-                : effectiveMode === 'service'
-                  ? 'Wird über den hinterlegten Dienst geholt.'
-                  : effectiveMode === 'hls'
-                    ? 'Wird als HLS-Playlist gelesen.'
-                    : detectedPortal
-                      ? 'Portal erkannt. Direkt geht das nicht.'
-                      : 'Wird direkt vom Browser geholt.'
-            }
-          >
-            <TextInput
-              type="url"
-              inputMode="url"
-              placeholder="https://beispiel.org/aufnahme.mp3"
-              value={url}
-              onChange={(event) => {
-                setUrl(event.target.value)
-                // A new address re-decides the path on its own.
-                setModeOverride(null)
-                reset()
-              }}
-            />
-          </Field>
+        <div className="mt-[14px] flex flex-col gap-[14px]">
+          {/* ---- address ---------------------------------------------------- */}
+          <TextInput
+            type="url"
+            inputMode="url"
+            aria-label="Adresse"
+            placeholder="https://beispiel.org/aufnahme.mp3"
+            value={url}
+            onChange={(event) => {
+              setUrl(event.target.value)
+              // A new address re-decides the path on its own.
+              setModeOverride(null)
+              reset()
+            }}
+          />
 
-          {/* ---- path chips ------------------------------------------------ */}
-          <div className="flex flex-col gap-[9px]">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink">Weg</span>
-            <div role="radiogroup" aria-label="Weg" className="flex flex-wrap gap-[7px]">
+          {/* ---- path chips and the action share one row ------------------- */}
+          <div className="flex flex-wrap items-center gap-[9px]">
+            <div role="radiogroup" aria-label="Weg" className="flex gap-[4px] rounded-pill bg-raised p-[3px]">
               {PATHS.map((path) => {
                 const active = path.id === effectiveMode
                 return (
@@ -403,8 +388,8 @@ export function DownloaderPanel() {
                       setModeOverride(path.id)
                       reset()
                     }}
-                    className={`rounded-pill px-[14px] py-[7px] text-[13px] transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
-                      active ? 'bg-ink text-on-ink' : 'bg-raised text-ink hover:bg-panel-mid'
+                    className={`rounded-pill px-[14px] py-[6px] text-[13px] transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+                      active ? 'bg-ink text-on-ink' : 'text-ink hover:bg-panel-mid'
                     }`}
                   >
                     {path.label}
@@ -412,40 +397,56 @@ export function DownloaderPanel() {
                 )
               })}
             </div>
-            <p className="text-[12px] leading-[1.5] text-muted">
-              {/* A portal address on any path but the service will fail, whether
-                  that path was detected or chosen. Say so instead of letting the
-                  chip promise something the browser cannot do. */}
-              {detectedPortal && effectiveMode !== 'service'
-                ? serviceEnabled
-                  ? 'Diese Adresse braucht den Weg über den Dienst — direkt lässt das Portal den Browser nicht heran.'
-                  : 'Für diese Adresse reicht keiner dieser Wege — Portale brauchen den Dienst weiter unten.'
-                : PATHS.find((path) => path.id === effectiveMode)?.hint}
-            </p>
+
+            <div className="flex flex-wrap items-center gap-[9px] sm:ml-auto">
+              {effectiveMode === 'service' ? (
+                <Button size="sm" onClick={() => runService()} disabled={busy || !canStart}>
+                  {busy ? 'Lädt…' : 'Über den Dienst laden'}
+                  {!busy ? <ArrowRight /> : null}
+                </Button>
+              ) : effectiveMode === 'hls' ? (
+                <Button size="sm" onClick={playlist ? downloadHls : inspectPlaylist} disabled={busy || !canStart}>
+                  {busy ? 'Lädt…' : playlist ? 'Stream laden' : 'Playlist lesen'}
+                  {!busy ? <ArrowRight /> : null}
+                </Button>
+              ) : (
+                <Button size="sm" onClick={downloadDirect} disabled={busy || !canStart}>
+                  {busy ? 'Lädt…' : 'Laden'}
+                  {!busy ? <ArrowRight /> : null}
+                </Button>
+              )}
+
+              {busy ? (
+                <Button size="sm" variant="ghost" onClick={() => abortRef.current?.abort()}>
+                  Abbrechen
+                </Button>
+              ) : null}
+            </div>
           </div>
 
-          {effectiveMode === 'direct' ? (
+          <p className="-mt-[7px] text-[12px] leading-[1.45] text-muted">
+            {pathNote}
+            {effectiveMode === 'service' && !service.endpoint
+              ? ' Erst eine Adresse für den Dienst hinterlegen.'
+              : ''}
+          </p>
+
+          {/* ---- path-specific extras, only when they apply ----------------- */}
+          {effectiveMode === 'direct' && caps.fileSystemAccess ? (
             <Toggle
               label="Direkt auf die Festplatte schreiben"
-              hint={
-                caps.fileSystemAccess
-                  ? 'Für sehr große Dateien. Die Datei landet dann nicht in der Sitzung und steht den anderen Werkzeugen nicht zur Verfügung.'
-                  : 'Dieser Browser bietet die Dateisystem-API nicht an.'
-              }
-              checked={streamToDiskEnabled && caps.fileSystemAccess}
+              hint="Für sehr große Dateien. Landet dann nicht in der Sitzung."
+              checked={streamToDiskEnabled}
               onChange={setStreamToDiskEnabled}
-              disabled={!caps.fileSystemAccess}
             />
           ) : null}
 
-          {/* ---- HLS quality, inline once the playlist has been read -------- */}
           {playlist && playlist.kind === 'master' ? (
-            <Field label="Qualitätsstufe" hint={`${playlist.variants.length} Stufen gefunden.`}>
+            <Field label="Qualitätsstufe">
               <Select value={variantUrl} onChange={(event) => setVariantUrl(event.target.value)}>
                 {playlist.variants.map((variant) => (
                   <option key={variant.url} value={variant.url}>
                     {variant.resolution ?? 'unbekannt'} · {Math.round(variant.bandwidth / 1000)} kbit/s
-                    {variant.codecs ? ` · ${variant.codecs}` : ''}
                   </option>
                 ))}
               </Select>
@@ -459,65 +460,22 @@ export function DownloaderPanel() {
             </div>
           ) : null}
 
-          {/* ---- picker, inline when a post holds several media ------------- */}
           {items ? (
-            <div className="flex flex-col gap-[9px]">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink">
-                Auswahl
-              </span>
-              <ul className="flex flex-col gap-[7px]">
-                {items.map((item) => (
-                  <li
-                    key={item.url}
-                    className="flex flex-wrap items-center gap-[11px] rounded-card bg-raised px-[18px] py-[11px]"
-                  >
-                    <span className="min-w-0 flex-1 truncate text-body text-ink">{item.filename}</span>
-                    <Badge>{item.kind}</Badge>
-                    <Button size="sm" onClick={() => runService(item)} disabled={busy}>
-                      Holen
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-
-          {/* ---- action ----------------------------------------------------- */}
-          <div className="flex flex-wrap items-center gap-[11px]">
-            {effectiveMode === 'service' ? (
-              <Button onClick={() => runService()} disabled={busy || !canStart}>
-                {busy ? 'Lädt…' : 'Über den Dienst laden'}
-                {!busy ? <ArrowRight /> : null}
-              </Button>
-            ) : effectiveMode === 'hls' ? (
-              <>
-                <Button onClick={playlist ? downloadHls : inspectPlaylist} disabled={busy || !canStart}>
-                  {busy ? 'Lädt…' : playlist ? 'Stream laden' : 'Playlist lesen'}
-                  {!busy ? <ArrowRight /> : null}
-                </Button>
-                {playlist ? (
-                  <Button variant="quiet" onClick={inspectPlaylist} disabled={busy}>
-                    Neu einlesen
+            <ul className="flex flex-col gap-[4px]">
+              {items.map((item) => (
+                <li
+                  key={item.url}
+                  className="flex flex-wrap items-center gap-[9px] rounded-nav bg-raised px-[14px] py-[9px]"
+                >
+                  <span className="min-w-0 flex-1 truncate text-[13px] text-ink">{item.filename}</span>
+                  <Badge>{item.kind}</Badge>
+                  <Button size="sm" onClick={() => runService(item)} disabled={busy}>
+                    Holen
                   </Button>
-                ) : null}
-              </>
-            ) : (
-              <Button onClick={downloadDirect} disabled={busy || !canStart}>
-                {busy ? 'Lädt…' : 'Laden'}
-                {!busy ? <ArrowRight /> : null}
-              </Button>
-            )}
-
-            {busy ? (
-              <Button variant="ghost" onClick={() => abortRef.current?.abort()}>
-                Abbrechen
-              </Button>
-            ) : null}
-
-            {effectiveMode === 'service' && !service.endpoint ? (
-              <span className="text-[12px] text-muted">Erst eine Adresse für den Dienst hinterlegen.</span>
-            ) : null}
-          </div>
+                </li>
+              ))}
+            </ul>
+          ) : null}
 
           {busy || progress ? (
             <Progress
@@ -540,11 +498,15 @@ export function DownloaderPanel() {
           ) : null}
         </div>
 
-        {/* ---- external downloaders, unfolding in place -------------------- */}
-        <div className="mt-[28px] border-t border-line pt-[28px]">
+        {/* ---- external downloaders: switch, options, then the terms ------- */}
+        <div className="mt-[18px] border-t border-line pt-[18px]">
           <Toggle
             label="YouTube und externe Downloader"
-            hint="Standardmäßig aus. Bleibt aus, bis Sie es in dieser Sitzung ausdrücklich einschalten."
+            hint={
+              serviceEnabled
+                ? undefined
+                : 'Aus. Ohne sie gehen eigene Dateien, offene Archive, Podcast-Feeds und HLS-Streams mit CORS-Freigabe.'
+            }
             checked={serviceEnabled}
             onChange={(value) => {
               setServiceEnabled(value)
@@ -561,46 +523,29 @@ export function DownloaderPanel() {
           />
 
           {serviceEnabled ? (
-            <div className="mt-[21px] flex flex-col gap-[18px]">
-              <div className="rounded-card bg-raised p-[21px] text-[13px] leading-[1.6] ring-1 ring-inset ring-ink/30">
-                <p className="mb-[11px] font-semibold text-ink">{SERVICE_DISCLAIMER.title}</p>
-                {SERVICE_DISCLAIMER.paragraphs.map((paragraph) => (
-                  <p key={paragraph.slice(0, 24)} className="mb-[11px] text-prose/85">
-                    {paragraph}
-                  </p>
-                ))}
-                <p className="mt-[14px] border-t border-line pt-[14px] text-muted">
-                  {SERVICE_DISCLAIMER.liability}
-                </p>
-              </div>
+            <div className="mt-[14px] flex flex-col gap-[14px]">
+              {/* Settings first: this is what someone came here to fill in. */}
+              <div className="grid gap-[14px] sm:grid-cols-2">
+                <Field label="Dienst" className="sm:col-span-2">
+                  <TextInput
+                    type="url"
+                    inputMode="url"
+                    placeholder="https://meine-instanz.example/"
+                    value={service.endpoint}
+                    onChange={(event) => updateService({ endpoint: event.target.value })}
+                  />
+                </Field>
 
-              <Field
-                label="Adresse des Dienstes"
-                hint="Eine cobalt-kompatible Instanz — eine, der Sie vertrauen, oder Ihre eigene. Wird lokal gespeichert."
-              >
-                <TextInput
-                  type="url"
-                  inputMode="url"
-                  placeholder="https://meine-instanz.example/"
-                  value={service.endpoint}
-                  onChange={(event) => updateService({ endpoint: event.target.value })}
-                />
-              </Field>
+                <Field label="Zugangsschlüssel" className="sm:col-span-2">
+                  <TextInput
+                    type="password"
+                    autoComplete="off"
+                    placeholder="optional, wird nicht gespeichert"
+                    value={apiKey}
+                    onChange={(event) => setApiKey(event.target.value)}
+                  />
+                </Field>
 
-              <Field
-                label="Zugangsschlüssel"
-                hint="Nur falls die Instanz einen verlangt. Wird nicht gespeichert und gilt bis zum Neuladen."
-              >
-                <TextInput
-                  type="password"
-                  autoComplete="off"
-                  placeholder="optional"
-                  value={apiKey}
-                  onChange={(event) => setApiKey(event.target.value)}
-                />
-              </Field>
-
-              <div className="grid gap-[18px] sm:grid-cols-2">
                 <Field label="Was holen">
                   <Select
                     value={service.downloadMode}
@@ -641,19 +586,26 @@ export function DownloaderPanel() {
                   </Field>
                 )}
               </div>
+
+              {/* Terms last, under the controls they apply to. */}
+              <div className="rounded-card bg-raised p-[14px] text-[12px] leading-[1.5] ring-1 ring-inset ring-ink/30">
+                <p className="mb-[7px] font-semibold text-ink">{SERVICE_DISCLAIMER.title}</p>
+                {SERVICE_DISCLAIMER.paragraphs.map((paragraph) => (
+                  <p key={paragraph.slice(0, 24)} className="mb-[7px] text-prose/85">
+                    {paragraph}
+                  </p>
+                ))}
+                <p className="mt-[9px] border-t border-line pt-[9px] text-muted">
+                  {SERVICE_DISCLAIMER.liability}
+                </p>
+              </div>
             </div>
-          ) : (
-            <p className="mt-[14px] max-w-[62ch] text-[13px] leading-[1.6] text-muted">
-              Ohne diese Option funktionieren weiterhin: eigene Dateien, offene Archive,
-              Podcast-Feeds, Mediatheken mit CORS-Freigabe und HLS-Streams, die ihre Segmente
-              freigeben.
-            </p>
-          )}
+          ) : null}
         </div>
       </Card>
 
-      <aside className="flex flex-col gap-[21px]">
-        <Card tone="mint">
+      <aside>
+        <Card tone="mint" size="compact">
           <AssetList />
         </Card>
       </aside>
