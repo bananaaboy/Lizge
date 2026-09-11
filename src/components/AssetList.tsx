@@ -15,7 +15,7 @@ export function AssetList() {
 
   if (assets.length === 0) {
     return (
-      <p className="text-[13px] leading-[1.55] text-charcoal/60">
+      <p className="text-[13px] leading-[1.55] text-muted">
         Noch nichts geladen. Alles, was Sie hinzufügen, bleibt in diesem Tab.
       </p>
     )
@@ -28,7 +28,7 @@ export function AssetList() {
         <button
           type="button"
           onClick={clearAssets}
-          className="rounded-nav text-[12px] text-charcoal/60 underline-offset-2 hover:text-forest-ink hover:underline"
+          className="rounded-nav text-[12px] text-muted underline-offset-2 hover:text-ink hover:underline"
         >
           Alles verwerfen
         </button>
@@ -41,7 +41,7 @@ export function AssetList() {
             <li key={asset.id}>
               <div
                 className={`flex items-center gap-[11px] rounded-card px-[14px] py-[11px] transition-colors ${
-                  active ? 'bg-mint-veil' : 'bg-cream-paper hover:bg-keylime-wash'
+                  active ? 'bg-panel-mid' : 'bg-raised hover:bg-panel-soft'
                 }`}
               >
                 <button
@@ -49,8 +49,8 @@ export function AssetList() {
                   onClick={() => setActive(asset.id)}
                   className="flex min-w-0 flex-1 flex-col items-start gap-[3px] text-left"
                 >
-                  <span className="w-full truncate text-body text-forest-ink">{asset.name}</span>
-                  <span className="numeric text-[11px] text-charcoal/60">
+                  <span className="w-full truncate text-body text-ink">{asset.name}</span>
+                  <span className="numeric text-[11px] text-muted">
                     {formatBytes(asset.sizeBytes)}
                     {asset.durationSeconds ? ` · ${formatDuration(asset.durationSeconds)}` : ''}
                     {asset.audio ? ` · ${asset.audio.sampleRate / 1000} kHz` : ''}
@@ -61,7 +61,7 @@ export function AssetList() {
                   type="button"
                   aria-label={`${asset.name} entfernen`}
                   onClick={() => removeAsset(asset.id)}
-                  className="rounded-nav p-1 text-charcoal/40 transition-colors hover:text-forest-ink"
+                  className="rounded-nav p-1 text-muted transition-colors hover:text-ink"
                 >
                   <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" aria-hidden>
                     <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />

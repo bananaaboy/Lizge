@@ -42,18 +42,18 @@ function LoudnessGauge({ report, target }: { report: LoudnessReport; target: num
 
   return (
     <div className="flex flex-col gap-[11px]">
-      <div className="relative h-[28px] rounded-pill bg-forest-ink/10">
+      <div className="relative h-[28px] rounded-pill bg-ink/10">
         <div
-          className="absolute inset-y-0 left-0 rounded-pill bg-forest-ink/70"
+          className="absolute inset-y-0 left-0 rounded-pill bg-ink/70"
           style={{ width: position(report.integratedLufs) }}
         />
         <div
-          className="absolute inset-y-[-6px] w-[2px] rounded-pill bg-forest-ink"
+          className="absolute inset-y-[-6px] w-[2px] rounded-pill bg-ink"
           style={{ left: position(target) }}
           aria-hidden
         />
       </div>
-      <div className="flex justify-between text-[11px] text-charcoal/55">
+      <div className="flex justify-between text-[11px] text-muted">
         <span className="numeric">−40</span>
         <span className="numeric">Ziel {target} LUFS</span>
         <span className="numeric">0</span>
@@ -64,7 +64,7 @@ function LoudnessGauge({ report, target }: { report: LoudnessReport; target: num
 
 function ReportGrid({ report }: { report: LoudnessReport }) {
   return (
-    <div className="grid gap-[21px] rounded-card bg-cream-paper p-[28px] sm:grid-cols-3">
+    <div className="grid gap-[21px] rounded-card bg-raised p-[28px] sm:grid-cols-3">
       <Stat label="Integriert" value={formatLufs(report.integratedLufs)} emphasis />
       <Stat label="Loudness Range" value={`${report.loudnessRangeLu.toFixed(1)} LU`} />
       <Stat label="True Peak" value={`${report.truePeakDbtp.toFixed(2)} dBTP`} />
@@ -186,7 +186,7 @@ export function NormalizePanel() {
         <Card tone="keylime">
           <Eyebrow>Lautheit</Eyebrow>
           <h2 className="display-md mt-[11px] mb-[14px]">Nach EBU R128 normalisieren</h2>
-          <p className="max-w-[58ch] text-body leading-[1.6] text-charcoal/80">
+          <p className="max-w-[58ch] text-body leading-[1.6] text-prose/85">
             Gemessen wird die integrierte Lautheit mit K-Bewertung und zweistufigem Gate, dazu die
             Loudness Range und der True Peak bei vierfacher Überabtastung. Die Rechnung läuft in einem
             Web Worker, damit die Oberfläche bedienbar bleibt.
@@ -198,7 +198,7 @@ export function NormalizePanel() {
             </div>
           ) : (
             <>
-              <div className="mt-[28px] rounded-card bg-cream-paper p-[21px]">
+              <div className="mt-[28px] rounded-card bg-raised p-[21px]">
                 <Waveform audio={audio} height={84} />
               </div>
 
@@ -331,7 +331,7 @@ export function NormalizePanel() {
             <div className="mt-[18px]">
               <ReportGrid report={before} />
             </div>
-            <div className="mt-[21px] rounded-card bg-cream-paper p-[28px]">
+            <div className="mt-[21px] rounded-card bg-raised p-[28px]">
               <LoudnessGauge report={before} target={settings.targetLufs} />
             </div>
           </Card>
@@ -394,13 +394,13 @@ export function NormalizePanel() {
             <FileDrop compact />
           </div>
         </Card>
-        <Card tone="cream" className="ring-1 ring-inset ring-border-mist">
+        <Card tone="cream" className="ring-1 ring-inset ring-line">
           <Eyebrow>Zielwerte</Eyebrow>
           <dl className="mt-[14px] flex flex-col gap-[11px] text-[13px]">
             {LOUDNESS_PRESETS.map((preset) => (
               <div key={preset.id} className="flex items-baseline justify-between gap-3">
-                <dt className="text-charcoal/75">{preset.label}</dt>
-                <dd className="numeric shrink-0 text-forest-ink">{preset.lufs} LUFS</dd>
+                <dt className="text-prose/85">{preset.label}</dt>
+                <dd className="numeric shrink-0 text-ink">{preset.lufs} LUFS</dd>
               </div>
             ))}
           </dl>

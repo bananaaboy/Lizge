@@ -1,20 +1,32 @@
 @import 'tailwindcss';
 
 /* ---------------------------------------------------------------------------
-   Ease Health — botanical greenhouse on cream paper.
+   Ease Health — botanical greenhouse on cream paper, and the same greenhouse
+   after dark.
+
+   Colours are named for their role rather than their hue, because the hue is
+   exactly what changes between themes: "cream paper" would be a lie in dark
+   mode, "canvas" stays true. Tailwind emits every colour utility as
+   `var(--color-…)`, so redefining those variables under a theme selector
+   re-skins the whole app without touching a single component.
+
    Faire Octave and Suisse Intl are licensed faces; Cormorant Garamond and
    Inter stand in for them and are self-hosted under /public/fonts.
    --------------------------------------------------------------------------- */
 @theme {
-  --color-forest-ink: #0f3e17;
-  --color-forest-shadow: #0c2f10;
-  --color-sage-mist: #b1dbb8;
-  --color-keylime-wash: #e1f4df;
-  --color-mint-veil: #cfe7d3;
-  --color-slate-hush: #b6ced5;
-  --color-cream-paper: #fffefc;
-  --color-charcoal: #222222;
-  --color-border-mist: #efeeeb;
+  /* Light palette — the values below double as the defaults. */
+  --color-canvas: #fffefc;
+  --color-raised: #fffefc;
+  --color-panel-soft: #e1f4df;
+  --color-panel-mid: #cfe7d3;
+  --color-panel-strong: #b1dbb8;
+  --color-panel-cool: #b6ced5;
+  --color-ink: #0f3e17;
+  --color-ink-hover: #0c2f10;
+  --color-on-ink: #fffefc;
+  --color-prose: #222222;
+  --color-muted: #5b6b5e;
+  --color-line: #efeeeb;
 
   --font-display: 'Faire Octave', 'Cormorant Garamond', ui-serif, Georgia, serif;
   --font-sans: 'Suisse Intl', 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
@@ -32,19 +44,62 @@
   --text-heading: 40px;
   --text-heading--line-height: 1.35;
   --text-heading--letter-spacing: -0.4px;
-  --text-heading-lg: 56px;
-  --text-heading-lg--line-height: 1.2;
-  --text-heading-lg--letter-spacing: -1.68px;
-  --text-display: 74px;
-  --text-display--line-height: 1.05;
-  --text-display--letter-spacing: -2.22px;
 
   --radius-card: 14px;
   --radius-nav: 7px;
   --radius-pill: 999px;
 }
 
+/* --- themes ---------------------------------------------------------------
+   Light is the bare `:root` default above. Dark is declared twice: once behind
+   the media query for visitors who never touched the switch, and once behind an
+   explicit attribute so the switch wins in both directions. The media-query
+   block is guarded against an explicit light choice and comes first, so the
+   attribute rule takes precedence at equal specificity.
+   ------------------------------------------------------------------------- */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+
+    --color-canvas: #0a120d;
+    --color-raised: #131f18;
+    --color-panel-soft: #17271c;
+    --color-panel-mid: #1d3123;
+    --color-panel-strong: #243c2d;
+    --color-panel-cool: #1d2e35;
+    /* Ink and its backdrop swap roles: the single saturated colour has to be
+       the light one now, or headings and filled buttons would vanish. */
+    --color-ink: #b7e4bd;
+    --color-ink-hover: #d2f2d6;
+    --color-on-ink: #08150b;
+    --color-prose: #dbe6dc;
+    --color-muted: #9fb3a3;
+    --color-line: #253429;
+  }
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --color-canvas: #0a120d;
+  --color-raised: #131f18;
+  --color-panel-soft: #17271c;
+  --color-panel-mid: #1d3123;
+  --color-panel-strong: #243c2d;
+  --color-panel-cool: #1d2e35;
+  --color-ink: #b7e4bd;
+  --color-ink-hover: #d2f2d6;
+  --color-on-ink: #08150b;
+  --color-prose: #dbe6dc;
+  --color-muted: #9fb3a3;
+  --color-line: #253429;
+}
+
 :root {
+  color-scheme: light;
+}
+
+:root[data-theme='light'] {
   color-scheme: light;
 }
 
@@ -54,8 +109,8 @@ html {
 
 body {
   margin: 0;
-  background: var(--color-cream-paper);
-  color: var(--color-charcoal);
+  background: var(--color-canvas);
+  color: var(--color-prose);
   font-family: var(--font-sans);
   font-size: var(--text-body);
   line-height: 1.5;
@@ -80,36 +135,27 @@ body {
 @utility shell {
   margin-inline: auto;
   width: 100%;
-  max-width: 1200px;
+  max-width: 1280px;
   padding-inline: 21px;
 }
 
 /* Display serif is only ever weight 300, with tracking that tightens as it grows. */
-@utility display-xl {
-  font-family: var(--font-display);
-  font-weight: 300;
-  font-size: clamp(42px, 7vw, 74px);
-  line-height: 1.05;
-  letter-spacing: -0.03em;
-  color: var(--color-forest-ink);
-}
-
 @utility display-lg {
   font-family: var(--font-display);
   font-weight: 300;
-  font-size: clamp(34px, 5vw, 56px);
+  font-size: clamp(30px, 4vw, 42px);
   line-height: 1.2;
   letter-spacing: -0.03em;
-  color: var(--color-forest-ink);
+  color: var(--color-ink);
 }
 
 @utility display-md {
   font-family: var(--font-display);
   font-weight: 300;
-  font-size: clamp(28px, 3.6vw, 40px);
-  line-height: 1.35;
+  font-size: clamp(26px, 3.4vw, 36px);
+  line-height: 1.3;
   letter-spacing: -0.01em;
-  color: var(--color-forest-ink);
+  color: var(--color-ink);
 }
 
 @utility display-sm {
@@ -117,7 +163,7 @@ body {
   font-weight: 300;
   font-size: 23px;
   line-height: 1.35;
-  color: var(--color-forest-ink);
+  color: var(--color-ink);
 }
 
 /* The only uppercase treatment in the system. */
@@ -127,7 +173,7 @@ body {
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--color-forest-ink);
+  color: var(--color-ink);
 }
 
 @utility numeric {
@@ -135,19 +181,19 @@ body {
   font-feature-settings: 'tnum' 1;
 }
 
-/* Focus ring — forest ink, never a browser default blue. */
+/* Focus ring — ink, never a browser default blue. */
 :where(a, button, input, select, textarea, [tabindex]):focus-visible {
-  outline: 2px solid var(--color-forest-ink);
+  outline: 2px solid var(--color-ink);
   outline-offset: 2px;
   border-radius: 7px;
 }
 
 ::selection {
-  background: var(--color-sage-mist);
-  color: var(--color-forest-ink);
+  background: var(--color-panel-strong);
+  color: var(--color-ink);
 }
 
-/* Range inputs styled as thin forest rails rather than OS chrome. */
+/* Range inputs styled as thin rails rather than OS chrome. */
 input[type='range'] {
   -webkit-appearance: none;
   appearance: none;
@@ -160,13 +206,13 @@ input[type='range'] {
 input[type='range']::-webkit-slider-runnable-track {
   height: 3px;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--color-forest-ink) 22%, transparent);
+  background: color-mix(in srgb, var(--color-ink) 25%, transparent);
 }
 
 input[type='range']::-moz-range-track {
   height: 3px;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--color-forest-ink) 22%, transparent);
+  background: color-mix(in srgb, var(--color-ink) 25%, transparent);
 }
 
 input[type='range']::-webkit-slider-thumb {
@@ -176,7 +222,7 @@ input[type='range']::-webkit-slider-thumb {
   height: 14px;
   margin-top: -5.5px;
   border-radius: 999px;
-  background: var(--color-forest-ink);
+  background: var(--color-ink);
   border: none;
 }
 
@@ -185,12 +231,18 @@ input[type='range']::-moz-range-thumb {
   height: 14px;
   border: none;
   border-radius: 999px;
-  background: var(--color-forest-ink);
+  background: var(--color-ink);
 }
 
 input[type='range']:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+/* Native controls inherit the theme rather than the OS palette. */
+select option {
+  background: var(--color-raised);
+  color: var(--color-prose);
 }
 
 /* Wavesurfer paints into a shadow root; keep its box from adding chrome. */

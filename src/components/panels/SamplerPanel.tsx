@@ -18,8 +18,10 @@ import { applyFades, getAudioContext, normalizePeak, resumeAudioContext, reverse
 import { saveBytes } from '../../lib/download'
 import { clamp, dbToGain, formatTimecode, withExtension } from '../../lib/format'
 import { detectOnsets, divideEvenly } from '../../lib/onsets'
+import { readPalette, withAlpha, type ResolvedTheme } from '../../lib/theme'
 import { encodeWav, type AudioData } from '../../lib/wav'
 import { renderSliceInWorker } from '../../lib/workerClient'
+import { createZip } from '../../lib/zip'
 import { useDecodedAudio } from '../../hooks/useDecodedAudio'
 import { useActiveAsset, useSession } from '../../state/store'
 import { AssetList } from '../AssetList'
@@ -46,7 +48,7 @@ interface Slice {
 
 const PAD_KEYS = ['1', '2', '3', '4', 'q', 'w', 'e', 'r', 'a', 's', 'd', 'f', 'y', 'x', 'c', 'v']
 
-export function SamplerPanel() {
+export function SamplerPanel({ theme }: { theme: ResolvedTheme }) {
   const asset = useActiveAsset()
   const addAsset = useSession((state) => state.addAsset)
   const log = useSession((state) => state.log)
@@ -84,13 +86,16 @@ export function SamplerPanel() {
     const container = containerRef.current
     if (!container || !audio) return
 
+    // Wavesurfer takes colour strings, so the palette is read out of the
+    // cascade; the effect re-runs on a theme switch and rebuilds the instance.
+    const palette = readPalette()
     const regions = RegionsPlugin.create()
     const wave = WaveSurfer.create({
       container,
       height: 132,
-      waveColor: '#0f3e1740',
-      progressColor: '#0f3e17',
-      cursorColor: '#0f3e17',
+      waveColor: withAlpha(palette.ink, 0.35),
+      progressColor: palette.ink,
+      cursorColor: palette.ink,
       cursorWidth: 1,
       barWidth: 2,
       barGap: 1,
@@ -109,7 +114,7 @@ export function SamplerPanel() {
     // would double the work for no benefit.
     wave.loadBlob(new Blob([encodeWav(audio, 16).slice().buffer as ArrayBuffer], { type: 'audio/wav' }))
 
-    regions.enableDragSelection({ color: '#0f3e171a' })
+    regions.enableDragSelection({ color: withAlpha(palette.ink, 0.12) })
 
     const syncRegions = () => {
       setSlices(
@@ -139,6 +144,26 @@ export function SamplerPanel() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [audio])
+
+  /* --- theme ------------------------------------------------------------- */
+  useEffect(() => {
+    const wave = waveRef.current
+    if (!wave) return
+    // Recolour in place. Rebuilding the instance would discard every region the
+    // user has drawn, which is far too high a price for flipping to dark mode.
+    const frame = requestAnimationFrame(() => {
+      const palette = readPalette()
+      wave.setOptions({
+        waveColor: withAlpha(palette.ink, 0.35),
+        progressColor: palette.ink,
+        cursorColor: palette.ink,
+      })
+      regionsRef.current?.getRegions().forEach((region) => {
+        region.setOptions({ color: withAlpha(palette.ink, 0.1), start: region.start, end: region.end })
+      })
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [theme])
 
   /* --- playback ----------------------------------------------------------- */
   const stopVoices = useCallback(() => {
@@ -226,7 +251,7 @@ export function SamplerPanel() {
       regions.addRegion({
         start,
         end,
-        color: '#0f3e1714',
+        color: withAlpha(readPalette().ink, 0.1),
         drag: true,
         resize: true,
       })
@@ -297,26 +322,38 @@ export function SamplerPanel() {
     }
   }
 
-  const exportAll = async () => {
+  /** Renders every slice once, then either keeps them or zips them. */
+  const renderAll = async (destination: 'session' | 'zip') => {
     setRendering(true)
+    const base = asset?.name.replace(/\.[^.]+$/, '') ?? 'sample'
+    const files: { name: string; data: Uint8Array }[] = []
     try {
       for (const [index, slice] of slices.entries()) {
         const piece = await buildSlice(slice)
         if (!piece) continue
         const bytes = encodeWav(piece, 24)
-        const name = withExtension(`${asset?.name ?? 'sample'}_slice${index + 1}`, 'wav')
-        addAsset({
-          name,
-          bytes,
-          mime: 'audio/wav',
-          sizeBytes: bytes.byteLength,
-          kind: 'audio',
-          audio: piece,
-          durationSeconds: (piece.channels[0]?.length ?? 0) / piece.sampleRate,
-          origin: 'derived',
-        })
+        const name = `${base}_slice${String(index + 1).padStart(2, '0')}.wav`
+        if (destination === 'zip') {
+          files.push({ name: `${base}/${name}`, data: bytes })
+        } else {
+          addAsset({
+            name,
+            bytes,
+            mime: 'audio/wav',
+            sizeBytes: bytes.byteLength,
+            kind: 'audio',
+            audio: piece,
+            durationSeconds: (piece.channels[0]?.length ?? 0) / piece.sampleRate,
+            origin: 'derived',
+          })
+        }
       }
-      log('sampler', `${slices.length} Slices in die Sitzung übernommen`)
+      if (destination === 'zip' && files.length > 0) {
+        saveBytes(createZip(files), `${base}-slices.zip`, 'application/zip')
+        log('sampler', `${files.length} Slices als ZIP gespeichert`)
+      } else if (destination === 'session') {
+        log('sampler', `${slices.length} Slices in die Sitzung übernommen`)
+      }
     } finally {
       setRendering(false)
       setProgress(null)
@@ -331,7 +368,7 @@ export function SamplerPanel() {
         <Card tone="keylime">
           <Eyebrow>Sampler</Eyebrow>
           <h2 className="display-md mt-[11px] mb-[14px]">Schneiden, loopen, transponieren</h2>
-          <p className="max-w-[60ch] text-body leading-[1.6] text-charcoal/80">
+          <p className="max-w-[60ch] text-body leading-[1.6] text-prose/85">
             Ziehen Sie über die Wellenform, um einen Bereich zu setzen, oder lassen Sie Lizge an den
             Transienten schneiden. Die Pads spielen über die Web Audio API — Tonhöhe live per
             Abspielrate, beim Export wahlweise längentreu über einen Phasenvocoder.
@@ -343,10 +380,10 @@ export function SamplerPanel() {
             </div>
           ) : (
             <>
-              <div className="lizge-wave mt-[28px] rounded-card bg-cream-paper p-[21px]">
+              <div className="lizge-wave mt-[28px] rounded-card bg-raised p-[21px]">
                 <div ref={containerRef} />
                 {!audio ? (
-                  <p className="py-[28px] text-center text-[13px] text-charcoal/60">
+                  <p className="py-[28px] text-center text-[13px] text-muted">
                     {status === 'decoding' ? 'Wird dekodiert…' : 'Warten auf Audio'}
                   </p>
                 ) : null}
@@ -386,7 +423,7 @@ export function SamplerPanel() {
           <Card tone="slate">
             <div className="flex flex-wrap items-baseline justify-between gap-3">
               <Eyebrow>Pads</Eyebrow>
-              <span className="text-[12px] text-charcoal/60">Tasten 1–4, Q–R, A–F, Y–V</span>
+              <span className="text-[12px] text-muted">Tasten 1–4, Q–R, A–F, Y–V</span>
             </div>
 
             <div className="mt-[18px] grid grid-cols-2 gap-[11px] sm:grid-cols-4">
@@ -403,10 +440,10 @@ export function SamplerPanel() {
                     }}
                     className={`flex aspect-4/3 flex-col items-start justify-between rounded-card p-[14px] text-left transition-colors ${
                       isPlaying
-                        ? 'bg-forest-ink text-cream-paper'
+                        ? 'bg-ink text-on-ink'
                         : isSelected
-                          ? 'bg-mint-veil text-forest-ink'
-                          : 'bg-cream-paper text-forest-ink hover:bg-keylime-wash'
+                          ? 'bg-panel-mid text-ink'
+                          : 'bg-raised text-ink hover:bg-panel-soft'
                     }`}
                   >
                     <span className="text-[11px] font-semibold uppercase tracking-[0.08em] opacity-70">
@@ -423,12 +460,11 @@ export function SamplerPanel() {
             </div>
 
             <div className="mt-[21px] flex flex-wrap gap-[11px]">
-              <Button
-                onClick={exportAll}
-                disabled={rendering}
-                variant="quiet"
-              >
+              <Button onClick={() => renderAll('session')} disabled={rendering} variant="quiet">
                 {rendering ? 'Wird gerendert…' : `Alle ${slices.length} übernehmen`}
+              </Button>
+              <Button onClick={() => renderAll('zip')} disabled={rendering} variant="quiet">
+                Alle als ZIP
               </Button>
               {selected ? (
                 <Button
@@ -515,7 +551,7 @@ export function SamplerPanel() {
         </Card>
 
         {selected ? (
-          <Card tone="cream" className="ring-1 ring-inset ring-border-mist">
+          <Card tone="cream" className="ring-1 ring-inset ring-line">
             <Eyebrow>Auswahl</Eyebrow>
             <div className="mt-[14px] flex flex-wrap gap-[7px]">
               <Badge>{formatTimecode(selected.start)}</Badge>
@@ -555,7 +591,7 @@ export function SamplerPanel() {
           </Card>
         ) : null}
 
-        <Card tone="cream" className="ring-1 ring-inset ring-border-mist">
+        <Card tone="cream" className="ring-1 ring-inset ring-line">
           <AssetList />
           <div className="mt-[18px]">
             <FileDrop compact />

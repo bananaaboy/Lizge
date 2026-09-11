@@ -13,7 +13,9 @@ import { hasWebGpuAdapter, detectCapabilities, suggestedThreads } from '../../li
 import { formatBytes, withExtension } from '../../lib/format'
 import { STEM_IDS, STEM_LABELS, toInstrumental, type StemId } from '../../lib/separation'
 import { encodeWav, type AudioData } from '../../lib/wav'
+import { holdScreenAwake } from '../../lib/wakeLock'
 import { separateInWorker } from '../../lib/workerClient'
+import { createZip } from '../../lib/zip'
 import { useDecodedAudio } from '../../hooks/useDecodedAudio'
 import { useActiveAsset, useSession } from '../../state/store'
 import { AssetList } from '../AssetList'
@@ -60,6 +62,9 @@ export function StemsPanel() {
     if (!asset) return
     const controller = new AbortController()
     abortRef.current = controller
+    // Separation on a long track runs for minutes; a sleeping machine would
+    // suspend the tab and lose all of it.
+    const releaseWakeLock = await holdScreenAwake()
     setRunning(true)
     setError(null)
     setStems(null)
@@ -100,11 +105,25 @@ export function StemsPanel() {
         log('spuren', message, 'error')
       }
     } finally {
+      releaseWakeLock()
       setRunning(false)
       setProgress(null)
       setNote(null)
       abortRef.current = null
     }
+  }
+
+  /** All stems in one archive, rather than five separate save prompts. */
+  const exportAll = () => {
+    if (!stems) return
+    const base = asset?.name.replace(/\.[^.]+$/, '') ?? 'audio'
+    const files = STEM_IDS.map((id) => ({
+      name: `${base}/${id}.wav`,
+      data: encodeWav(stems[id], 24),
+    }))
+    if (instrumental) files.push({ name: `${base}/instrumental.wav`, data: encodeWav(instrumental, 24) })
+    saveBytes(createZip(files), `${base}-stems.zip`, 'application/zip')
+    log('spuren', `${files.length} Spuren als ZIP gespeichert`)
   }
 
   const exportStem = (id: StemId | 'instrumental', data: AudioData) => {
@@ -138,7 +157,7 @@ export function StemsPanel() {
         <Card tone="keylime">
           <Eyebrow>Spurentrennung</Eyebrow>
           <h2 className="display-md mt-[11px] mb-[14px]">Gesang, Schlagzeug, Bass, Rest</h2>
-          <p className="max-w-[60ch] text-body leading-[1.6] text-charcoal/80">
+          <p className="max-w-[60ch] text-body leading-[1.6] text-prose/85">
             Das eingebaute Verfahren trennt harmonische von perkussiven Anteilen über Medianfilter im
             Spektrogramm und schätzt den Gesang aus der Mittenkohärenz zwischen links und rechts. Vier
             Masken, die sich zu eins ergänzen — die Spuren addieren sich exakt zum Original zurück.
@@ -238,14 +257,19 @@ export function StemsPanel() {
           <Card tone="slate">
             <div className="flex flex-wrap items-baseline justify-between gap-3">
               <Eyebrow>Spuren</Eyebrow>
-              {engine ? <Badge>{engine}</Badge> : null}
+              <div className="flex flex-wrap items-center gap-[7px]">
+                {engine ? <Badge>{engine}</Badge> : null}
+                <Button size="sm" onClick={exportAll}>
+                  Alle als ZIP
+                </Button>
+              </div>
             </div>
 
             <div className="mt-[18px] flex flex-col gap-[11px]">
               {STEM_IDS.map((id) => (
-                <div key={id} className="rounded-card bg-cream-paper p-[21px]">
+                <div key={id} className="rounded-card bg-raised p-[21px]">
                   <div className="mb-[11px] flex flex-wrap items-center justify-between gap-3">
-                    <span className="text-subheading text-forest-ink">{STEM_LABELS[id]}</span>
+                    <span className="text-subheading text-ink">{STEM_LABELS[id]}</span>
                     <div className="flex gap-[7px]">
                       <Button size="sm" variant="quiet" onClick={() => keepStem(id, stems[id])}>
                         Übernehmen
@@ -260,11 +284,11 @@ export function StemsPanel() {
               ))}
 
               {instrumental ? (
-                <div className="rounded-card bg-cream-paper p-[21px]">
+                <div className="rounded-card bg-raised p-[21px]">
                   <div className="mb-[11px] flex flex-wrap items-center justify-between gap-3">
                     <div className="flex flex-col gap-0.5">
-                      <span className="text-subheading text-forest-ink">Instrumental</span>
-                      <span className="text-[12px] text-charcoal/60">
+                      <span className="text-subheading text-ink">Instrumental</span>
+                      <span className="text-[12px] text-muted">
                         Original minus Gesang — exakt, weil subtrahiert statt neu maskiert.
                       </span>
                     </div>
@@ -293,9 +317,9 @@ export function StemsPanel() {
           </div>
         </Card>
 
-        <Card tone="cream" className="ring-1 ring-inset ring-border-mist">
+        <Card tone="cream" className="ring-1 ring-inset ring-line">
           <Eyebrow>Neuronales Modell</Eyebrow>
-          <p className="mt-[11px] text-[13px] leading-[1.55] text-charcoal/75">
+          <p className="mt-[11px] text-[13px] leading-[1.55] text-prose/85">
             Lizge liefert keine Modellgewichte mit — ein Demucs-Export wiegt Hunderte Megabyte, die
             sonst jeder Besuch herunterlädt. Laden Sie stattdessen Ihr eigenes <code>.onnx</code>, es
             wird lokal ausgeführt.

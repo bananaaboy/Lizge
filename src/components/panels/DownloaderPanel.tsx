@@ -20,6 +20,17 @@ import {
   type TransferProgress,
 } from '../../lib/download'
 import { detectCapabilities } from '../../lib/capabilities'
+import {
+  DEFAULT_SERVICE,
+  resolveMedia,
+  SERVICE_DISCLAIMER,
+  ServiceError,
+  type AudioFormat,
+  type DownloadMode,
+  type ServiceItem,
+  type ServiceSettings,
+  type VideoQuality,
+} from '../../lib/service'
 import { loadFfmpeg, runFfmpeg } from '../../lib/ffmpegClient'
 import { formatBytes, sanitizeFilename } from '../../lib/format'
 import { kindFromMime, useSession } from '../../state/store'
@@ -38,7 +49,39 @@ import {
   Toggle,
 } from '../ui/primitives'
 
-type Mode = 'direct' | 'hls'
+type Mode = 'direct' | 'hls' | 'service'
+
+const SERVICE_STORAGE_KEY = 'lizge:service'
+
+/** Only the endpoint and the quality choices persist — never the API key. */
+function readServiceSettings(): ServiceSettings {
+  try {
+    const raw = localStorage.getItem(SERVICE_STORAGE_KEY)
+    if (raw) return { ...DEFAULT_SERVICE, ...(JSON.parse(raw) as Partial<ServiceSettings>) }
+  } catch {
+    /* blocked storage, or somebody hand-edited it */
+  }
+  return DEFAULT_SERVICE
+}
+
+function writeServiceSettings(settings: ServiceSettings): void {
+  try {
+    localStorage.setItem(SERVICE_STORAGE_KEY, JSON.stringify(settings))
+  } catch {
+    /* the setting simply will not survive a reload */
+  }
+}
+
+/** Hosts a browser can never reach directly, so the hint can be specific. */
+const PORTAL_HOSTS = /(?:^|\.)(?:youtube\.com|youtu\.be|soundcloud\.com|vimeo\.com|tiktok\.com|twitter\.com|x\.com|instagram\.com|reddit\.com|twitch\.tv|bilibili\.com|dailymotion\.com)$/i
+
+function isPortalUrl(value: string): boolean {
+  try {
+    return PORTAL_HOSTS.test(new URL(value.trim()).hostname)
+  } catch {
+    return false
+  }
+}
 
 export function DownloaderPanel() {
   const addAsset = useSession((state) => state.addAsset)
@@ -58,13 +101,30 @@ export function DownloaderPanel() {
   const [error, setError] = useState<string | null>(null)
   const abortRef = useRef<AbortController | null>(null)
 
+  // Off on every load. Opting into sending an address to a third party is a
+  // decision worth making deliberately, not one to inherit from last week.
+  const [serviceEnabled, setServiceEnabled] = useState(false)
+  const [service, setService] = useState<ServiceSettings>(() => readServiceSettings())
+  const [apiKey, setApiKey] = useState('')
+  const [items, setItems] = useState<ServiceItem[] | null>(null)
+
+  const updateService = (patch: Partial<ServiceSettings>) => {
+    setService((current) => {
+      const next = { ...current, ...patch }
+      writeServiceSettings(next)
+      return next
+    })
+  }
+
   const detectedHls = /\.m3u8(\?|$)/i.test(url.trim())
-  const effectiveMode: Mode = detectedHls ? 'hls' : mode
+  const detectedPortal = isPortalUrl(url)
+  const effectiveMode: Mode = detectedHls ? 'hls' : detectedPortal && serviceEnabled ? 'service' : mode
 
   const reset = () => {
     setError(null)
     setPlaylist(null)
     setVariantUrl('')
+    setItems(null)
   }
 
   const handleFailure = (failure: unknown, scope: string) => {
@@ -204,23 +264,91 @@ export function DownloaderPanel() {
     }
   }
 
+  /** Ask the service what it has, then pull the item it points at. */
+  const runService = async (item?: ServiceItem) => {
+    const target = url.trim()
+    if (!target) return
+    const controller = new AbortController()
+    abortRef.current = controller
+    setBusy(true)
+    if (!item) reset()
+    else setError(null)
+
+    try {
+      let chosen = item
+      if (!chosen) {
+        setNote('Dienst wird gefragt')
+        const offered = await resolveMedia(target, service, apiKey || null, controller.signal)
+        if (offered.length > 1) {
+          // A post with several attachments: let the user pick rather than guess.
+          setItems(offered)
+          log('dienst', `${offered.length} Medien gefunden`)
+          return
+        }
+        chosen = offered[0]
+      }
+
+      setNote('Datei wird geholt')
+      const media = await fetchMedia(chosen.url, setProgress, controller.signal)
+      const name = sanitizeFilename(chosen.filename || media.filename)
+      addAsset({
+        name,
+        bytes: media.bytes,
+        mime: media.contentType ?? 'application/octet-stream',
+        sizeBytes: media.bytes.byteLength,
+        kind: kindFromMime(media.contentType ?? '', name),
+        audio: null,
+        durationSeconds: null,
+        origin: 'download',
+      })
+      setItems(null)
+      log('dienst', `${name} geladen (${formatBytes(media.bytes.byteLength)}) — über einen fremden Server`)
+    } catch (failure) {
+      if (failure instanceof ServiceError) {
+        setError(failure.message)
+        log('dienst', failure.message, 'error')
+      } else {
+        handleFailure(failure, 'dienst')
+      }
+    } finally {
+      setBusy(false)
+      setProgress(null)
+      setNote(null)
+      abortRef.current = null
+    }
+  }
+
   return (
     <div className="grid gap-[21px] lg:grid-cols-[minmax(0,1fr)_360px]">
       <div className="flex flex-col gap-[21px]">
         <Card tone="keylime">
           <Eyebrow>Downloader</Eyebrow>
           <h2 className="display-md mt-[11px] mb-[14px]">Medien direkt in den Tab laden</h2>
-          <p className="max-w-[60ch] text-body leading-[1.6] text-charcoal/80">
-            Der Browser holt die Datei selbst — es gibt keinen Server dazwischen, der die Adresse
-            mitlesen könnte. Direkte Links landen im Arbeitsspeicher oder, wo die Dateisystem-API
-            vorhanden ist, gleich auf der Festplatte. HLS-Playlisten werden segmentweise geladen und
-            lokal zu einer MP4 zusammengefasst.
+          <p className="max-w-[60ch] text-body leading-[1.6] text-prose/85">
+            Bei direkten Links und HLS-Playlisten holt der Browser die Datei selbst — es gibt keinen
+            Server dazwischen, der die Adresse mitlesen könnte. Direkte Links landen im
+            Arbeitsspeicher oder, wo die Dateisystem-API vorhanden ist, gleich auf der Festplatte;
+            HLS-Segmente werden lokal zu einer MP4 zusammengefasst.
           </p>
+          {serviceEnabled ? (
+            <p className="mt-[11px] max-w-[60ch] text-[13px] leading-[1.6] text-muted">
+              Der Extraktions-Dienst ist eingeschaltet. Für Portal-Adressen gilt das oben Gesagte
+              nicht — die Anfrage läuft dann über einen fremden Server. Siehe unten.
+            </p>
+          ) : null}
 
           <div className="mt-[28px] flex flex-col gap-[18px]">
             <Field
               label="Adresse"
-              hint={detectedHls ? 'HLS-Playlist erkannt.' : 'Direkter Link zu einer Audio- oder Videodatei.'}
+              hint={
+                detectedHls
+                  ? 'HLS-Playlist erkannt.'
+                  : detectedPortal
+                    ? serviceEnabled
+                      ? 'Portal erkannt — der Abruf läuft über den hinterlegten Dienst.'
+                      : 'Portal erkannt. Direkt geht das nicht; schalten Sie unten den Dienst ein.'
+                    : 'Direkter Link zu einer Audio- oder Videodatei.'
+              }
             >
               <TextInput
                 type="url"
@@ -236,9 +364,12 @@ export function DownloaderPanel() {
 
             {!detectedHls ? (
               <Field label="Art">
-                <Select value={mode} onChange={(event) => setMode(event.target.value as Mode)}>
+                <Select value={effectiveMode} onChange={(event) => setMode(event.target.value as Mode)}>
                   <option value="direct">Direkte Datei</option>
                   <option value="hls">HLS-Playlist (.m3u8)</option>
+                  <option value="service" disabled={!serviceEnabled}>
+                    Portal über einen Dienst {serviceEnabled ? '' : '(ausgeschaltet)'}
+                  </option>
                 </Select>
               </Field>
             ) : null}
@@ -258,7 +389,12 @@ export function DownloaderPanel() {
             ) : null}
 
             <div className="flex flex-wrap items-center gap-[11px]">
-              {effectiveMode === 'direct' ? (
+              {effectiveMode === 'service' ? (
+                <Button onClick={() => runService()} disabled={busy || !url.trim() || !service.endpoint}>
+                  {busy ? 'Lädt…' : 'Über den Dienst laden'}
+                  {!busy ? <ArrowRight /> : null}
+                </Button>
+              ) : effectiveMode === 'direct' ? (
                 <Button onClick={downloadDirect} disabled={busy || !url.trim()}>
                   {busy ? 'Lädt…' : 'Laden'}
                   {!busy ? <ArrowRight /> : null}
@@ -301,7 +437,7 @@ export function DownloaderPanel() {
         {playlist && playlist.kind === 'master' ? (
           <Card tone="slate">
             <Eyebrow>Qualitätsstufen</Eyebrow>
-            <div className="mt-[18px] rounded-card bg-cream-paper p-[28px]">
+            <div className="mt-[18px] rounded-card bg-raised p-[28px]">
               <Field label="Stufe">
                 <Select value={variantUrl} onChange={(event) => setVariantUrl(event.target.value)}>
                   {playlist.variants.map((variant) => (
@@ -326,19 +462,154 @@ export function DownloaderPanel() {
           </Card>
         ) : null}
 
+        {items ? (
+          <Card tone="slate">
+            <Eyebrow>Auswahl</Eyebrow>
+            <p className="mt-[11px] text-[13px] text-muted">
+              Der Beitrag enthält mehrere Medien. Wählen Sie, was geholt werden soll.
+            </p>
+            <ul className="mt-[18px] flex flex-col gap-[7px]">
+              {items.map((item) => (
+                <li
+                  key={item.url}
+                  className="flex flex-wrap items-center justify-between gap-[11px] rounded-card bg-raised px-[18px] py-[14px]"
+                >
+                  <span className="min-w-0 flex-1 truncate text-body text-ink">{item.filename}</span>
+                  <Badge>{item.kind}</Badge>
+                  <Button size="sm" onClick={() => runService(item)} disabled={busy}>
+                    Holen
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        ) : null}
+
         {error ? (
           <Notice tone="error" title="Nicht abrufbar">
             {error}
           </Notice>
         ) : null}
 
-        <Notice title="Was hier nicht geht, und warum">
-          Portale wie YouTube liefern ihre Medien ohne <code>Access-Control-Allow-Origin</code> aus.
-          Der Browser lässt eine fremde Seite deshalb nicht an die Daten — eine Schutzmaßnahme, keine
-          Lücke. Umgehen ließe sich das nur über einen fremden Server als Zwischenstation, und genau
-          darauf verzichtet Lizge. Was funktioniert: eigene Dateien, offene Archive, Podcast-Feeds,
-          Mediatheken mit CORS-Freigabe und HLS-Streams, die ihre Segmente freigeben.
-        </Notice>
+        <Card tone={serviceEnabled ? 'sage' : 'cream'} className={serviceEnabled ? '' : 'ring-1 ring-inset ring-line'}>
+          <Eyebrow>YouTube und andere Portale</Eyebrow>
+          <p className="mt-[11px] max-w-[62ch] text-[13px] leading-[1.6] text-prose/85">
+            Direkt geht das nicht: Portale liefern ihre Medien ohne{' '}
+            <code className="font-mono text-[12px]">Access-Control-Allow-Origin</code> aus, und der
+            Browser lässt eine fremde Seite deshalb nicht an die Daten. Das ist eine Schutzmaßnahme,
+            keine Lücke. Möglich wird es nur mit einem Server als Zwischenstation.
+          </p>
+
+          <div className="mt-[21px]">
+            <Toggle
+              label="Abruf über einen Extraktions-Dienst erlauben"
+              hint="Standardmäßig aus. Bleibt aus, bis Sie es in dieser Sitzung ausdrücklich einschalten."
+              checked={serviceEnabled}
+              onChange={(value) => {
+                setServiceEnabled(value)
+                reset()
+                log(
+                  'dienst',
+                  value
+                    ? 'Extraktions-Dienst eingeschaltet — Adressen verlassen ab jetzt den Rechner'
+                    : 'Extraktions-Dienst ausgeschaltet',
+                  value ? 'warn' : 'info',
+                )
+              }}
+            />
+          </div>
+
+          {serviceEnabled ? (
+            <div className="mt-[21px] flex flex-col gap-[18px]">
+              <div className="rounded-card bg-raised p-[21px] text-[13px] leading-[1.6] ring-1 ring-inset ring-ink/30">
+                <p className="mb-[11px] font-semibold text-ink">{SERVICE_DISCLAIMER.title}</p>
+                {SERVICE_DISCLAIMER.paragraphs.map((paragraph) => (
+                  <p key={paragraph.slice(0, 24)} className="mb-[11px] text-prose/85">
+                    {paragraph}
+                  </p>
+                ))}
+                <p className="mt-[14px] border-t border-line pt-[14px] text-muted">
+                  {SERVICE_DISCLAIMER.liability}
+                </p>
+              </div>
+
+              <div className="grid gap-[18px] sm:grid-cols-2">
+                <Field
+                  label="Adresse des Dienstes"
+                  className="sm:col-span-2"
+                  hint="Eine cobalt-kompatible Instanz — eine, der Sie vertrauen, oder Ihre eigene. Wird lokal gespeichert."
+                >
+                  <TextInput
+                    type="url"
+                    inputMode="url"
+                    placeholder="https://meine-instanz.example/"
+                    value={service.endpoint}
+                    onChange={(event) => updateService({ endpoint: event.target.value })}
+                  />
+                </Field>
+
+                <Field
+                  label="Zugangsschlüssel"
+                  className="sm:col-span-2"
+                  hint="Nur falls die Instanz einen verlangt. Wird nicht gespeichert und gilt bis zum Neuladen."
+                >
+                  <TextInput
+                    type="password"
+                    autoComplete="off"
+                    placeholder="optional"
+                    value={apiKey}
+                    onChange={(event) => setApiKey(event.target.value)}
+                  />
+                </Field>
+
+                <Field label="Was holen">
+                  <Select
+                    value={service.downloadMode}
+                    onChange={(event) => updateService({ downloadMode: event.target.value as DownloadMode })}
+                  >
+                    <option value="auto">Video mit Ton</option>
+                    <option value="audio">Nur Ton</option>
+                    <option value="mute">Video ohne Ton</option>
+                  </Select>
+                </Field>
+
+                {service.downloadMode === 'audio' ? (
+                  <Field label="Tonformat">
+                    <Select
+                      value={service.audioFormat}
+                      onChange={(event) => updateService({ audioFormat: event.target.value as AudioFormat })}
+                    >
+                      <option value="best">Bestes verfügbares</option>
+                      <option value="opus">Opus</option>
+                      <option value="mp3">MP3</option>
+                      <option value="wav">WAV</option>
+                    </Select>
+                  </Field>
+                ) : (
+                  <Field label="Auflösung">
+                    <Select
+                      value={service.videoQuality}
+                      onChange={(event) => updateService({ videoQuality: event.target.value as VideoQuality })}
+                    >
+                      <option value="max">Höchste</option>
+                      <option value="2160">2160p</option>
+                      <option value="1440">1440p</option>
+                      <option value="1080">1080p</option>
+                      <option value="720">720p</option>
+                      <option value="480">480p</option>
+                      <option value="360">360p</option>
+                    </Select>
+                  </Field>
+                )}
+              </div>
+            </div>
+          ) : (
+            <p className="mt-[18px] text-[13px] leading-[1.6] text-muted">
+              Ohne den Dienst funktionieren weiterhin: eigene Dateien, offene Archive, Podcast-Feeds,
+              Mediatheken mit CORS-Freigabe und HLS-Streams, die ihre Segmente freigeben.
+            </p>
+          )}
+        </Card>
       </div>
 
       <aside className="flex flex-col gap-[21px]">

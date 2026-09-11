@@ -20,6 +20,10 @@ import {
 import { saveBytes } from '../../lib/download'
 import { loadFfmpeg, onFfmpegProgress, runFfmpeg, sanitize } from '../../lib/ffmpegClient'
 import { formatBytes, withExtension } from '../../lib/format'
+import { holdScreenAwake } from '../../lib/wakeLock'
+import { createZip } from '../../lib/zip'
+import { formatTimecode } from '../../lib/format'
+import { useDecodedAudio } from '../../hooks/useDecodedAudio'
 import { kindFromMime, useActiveAsset, useSession } from '../../state/store'
 import { AssetList } from '../AssetList'
 import { FileDrop } from '../FileDrop'
@@ -35,6 +39,7 @@ import {
   Select,
   Slider,
   Stat,
+  Toggle,
 } from '../ui/primitives'
 
 interface Outcome {
@@ -43,6 +48,23 @@ interface Outcome {
   mime: string
   sourceBytes: number
   elapsedMs: number
+}
+
+type QueueState = 'pending' | 'running' | 'done' | 'error'
+
+interface QueueItem {
+  id: string
+  name: string
+  state: QueueState
+  outputBytes: number | null
+  message?: string
+}
+
+const STATE_MARK: Record<QueueState, string> = {
+  pending: '·',
+  running: '▸',
+  done: '✓',
+  error: '✕',
 }
 
 export function ConverterPanel() {
@@ -58,7 +80,20 @@ export function ConverterPanel() {
   const [outcome, setOutcome] = useState<Outcome | null>(null)
   const abortRef = useRef<AbortController | null>(null)
 
+  // Batch mode: one settings pass applied to everything in the session, which
+  // is the common case for a folder of recordings.
+  const assets = useSession((state) => state.assets)
+  const [batch, setBatch] = useState(false)
+  const [queue, setQueue] = useState<QueueItem[] | null>(null)
+  const [archive, setArchive] = useState<Uint8Array<ArrayBuffer> | null>(null)
+
   const format = useMemo(() => findFormat(settings.formatId), [settings.formatId])
+
+  // Duration comes from a decode, which is worth doing only if the user opens
+  // the trim controls — decoding a two-hour video to place a slider is absurd.
+  const { audio, decode, status: decodeStatus } = useDecodedAudio(asset)
+  const [trimOpen, setTrimOpen] = useState(false)
+  const duration = asset?.durationSeconds ?? (audio ? audio.channels[0].length / audio.sampleRate : null)
 
   const command = useMemo(() => {
     if (!asset) return null
@@ -117,6 +152,65 @@ export function ConverterPanel() {
     }
   }
 
+  /** Runs the current settings over every asset in the session, in order. */
+  const convertBatch = async () => {
+    if (assets.length === 0) return
+    const controller = new AbortController()
+    abortRef.current = controller
+    const releaseWakeLock = await holdScreenAwake()
+
+    setRunning(true)
+    setError(null)
+    setOutcome(null)
+    setArchive(null)
+    setQueue(assets.map((entry) => ({ id: entry.id, name: entry.name, state: 'pending', outputBytes: null })))
+
+    const produced: { name: string; data: Uint8Array }[] = []
+    const mark = (id: string, patch: Partial<QueueItem>) =>
+      setQueue((current) => current?.map((item) => (item.id === id ? { ...item, ...patch } : item)) ?? null)
+
+    try {
+      await loadFfmpeg()
+      for (const entry of assets) {
+        if (controller.signal.aborted) break
+        mark(entry.id, { state: 'running' })
+        const inputName = `in_${sanitize(entry.name)}`
+        const outputName = `out.${format.extension}`
+        try {
+          const { files } = await runFfmpeg({
+            input: { [inputName]: entry.bytes },
+            output: [outputName],
+            args: buildConvertArgs(inputName, outputName, settings),
+            signal: controller.signal,
+          })
+          const bytes = files[outputName]
+          produced.push({ name: withExtension(entry.name, format.extension), data: bytes })
+          mark(entry.id, { state: 'done', outputBytes: bytes.byteLength })
+        } catch (failure) {
+          if (controller.signal.aborted) break
+          // One bad file should not abandon the other nineteen.
+          const message = failure instanceof Error ? failure.message.split('\n')[0] : String(failure)
+          mark(entry.id, { state: 'error', message })
+          log('konverter', `${entry.name}: ${message}`, 'error')
+        }
+      }
+
+      if (produced.length > 0) {
+        setArchive(createZip(produced.map((file) => ({ name: file.name, data: file.data }))))
+        log('konverter', `${produced.length} von ${assets.length} Dateien umgewandelt`)
+      }
+    } catch (failure) {
+      const message = failure instanceof Error ? failure.message : String(failure)
+      setError(message)
+      log('konverter', message, 'error')
+    } finally {
+      releaseWakeLock()
+      setRunning(false)
+      setProgress(null)
+      abortRef.current = null
+    }
+  }
+
   const isLossy = !format.lossless && format.kind !== 'image'
   const showVbr = format.id === 'mp3' || format.id === 'vorbis'
 
@@ -126,7 +220,7 @@ export function ConverterPanel() {
         <Card tone="keylime">
           <Eyebrow>Konverter</Eyebrow>
           <h2 className="display-md mt-[11px] mb-[14px]">Format umwandeln</h2>
-          <p className="max-w-[56ch] text-body leading-[1.6] text-charcoal/80">
+          <p className="max-w-[56ch] text-body leading-[1.6] text-prose/85">
             FFmpeg läuft als WebAssembly in einem Web Worker dieses Tabs. Die Datei wird in ein
             In-Memory-Dateisystem geschrieben, dort transkodiert und wieder ausgelesen — sie verlässt
             den Arbeitsspeicher Ihres Rechners zu keinem Zeitpunkt.
@@ -298,7 +392,7 @@ export function ConverterPanel() {
                         value={settings.videoCrf}
                         onChange={(event) => setConvert({ videoCrf: Number(event.target.value) })}
                       />
-                      <p className="mt-[7px] text-[12px] text-charcoal/60">
+                      <p className="mt-[7px] text-[12px] text-muted">
                         Niedriger ist besser und größer. 18 gilt als sichtbar verlustfrei, 23 als guter
                         Kompromiss.
                       </p>
@@ -307,18 +401,94 @@ export function ConverterPanel() {
                 ) : null}
               </div>
 
+              <div className="mt-[28px]">
+                <Toggle
+                  label="Zuschneiden"
+                  hint="Nur einen Ausschnitt umwandeln. Bildgenau, weil am Ausgang gesucht wird."
+                  checked={trimOpen}
+                  onChange={(value) => {
+                    setTrimOpen(value)
+                    if (value && !duration) void decode()
+                    if (!value) setConvert({ trimStartSeconds: null, trimEndSeconds: null })
+                  }}
+                />
+
+                {trimOpen ? (
+                  duration ? (
+                    <div className="mt-[18px] grid gap-[21px] sm:grid-cols-2">
+                      <Slider
+                        label="Anfang"
+                        display={formatTimecode(settings.trimStartSeconds ?? 0)}
+                        min={0}
+                        max={duration}
+                        step={0.01}
+                        value={settings.trimStartSeconds ?? 0}
+                        onChange={(event) => {
+                          const start = Number(event.target.value)
+                          setConvert({
+                            trimStartSeconds: start,
+                            // Keep the end after the start, or ffmpeg writes nothing.
+                            trimEndSeconds: Math.max(start + 0.1, settings.trimEndSeconds ?? duration),
+                          })
+                        }}
+                      />
+                      <Slider
+                        label="Ende"
+                        display={formatTimecode(settings.trimEndSeconds ?? duration)}
+                        min={0}
+                        max={duration}
+                        step={0.01}
+                        value={settings.trimEndSeconds ?? duration}
+                        onChange={(event) => {
+                          const end = Number(event.target.value)
+                          setConvert({
+                            trimEndSeconds: end,
+                            trimStartSeconds: Math.min(end - 0.1, settings.trimStartSeconds ?? 0),
+                          })
+                        }}
+                      />
+                      <p className="numeric text-[12px] text-muted sm:col-span-2">
+                        Ausschnitt{' '}
+                        {formatTimecode(
+                          (settings.trimEndSeconds ?? duration) - (settings.trimStartSeconds ?? 0),
+                        )}{' '}
+                        von {formatTimecode(duration)}
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="mt-[14px] text-[13px] text-muted">
+                      {decodeStatus === 'decoding' ? 'Länge wird ermittelt…' : 'Länge noch unbekannt.'}
+                    </p>
+                  )
+                ) : null}
+              </div>
+
               {command ? (
                 <div className="mt-[28px]">
                   <Eyebrow>Befehl</Eyebrow>
-                  <pre className="mt-[11px] overflow-x-auto rounded-card bg-cream-paper p-[18px] font-mono text-[12px] leading-[1.6] text-charcoal ring-1 ring-inset ring-border-mist">
+                  <pre className="mt-[11px] overflow-x-auto rounded-card bg-raised p-[18px] font-mono text-[12px] leading-[1.6] text-prose ring-1 ring-inset ring-line">
                     <code>{command}</code>
                   </pre>
                 </div>
               ) : null}
 
+              <div className="mt-[21px]">
+                <Toggle
+                  label={`Alle ${assets.length} Dateien der Sitzung umwandeln`}
+                  hint="Dieselben Einstellungen nacheinander auf jede Datei anwenden, Ergebnis als ZIP."
+                  checked={batch}
+                  onChange={(value) => {
+                    setBatch(value)
+                    setQueue(null)
+                    setArchive(null)
+                  }}
+                  disabled={assets.length < 2}
+                />
+              </div>
+
               <div className="mt-[21px] flex flex-wrap items-center gap-[11px]">
-                <Button onClick={convert} disabled={running}>
-                  {running ? 'Läuft…' : 'Umwandeln'}
+                <Button onClick={batch ? convertBatch : convert} disabled={running}>
+                  {running ? 'Läuft…' : batch ? `${assets.length} Dateien umwandeln` : 'Umwandeln'}
                   {!running ? <ArrowRight /> : null}
                 </Button>
                 {running ? (
@@ -343,10 +513,61 @@ export function ConverterPanel() {
           </Notice>
         ) : null}
 
+        {queue ? (
+          <Card tone="slate">
+            <div className="flex flex-wrap items-baseline justify-between gap-3">
+              <Eyebrow>Stapel</Eyebrow>
+              <span className="numeric text-[12px] text-muted">
+                {queue.filter((item) => item.state === 'done').length} von {queue.length} fertig
+              </span>
+            </div>
+
+            <ul className="mt-[18px] flex flex-col gap-[7px]">
+              {queue.map((item) => (
+                <li
+                  key={item.id}
+                  className="flex flex-wrap items-center gap-[11px] rounded-card bg-raised px-[18px] py-[11px]"
+                >
+                  <span
+                    aria-hidden
+                    className={`numeric w-[14px] shrink-0 text-center text-[13px] ${
+                      item.state === 'running' ? 'text-ink pulse-dot' : 'text-muted'
+                    }`}
+                  >
+                    {STATE_MARK[item.state]}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate text-body text-ink">{item.name}</span>
+                  {item.outputBytes !== null ? (
+                    <span className="numeric shrink-0 text-[12px] text-muted">
+                      {formatBytes(item.outputBytes)}
+                    </span>
+                  ) : null}
+                  {item.message ? (
+                    <span className="w-full text-[12px] text-muted">{item.message}</span>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+
+            {archive ? (
+              <div className="mt-[21px]">
+                <Button
+                  onClick={() =>
+                    saveBytes(archive, `lizge-${format.extension}-${queue.length}.zip`, 'application/zip')
+                  }
+                >
+                  Alle als ZIP speichern ({formatBytes(archive.byteLength)})
+                  <ArrowRight />
+                </Button>
+              </div>
+            ) : null}
+          </Card>
+        ) : null}
+
         {outcome ? (
           <Card tone="slate">
             <Eyebrow>Ergebnis</Eyebrow>
-            <div className="mt-[18px] grid gap-[21px] rounded-card bg-cream-paper p-[28px] sm:grid-cols-3">
+            <div className="mt-[18px] grid gap-[21px] rounded-card bg-raised p-[28px] sm:grid-cols-3">
               <Stat label="Größe" value={formatBytes(outcome.bytes.byteLength)} emphasis />
               <Stat
                 label="Gegenüber Quelle"
@@ -390,11 +611,11 @@ export function ConverterPanel() {
             <FileDrop compact />
           </div>
         </Card>
-        <Card tone="cream" className="ring-1 ring-inset ring-border-mist">
+        <Card tone="cream" className="ring-1 ring-inset ring-line">
           <Eyebrow>Quelle</Eyebrow>
           {asset ? (
             <div className="mt-[14px] flex flex-col gap-[11px]">
-              <p className="break-all text-body text-forest-ink">{asset.name}</p>
+              <p className="break-all text-body text-ink">{asset.name}</p>
               <div className="flex flex-wrap gap-[7px]">
                 <Badge>{formatBytes(asset.sizeBytes)}</Badge>
                 <Badge>{asset.kind === 'video' ? 'Video' : asset.kind === 'audio' ? 'Audio' : 'Unbekannt'}</Badge>
@@ -402,7 +623,7 @@ export function ConverterPanel() {
               </div>
             </div>
           ) : (
-            <p className="mt-[14px] text-[13px] text-charcoal/60">Keine Datei ausgewählt.</p>
+            <p className="mt-[14px] text-[13px] text-muted">Keine Datei ausgewählt.</p>
           )}
         </Card>
       </aside>

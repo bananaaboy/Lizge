@@ -12,11 +12,11 @@ import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, SelectHTMLAt
 type Tone = 'cream' | 'keylime' | 'mint' | 'sage' | 'slate'
 
 const TONE_CLASS: Record<Tone, string> = {
-  cream: 'bg-cream-paper',
-  keylime: 'bg-keylime-wash',
-  mint: 'bg-mint-veil',
-  sage: 'bg-sage-mist',
-  slate: 'bg-slate-hush',
+  cream: 'bg-raised',
+  keylime: 'bg-panel-soft',
+  mint: 'bg-panel-mid',
+  sage: 'bg-panel-strong',
+  slate: 'bg-panel-cool',
 }
 
 export function Card({
@@ -51,7 +51,7 @@ export function Badge({
   className?: string
 }) {
   const styles =
-    tone === 'forest' ? 'bg-forest-ink text-cream-paper' : 'bg-cream-paper text-forest-ink'
+    tone === 'forest' ? 'bg-ink text-on-ink' : 'bg-raised text-ink'
   return (
     <span
       className={`inline-flex items-center gap-1.5 rounded-pill px-[14px] py-[7px] text-[12px] leading-none ${styles} ${className}`}
@@ -71,9 +71,9 @@ export function Button({ variant = 'primary', size = 'md', className = '', ...pr
     'inline-flex items-center justify-center gap-2 rounded-card font-sans transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-40'
   const sizes = size === 'sm' ? 'px-[14px] py-[9px] text-[13px]' : 'px-[21px] py-[14px] text-body'
   const variants = {
-    primary: 'bg-forest-ink text-cream-paper hover:bg-forest-shadow',
-    quiet: 'bg-cream-paper text-forest-ink hover:bg-mint-veil',
-    ghost: 'bg-transparent text-forest-ink hover:bg-cream-paper',
+    primary: 'bg-ink text-on-ink hover:bg-ink-hover',
+    quiet: 'bg-raised text-ink hover:bg-panel-mid',
+    ghost: 'bg-transparent text-ink hover:bg-raised',
   }[variant]
 
   return <button className={`${base} ${sizes} ${variants} ${className}`} {...props} />
@@ -92,15 +92,15 @@ export function Field({
 }) {
   return (
     <label className={`flex flex-col gap-[7px] ${className}`}>
-      <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-forest-ink">{label}</span>
+      <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink">{label}</span>
       {children}
-      {hint ? <span className="text-[12px] leading-[1.5] text-charcoal/60">{hint}</span> : null}
+      {hint ? <span className="text-[12px] leading-[1.5] text-muted">{hint}</span> : null}
     </label>
   )
 }
 
 const CONTROL =
-  'w-full rounded-nav border-0 bg-cream-paper px-[14px] py-[11px] text-body text-charcoal outline-none ring-1 ring-inset ring-border-mist focus:ring-forest-ink'
+  'w-full rounded-nav border-0 bg-raised px-[14px] py-[11px] text-body text-prose outline-none ring-1 ring-inset ring-line focus:ring-ink'
 
 export function Select({ className = '', ...props }: SelectHTMLAttributes<HTMLSelectElement>) {
   return <select className={`${CONTROL} appearance-none pr-9 ${className}`} {...props} />
@@ -119,8 +119,8 @@ export function Slider({
   return (
     <div className="flex flex-col gap-[7px]">
       <div className="flex items-baseline justify-between gap-3">
-        <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-forest-ink">{label}</span>
-        <span className="numeric text-[13px] text-charcoal">{display}</span>
+        <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink">{label}</span>
+        <span className="numeric text-[13px] text-prose">{display}</span>
       </div>
       <input type="range" {...props} />
     </div>
@@ -151,18 +151,18 @@ export function Toggle({
     >
       <span
         className={`mt-0.5 flex h-[20px] w-[34px] shrink-0 items-center rounded-pill p-[3px] transition-colors ${
-          checked ? 'bg-forest-ink' : 'bg-forest-ink/20'
+          checked ? 'bg-ink' : 'bg-ink/20'
         }`}
       >
         <span
-          className={`h-[14px] w-[14px] rounded-pill bg-cream-paper transition-transform ${
+          className={`h-[14px] w-[14px] rounded-pill bg-raised transition-transform ${
             checked ? 'translate-x-[14px]' : 'translate-x-0'
           }`}
         />
       </span>
       <span className="flex flex-col gap-0.5">
-        <span className="text-body text-charcoal">{label}</span>
-        {hint ? <span className="text-[12px] leading-[1.45] text-charcoal/60">{hint}</span> : null}
+        <span className="text-body text-prose">{label}</span>
+        {hint ? <span className="text-[12px] leading-[1.45] text-muted">{hint}</span> : null}
       </span>
     </button>
   )
@@ -174,19 +174,19 @@ export function Progress({ value, label }: { value: number | null; label?: strin
     <div className="flex flex-col gap-[7px]">
       {label ? (
         <div className="flex items-baseline justify-between gap-3">
-          <span className="text-[12px] text-charcoal/70">{label}</span>
-          {percent !== null ? <span className="numeric text-[12px] text-forest-ink">{percent}%</span> : null}
+          <span className="text-[12px] text-muted">{label}</span>
+          {percent !== null ? <span className="numeric text-[12px] text-ink">{percent}%</span> : null}
         </div>
       ) : null}
       <div
-        className="h-[3px] w-full overflow-hidden rounded-pill bg-forest-ink/15"
+        className="h-[3px] w-full overflow-hidden rounded-pill bg-ink/15"
         role="progressbar"
         aria-valuenow={percent ?? undefined}
         aria-valuemin={0}
         aria-valuemax={100}
       >
         <div
-          className={`h-full rounded-pill bg-forest-ink transition-[width] duration-200 ${
+          className={`h-full rounded-pill bg-ink transition-[width] duration-200 ${
             percent === null ? 'w-1/3 pulse-dot' : ''
           }`}
           style={percent === null ? undefined : { width: `${percent}%` }}
@@ -210,13 +210,13 @@ export function Stat({
 }) {
   return (
     <div className="flex flex-col gap-[4px]">
-      <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-forest-ink/70">{label}</span>
+      <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink/70">{label}</span>
       <span
-        className={`numeric ${emphasis ? 'font-display text-[28px] font-light leading-none' : 'text-subheading'} text-forest-ink`}
+        className={`numeric ${emphasis ? 'font-display text-[28px] font-light leading-none' : 'text-subheading'} text-ink`}
       >
         {value}
       </span>
-      {note ? <span className="text-[12px] leading-[1.4] text-charcoal/60">{note}</span> : null}
+      {note ? <span className="text-[12px] leading-[1.4] text-muted">{note}</span> : null}
     </div>
   )
 }
@@ -231,14 +231,14 @@ export function Notice({
   children: ReactNode
 }) {
   const ring = {
-    info: 'ring-border-mist',
-    warn: 'ring-forest-ink/25',
-    error: 'ring-forest-ink/45',
+    info: 'ring-line',
+    warn: 'ring-ink/25',
+    error: 'ring-ink/45',
   }[tone]
   return (
-    <div className={`rounded-card bg-cream-paper p-[21px] text-[13px] leading-[1.55] ring-1 ring-inset ${ring}`}>
-      {title ? <p className="mb-1.5 font-semibold text-forest-ink">{title}</p> : null}
-      <div className="text-charcoal/80">{children}</div>
+    <div className={`rounded-card bg-raised p-[21px] text-[13px] leading-[1.55] ring-1 ring-inset ${ring}`}>
+      {title ? <p className="mb-1.5 font-semibold text-ink">{title}</p> : null}
+      <div className="text-prose/85">{children}</div>
     </div>
   )
 }
