@@ -29,17 +29,23 @@ import {
 import { detectCapabilities } from '../../lib/capabilities'
 import {
   DEFAULT_SERVICE,
+  localJobArgs,
+  localJobExtension,
+  probeService,
   resolveMedia,
   SERVICE_DISCLAIMER,
   ServiceError,
   type AudioFormat,
   type DownloadMode,
+  type LocalJob,
+  type ServiceInfo,
   type ServiceItem,
   type ServiceSettings,
   type VideoQuality,
 } from '../../lib/service'
 import { loadFfmpeg, runFfmpeg } from '../../lib/ffmpegClient'
-import { formatBytes, sanitizeFilename } from '../../lib/format'
+import { formatBytes, sanitizeFilename, withExtension } from '../../lib/format'
+import { holdScreenAwake } from '../../lib/wakeLock'
 import { kindFromMime, useSession } from '../../state/store'
 import { AssetList } from '../AssetList'
 import {
@@ -115,6 +121,8 @@ export function DownloaderPanel() {
   const [service, setService] = useState<ServiceSettings>(() => readServiceSettings())
   const [apiKey, setApiKey] = useState('')
   const [items, setItems] = useState<ServiceItem[] | null>(null)
+  const [serviceInfo, setServiceInfo] = useState<ServiceInfo | null>(null)
+  const [checking, setChecking] = useState(false)
 
   const updateService = (patch: Partial<ServiceSettings>) => {
     setService((current) => {
@@ -273,45 +281,116 @@ export function DownloaderPanel() {
     }
   }
 
-  /** Ask the service what it has, then pull the item it points at. */
+  /** Fetches one already-resolved item into the session. */
+  const pullItem = async (item: ServiceItem, signal: AbortSignal) => {
+    setNote('Datei wird geholt')
+    const media = await fetchMedia(item.url, setProgress, signal)
+    const name = sanitizeFilename(item.filename || media.filename)
+    addAsset({
+      name,
+      bytes: media.bytes,
+      mime: media.contentType ?? 'application/octet-stream',
+      sizeBytes: media.bytes.byteLength,
+      kind: kindFromMime(media.contentType ?? '', name),
+      audio: null,
+      durationSeconds: null,
+      origin: 'download',
+    })
+    log('dienst', `${name} geladen (${formatBytes(media.bytes.byteLength)}) — über einen fremden Server`)
+  }
+
+  /**
+   * Finishes a `local-processing` job.
+   *
+   * The instance hands over the raw parts — YouTube above 360p keeps video and
+   * audio in separate streams — and expects the client to combine them. FFmpeg
+   * is already here, so the finished file is assembled on this machine and the
+   * instance never sees it.
+   */
+  const runLocalJob = async (job: LocalJob, signal: AbortSignal) => {
+    const inputs: Record<string, Uint8Array> = {}
+    const names: string[] = []
+
+    for (const [index, tunnel] of job.tunnels.entries()) {
+      setNote(`Teil ${index + 1} von ${job.tunnels.length} wird geholt`)
+      let bytes: Uint8Array
+      if (job.isHls) {
+        // The tunnel is a playlist, not a file; pull its segments first.
+        const playlist = await fetchPlaylist(tunnel, signal)
+        bytes = await fetchHlsSegments(
+          playlist,
+          (done, total, received) =>
+            setProgress({ receivedBytes: received, totalBytes: null, fraction: done / total, bytesPerSecond: 0 }),
+          signal,
+        )
+      } else {
+        bytes = (await fetchMedia(tunnel, setProgress, signal)).bytes
+      }
+      const name = `part${index}`
+      inputs[name] = bytes
+      names.push(name)
+    }
+
+    setProgress(null)
+    setNote('Wird lokal zusammengefügt')
+    await loadFfmpeg()
+
+    const extension = localJobExtension(job)
+    const outputName = `out.${extension}`
+    const args = localJobArgs(job, names, outputName)
+    log('dienst', `ffmpeg ${args.join(' ')}`)
+
+    const { files } = await runFfmpeg({ input: inputs, output: [outputName], args, signal })
+    const bytes = files[outputName]
+    const name = sanitizeFilename(withExtension(job.filename, extension))
+
+    addAsset({
+      name,
+      bytes,
+      mime: job.mimeType,
+      sizeBytes: bytes.byteLength,
+      kind: kindFromMime(job.mimeType, name),
+      audio: null,
+      durationSeconds: null,
+      origin: 'download',
+    })
+    log('dienst', `${name} lokal zusammengefügt (${formatBytes(bytes.byteLength)})`)
+  }
+
+  /** Ask the service what it has, then finish the job it describes. */
   const runService = async (item?: ServiceItem) => {
     const target = url.trim()
     if (!target) return
     const controller = new AbortController()
     abortRef.current = controller
+    const releaseWakeLock = await holdScreenAwake()
     setBusy(true)
     if (!item) reset()
     else setError(null)
 
     try {
-      let chosen = item
-      if (!chosen) {
-        setNote('Dienst wird gefragt')
-        const offered = await resolveMedia(target, service, apiKey || null, controller.signal)
-        if (offered.length > 1) {
-          // A post with several attachments: let the user pick rather than guess.
-          setItems(offered)
-          log('dienst', `${offered.length} Medien gefunden`)
-          return
-        }
-        chosen = offered[0]
+      if (item) {
+        await pullItem(item, controller.signal)
+        setItems(null)
+        return
       }
 
-      setNote('Datei wird geholt')
-      const media = await fetchMedia(chosen.url, setProgress, controller.signal)
-      const name = sanitizeFilename(chosen.filename || media.filename)
-      addAsset({
-        name,
-        bytes: media.bytes,
-        mime: media.contentType ?? 'application/octet-stream',
-        sizeBytes: media.bytes.byteLength,
-        kind: kindFromMime(media.contentType ?? '', name),
-        audio: null,
-        durationSeconds: null,
-        origin: 'download',
-      })
-      setItems(null)
-      log('dienst', `${name} geladen (${formatBytes(media.bytes.byteLength)}) — über einen fremden Server`)
+      setNote('Dienst wird gefragt')
+      const result = await resolveMedia(target, service, apiKey || null, controller.signal)
+
+      if (result.kind === 'picker') {
+        // A post with several attachments: let the user pick rather than guess.
+        setItems(result.items)
+        log('dienst', `${result.items.length} Medien gefunden`)
+        return
+      }
+
+      if (result.kind === 'local') {
+        await runLocalJob(result.job, controller.signal)
+        return
+      }
+
+      await pullItem(result.item, controller.signal)
     } catch (failure) {
       if (failure instanceof ServiceError) {
         setError(failure.message)
@@ -320,9 +399,32 @@ export function DownloaderPanel() {
         handleFailure(failure, 'dienst')
       }
     } finally {
+      releaseWakeLock()
       setBusy(false)
       setProgress(null)
       setNote(null)
+      abortRef.current = null
+    }
+  }
+
+  /** Checks the endpoint and says precisely what is wrong with it. */
+  const checkService = async () => {
+    if (!service.endpoint.trim()) return
+    const controller = new AbortController()
+    abortRef.current = controller
+    setChecking(true)
+    setServiceInfo(null)
+    setError(null)
+    try {
+      const info = await probeService(service.endpoint, apiKey || null, controller.signal)
+      setServiceInfo(info)
+      log('dienst', `Instanz erreichbar: cobalt ${info.version}, ${info.services.length} Dienste`)
+    } catch (failure) {
+      const message = failure instanceof Error ? failure.message : String(failure)
+      setError(message)
+      log('dienst', message, 'error')
+    } finally {
+      setChecking(false)
       abortRef.current = null
     }
   }
@@ -507,6 +609,7 @@ export function DownloaderPanel() {
                 ? undefined
                 : 'Aus. Ohne sie gehen eigene Dateien, offene Archive, Podcast-Feeds und HLS-Streams mit CORS-Freigabe.'
             }
+            
             checked={serviceEnabled}
             onChange={(value) => {
               setServiceEnabled(value)
@@ -527,14 +630,45 @@ export function DownloaderPanel() {
               {/* Settings first: this is what someone came here to fill in. */}
               <div className="grid gap-[14px] sm:grid-cols-2">
                 <Field label="Dienst" className="sm:col-span-2">
-                  <TextInput
-                    type="url"
-                    inputMode="url"
-                    placeholder="https://meine-instanz.example/"
-                    value={service.endpoint}
-                    onChange={(event) => updateService({ endpoint: event.target.value })}
-                  />
+                  <div className="flex flex-wrap items-center gap-[9px]">
+                    <TextInput
+                      type="url"
+                      inputMode="url"
+                      className="min-w-[220px] flex-1"
+                      placeholder="https://meine-instanz.example/"
+                      value={service.endpoint}
+                      onChange={(event) => {
+                        updateService({ endpoint: event.target.value })
+                        setServiceInfo(null)
+                      }}
+                    />
+                    <Button
+                      size="sm"
+                      variant="quiet"
+                      onClick={checkService}
+                      disabled={checking || !service.endpoint.trim()}
+                    >
+                      {checking ? 'Prüft…' : 'Prüfen'}
+                    </Button>
+                  </div>
                 </Field>
+
+                {serviceInfo ? (
+                  <div className="flex flex-wrap items-center gap-[7px] sm:col-span-2">
+                    <Badge tone="forest">cobalt {serviceInfo.version}</Badge>
+                    {/* Whether the instance actually offers YouTube is the thing
+                        people get wrong, so it is stated rather than implied. */}
+                    <Badge>
+                      {serviceInfo.services.includes('youtube')
+                        ? 'YouTube unterstützt'
+                        : 'YouTube nicht aktiviert'}
+                    </Badge>
+                    <Badge>
+                      {serviceInfo.services.length} {serviceInfo.services.length === 1 ? 'Dienst' : 'Dienste'}
+                    </Badge>
+                    {serviceInfo.needsTurnstile ? <Badge>verlangt Bot-Prüfung</Badge> : null}
+                  </div>
+                ) : null}
 
                 <Field label="Zugangsschlüssel" className="sm:col-span-2">
                   <TextInput
@@ -586,6 +720,24 @@ export function DownloaderPanel() {
                   </Field>
                 )}
               </div>
+
+              <p className="text-[12px] leading-[1.5] text-muted">
+                Es gibt keine öffentliche Instanz mehr, die man hier eintragen könnte: die frühere
+                wurde von YouTube gesperrt, und die verbliebenen verlangen eine ausdrückliche
+                Erlaubnis ihrer Betreiber. Praktisch heißt das, Sie brauchen eine eigene — auf einem
+                Server, in Docker oder lokal. Eine frische Instanz lädt von YouTube in der Regel
+                problemlos. Die Anleitung steht unter{' '}
+                <a
+                  className="underline underline-offset-2 hover:text-ink"
+                  href="https://github.com/imputnet/cobalt/blob/main/docs/run-an-instance.md"
+                  target="_blank"
+                  rel="noreferrer noopener"
+                >
+                  cobalt/docs/run-an-instance.md
+                </a>
+                . Läuft sie lokal, tragen Sie hier <code className="font-mono">http://localhost:9000/</code>{' '}
+                ein.
+              </p>
 
               {/* Terms last, under the controls they apply to. */}
               <div className="rounded-card bg-raised p-[14px] text-[12px] leading-[1.5] ring-1 ring-inset ring-ink/30">
