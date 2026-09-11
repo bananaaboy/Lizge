@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lizge — Medienstudio, das nie etwas hochlädt</title>
+    <meta
+      name="description"
+      content="Konvertieren, Spuren trennen, normalisieren und sampeln — vollständig lokal im Browser über WebAssembly und Web Workers. Keine Uploads, kein Server."
+    />
+    <meta name="color-scheme" content="light" />
+    <meta name="theme-color" content="#fffefc" />
+    <link rel="stylesheet" href="./fonts.css" />
+    <link rel="preload" href="./fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="./fonts/cormorant-garamond-latin.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+  </head>
+  <body>
+    <script>
+      /*
+       * Cross-origin isolation unlocks SharedArrayBuffer, which the
+       * multi-threaded FFmpeg core needs. Hosts that can set COOP/COEP headers
+       * (see public/_headers and vercel.json) give it to us directly; on hosts
+       * that cannot, a service worker adds the headers instead. The app works
+       * either way — without isolation it loads the single-threaded core.
+       */
+      (function () {
+        if (window.crossOriginIsolated) return
+        if (!window.isSecureContext || !('serviceWorker' in navigator)) return
+        navigator.serviceWorker.register('./coi-serviceworker.js', { scope: './' }).then(
+          function (registration) {
+            // The worker only controls the page from the next load onwards.
+            if (registration.active && !navigator.serviceWorker.controller) window.location.reload()
+          },
+          function (error) {
+            console.warn('[lizge] Isolation über Service Worker nicht möglich:', error)
+          },
+        )
+      })()
+    </script>
+    <div id="root"></div>
+    <noscript>
+      Lizge verarbeitet alle Medien lokal in Ihrem Browser und benötigt dafür JavaScript.
+    </noscript>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
