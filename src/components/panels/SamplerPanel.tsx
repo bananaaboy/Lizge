@@ -1,23 +1,39 @@
 /**
- * In-browser sampler.
+ * Sample chopper.
  *
- * Wavesurfer draws and scrubs; regions are the slices. Playback goes through the
- * Web Audio API directly rather than through Wavesurfer, so a pad can be
- * retriggered while the previous one is still ringing — which is the whole point
- * of a pad grid.
+ * Three ways to cut, because material differs: on transients for a break, on a
+ * tempo grid for anything with a pulse, and in equal parts when you just want
+ * sixteen of them. The grid comes from an autocorrelation tempo estimate, and
+ * because half- and double-time are the same grid musically, the tempo is
+ * adjustable by ear with ×2 and ÷2.
  *
- * Export work (pitch, stretch) is handed to a worker; the phase vocoder is far
- * too slow to run on the thread that has to keep the pads responsive.
+ * Cuts snap to a rising zero crossing. A cut mid-waveform leaves a step, and a
+ * step is a click — fades hide it but cost the attack, which is the one part of
+ * a chop you cannot afford to soften.
+ *
+ * Pads are triggered from the keyboard and carry their own pitch, level and
+ * direction, so a kit can be tuned pad by pad rather than all at once.
+ * Playback uses the Web Audio graph directly rather than Wavesurfer, so a pad
+ * can be retriggered while the previous one still rings.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import WaveSurfer from 'wavesurfer.js'
 import RegionsPlugin, { type Region } from 'wavesurfer.js/plugins/regions'
 
-import { applyFades, getAudioContext, normalizePeak, resumeAudioContext, reverseAudio, sliceAudio, toAudioBuffer } from '../../lib/audio'
+import {
+  applyFades,
+  getAudioContext,
+  normalizePeak,
+  resumeAudioContext,
+  reverseAudio,
+  sliceAudio,
+  toAudioBuffer,
+} from '../../lib/audio'
 import { saveBytes } from '../../lib/download'
-import { clamp, dbToGain, formatTimecode, withExtension } from '../../lib/format'
+import { clamp, dbToGain, formatTimecode } from '../../lib/format'
 import { detectOnsets, divideEvenly } from '../../lib/onsets'
+import { beatGrid, estimateTempo, snapToZeroCrossing, type TempoEstimate } from '../../lib/tempo'
 import { readPalette, withAlpha, type ResolvedTheme } from '../../lib/theme'
 import { encodeWav, type AudioData } from '../../lib/wav'
 import { renderSliceInWorker } from '../../lib/workerClient'
@@ -40,13 +56,35 @@ import {
   Toggle,
 } from '../ui/primitives'
 
+type PlayMode = 'oneshot' | 'gate' | 'loop'
+
 interface Slice {
   id: string
   start: number
   end: number
+  semitones: number
+  gainDb: number
+  reverse: boolean
+  mode: PlayMode
 }
 
+/** Four rows of four, in the order they sit on the keyboard. */
 const PAD_KEYS = ['1', '2', '3', '4', 'q', 'w', 'e', 'r', 'a', 's', 'd', 'f', 'y', 'x', 'c', 'v']
+const MAX_PADS = 16
+
+const GRID_DIVISIONS: { value: number; label: string }[] = [
+  { value: 0.25, label: '1/16' },
+  { value: 0.5, label: '1/8' },
+  { value: 1, label: '1/4 (Beat)' },
+  { value: 2, label: '1/2' },
+  { value: 4, label: 'Takt' },
+]
+
+const MODE_LABELS: Record<PlayMode, string> = {
+  oneshot: 'One-Shot',
+  gate: 'Gate (Taste halten)',
+  loop: 'Schleife',
+}
 
 export function SamplerPanel({ theme }: { theme: ResolvedTheme }) {
   const asset = useActiveAsset()
@@ -58,22 +96,29 @@ export function SamplerPanel({ theme }: { theme: ResolvedTheme }) {
   const waveRef = useRef<WaveSurfer | null>(null)
   const regionsRef = useRef<ReturnType<typeof RegionsPlugin.create> | null>(null)
   const bufferRef = useRef<AudioBuffer | null>(null)
-  const voicesRef = useRef<AudioBufferSourceNode[]>([])
+  /** Built once so a reversed pad can play without re-rendering anything. */
+  const reversedRef = useRef<AudioBuffer | null>(null)
+  /** Live voices per pad, for choking and for gate release. */
+  const voicesRef = useRef(new Map<number, AudioBufferSourceNode[]>())
 
   const [slices, setSlices] = useState<Slice[]>([])
   const [activeSlice, setActiveSlice] = useState<string | null>(null)
-  const [playingPad, setPlayingPad] = useState<number | null>(null)
+  const [playing, setPlaying] = useState<number[]>([])
 
-  const [semitones, setSemitones] = useState(0)
-  const [preserveDuration, setPreserveDuration] = useState(true)
-  const [stretchFactor, setStretchFactor] = useState(1)
-  const [gainDb, setGainDb] = useState(0)
-  const [fadeMs, setFadeMs] = useState(5)
-  const [reversed, setReversed] = useState(false)
+  // Defaults a freshly cut slice inherits.
+  const [defaultMode, setDefaultMode] = useState<PlayMode>('oneshot')
+  const [choke, setChoke] = useState(true)
+  const [snap, setSnap] = useState(true)
+  const [fadeMs, setFadeMs] = useState(4)
   const [normalize, setNormalize] = useState(false)
-  const [loop, setLoop] = useState(false)
+  const [preserveDuration, setPreserveDuration] = useState(true)
 
-  const [sliceCount, setSliceCount] = useState(8)
+  const [tempo, setTempo] = useState<TempoEstimate | null>(null)
+  const [bpm, setBpm] = useState(120)
+  const [division, setDivision] = useState(1)
+  const [sliceCount, setSliceCount] = useState(16)
+  const [zoom, setZoom] = useState(0)
+
   const [rendering, setRendering] = useState(false)
   const [progress, setProgress] = useState<number | null>(null)
 
@@ -81,18 +126,32 @@ export function SamplerPanel({ theme }: { theme: ResolvedTheme }) {
     if (asset && !audio && status === 'idle') void decode()
   }, [asset, audio, status, decode])
 
-  /* --- wavesurfer lifecycle ---------------------------------------------- */
+  const duration = audio ? (audio.channels[0]?.length ?? 0) / audio.sampleRate : 0
+
+  /* --- tempo -------------------------------------------------------------- */
+  useEffect(() => {
+    if (!audio) {
+      setTempo(null)
+      return
+    }
+    // Analysis is fast enough to run inline, and the result is needed before
+    // the user can choose a grid.
+    const estimate = estimateTempo(audio)
+    setTempo(estimate)
+    setBpm(estimate.bpm)
+    log('sampler', `Tempo geschätzt: ${estimate.bpm} BPM (Sicherheit ${Math.round(estimate.confidence * 100)} %)`)
+  }, [audio, log])
+
+  /* --- wavesurfer --------------------------------------------------------- */
   useEffect(() => {
     const container = containerRef.current
     if (!container || !audio) return
 
-    // Wavesurfer takes colour strings, so the palette is read out of the
-    // cascade; the effect re-runs on a theme switch and rebuilds the instance.
     const palette = readPalette()
     const regions = RegionsPlugin.create()
     const wave = WaveSurfer.create({
       container,
-      height: 132,
+      height: 148,
       waveColor: withAlpha(palette.ink, 0.35),
       progressColor: palette.ink,
       cursorColor: palette.ink,
@@ -108,30 +167,42 @@ export function SamplerPanel({ theme }: { theme: ResolvedTheme }) {
     regionsRef.current = regions
 
     const context = getAudioContext()
-    const buffer = toAudioBuffer(audio, context)
-    bufferRef.current = buffer
-    // Feed the decoded buffer straight in — re-decoding the file for display
-    // would double the work for no benefit.
-    wave.loadBlob(new Blob([encodeWav(audio, 16).slice().buffer as ArrayBuffer], { type: 'audio/wav' }))
+    bufferRef.current = toAudioBuffer(audio, context)
+    reversedRef.current = toAudioBuffer(reverseAudio(audio), context)
+    wave.loadBlob(new Blob([encodeWav(audio, 16).slice().buffer], { type: 'audio/wav' }))
 
     regions.enableDragSelection({ color: withAlpha(palette.ink, 0.12) })
 
-    const syncRegions = () => {
-      setSlices(
-        regions
+    const sync = () => {
+      setSlices((current) => {
+        const previous = new Map(current.map((slice) => [slice.id, slice]))
+        return regions
           .getRegions()
-          .map((region) => ({ id: region.id, start: region.start, end: region.end }))
-          .sort((a, b) => a.start - b.start),
-      )
+          .map((region) => {
+            const existing = previous.get(region.id)
+            // Dragging a region must not reset the pad's own settings.
+            return existing
+              ? { ...existing, start: region.start, end: region.end }
+              : {
+                  id: region.id,
+                  start: region.start,
+                  end: region.end,
+                  semitones: 0,
+                  gainDb: 0,
+                  reverse: false,
+                  mode: defaultMode,
+                }
+          })
+          .sort((a, b) => a.start - b.start)
+      })
     }
 
-    regions.on('region-created', syncRegions)
-    regions.on('region-updated', syncRegions)
-    regions.on('region-removed', syncRegions)
+    regions.on('region-created', sync)
+    regions.on('region-updated', sync)
+    regions.on('region-removed', sync)
     regions.on('region-clicked', (region: Region, event: MouseEvent) => {
       event.stopPropagation()
       setActiveSlice(region.id)
-      playRange(region.start, region.end)
     })
 
     return () => {
@@ -139,18 +210,17 @@ export function SamplerPanel({ theme }: { theme: ResolvedTheme }) {
       waveRef.current = null
       regionsRef.current = null
       bufferRef.current = null
+      reversedRef.current = null
       setSlices([])
       setActiveSlice(null)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [audio])
 
-  /* --- theme ------------------------------------------------------------- */
+  /* --- theme: recolour rather than rebuild -------------------------------- */
   useEffect(() => {
     const wave = waveRef.current
     if (!wave) return
-    // Recolour in place. Rebuilding the instance would discard every region the
-    // user has drawn, which is far too high a price for flipping to dark mode.
     const frame = requestAnimationFrame(() => {
       const palette = readPalette()
       wave.setOptions({
@@ -165,112 +235,182 @@ export function SamplerPanel({ theme }: { theme: ResolvedTheme }) {
     return () => cancelAnimationFrame(frame)
   }, [theme])
 
+  useEffect(() => {
+    waveRef.current?.zoom(zoom)
+  }, [zoom])
+
   /* --- playback ----------------------------------------------------------- */
-  const stopVoices = useCallback(() => {
-    voicesRef.current.forEach((voice) => {
+  const stopPad = useCallback((index: number) => {
+    const voices = voicesRef.current.get(index)
+    if (!voices) return
+    for (const voice of voices) {
       try {
         voice.stop()
       } catch {
-        /* already finished */
+        /* already ended */
       }
-    })
-    voicesRef.current = []
-    setPlayingPad(null)
+    }
+    voicesRef.current.delete(index)
+    setPlaying((current) => current.filter((pad) => pad !== index))
   }, [])
 
-  const playRange = useCallback(
-    (start: number, end: number, padIndex?: number) => {
+  const stopAll = useCallback(() => {
+    for (const index of [...voicesRef.current.keys()]) stopPad(index)
+  }, [stopPad])
+
+  const triggerPad = useCallback(
+    (index: number) => {
+      const slice = slices[index]
       const buffer = bufferRef.current
-      if (!buffer) return
+      if (!slice || !buffer) return
       void resumeAudioContext()
+
+      if (choke) stopPad(index)
 
       const context = getAudioContext()
       const source = context.createBufferSource()
-      source.buffer = buffer
-      // Varispeed is the right default for a pad: it is what hardware samplers
-      // do, and it is instant. The phase vocoder is reserved for export.
-      source.playbackRate.value = 2 ** (semitones / 12)
-      source.loop = loop
-      if (loop) {
+      // Reverse plays from a pre-built mirrored buffer, so the offsets flip too.
+      const reversed = slice.reverse && reversedRef.current
+      source.buffer = reversed ? reversedRef.current : buffer
+      const total = buffer.duration
+      const start = reversed ? total - slice.end : slice.start
+      const length = slice.end - slice.start
+
+      source.playbackRate.value = 2 ** (slice.semitones / 12)
+      if (slice.mode === 'loop') {
+        source.loop = true
         source.loopStart = start
-        source.loopEnd = end
+        source.loopEnd = start + length
       }
 
       const gain = context.createGain()
-      gain.gain.value = dbToGain(gainDb)
+      gain.gain.value = dbToGain(slice.gainDb)
       source.connect(gain).connect(context.destination)
 
-      const duration = (end - start) / source.playbackRate.value
-      source.start(0, start, loop ? undefined : end - start)
-      if (!loop) source.stop(context.currentTime + duration + 0.05)
-
-      voicesRef.current.push(source)
-      source.onended = () => {
-        voicesRef.current = voicesRef.current.filter((voice) => voice !== source)
-        if (padIndex !== undefined) setPlayingPad((current) => (current === padIndex ? null : current))
+      source.start(0, start, slice.mode === 'loop' ? undefined : length)
+      if (slice.mode === 'oneshot') {
+        source.stop(context.currentTime + length / source.playbackRate.value + 0.05)
       }
-      if (padIndex !== undefined) setPlayingPad(padIndex)
+
+      const voices = voicesRef.current.get(index) ?? []
+      voices.push(source)
+      voicesRef.current.set(index, voices)
+      setPlaying((current) => (current.includes(index) ? current : [...current, index]))
+
+      source.onended = () => {
+        const live = (voicesRef.current.get(index) ?? []).filter((voice) => voice !== source)
+        if (live.length > 0) voicesRef.current.set(index, live)
+        else {
+          voicesRef.current.delete(index)
+          setPlaying((current) => current.filter((pad) => pad !== index))
+        }
+      }
     },
-    [gainDb, loop, semitones],
+    [choke, slices, stopPad],
   )
 
-  /* --- keyboard pads ------------------------------------------------------ */
+  /* --- keyboard ----------------------------------------------------------- */
   useEffect(() => {
+    const held = new Set<string>()
+
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.metaKey || event.ctrlKey || event.altKey) return
+      if (event.metaKey || event.ctrlKey || event.altKey || event.repeat) return
       const target = event.target as HTMLElement | null
       if (target && ['INPUT', 'SELECT', 'TEXTAREA'].includes(target.tagName)) return
 
       if (event.key === ' ') {
         event.preventDefault()
-        stopVoices()
+        stopAll()
         return
       }
-      const index = PAD_KEYS.indexOf(event.key.toLowerCase())
-      if (index >= 0 && slices[index]) {
-        event.preventDefault()
-        setActiveSlice(slices[index].id)
-        playRange(slices[index].start, slices[index].end, index)
-      }
+      const key = event.key.toLowerCase()
+      const index = PAD_KEYS.indexOf(key)
+      if (index < 0 || !slices[index]) return
+      event.preventDefault()
+      held.add(key)
+      setActiveSlice(slices[index].id)
+      triggerPad(index)
+    }
+
+    const onKeyUp = (event: KeyboardEvent) => {
+      const key = event.key.toLowerCase()
+      if (!held.delete(key)) return
+      const index = PAD_KEYS.indexOf(key)
+      // Gate pads stop on release; the others ring out on their own.
+      if (index >= 0 && slices[index]?.mode === 'gate') stopPad(index)
     }
 
     window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [playRange, slices, stopVoices])
+    window.addEventListener('keyup', onKeyUp)
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+      window.removeEventListener('keyup', onKeyUp)
+    }
+  }, [slices, stopAll, stopPad, triggerPad])
 
-  useEffect(() => stopVoices, [stopVoices])
+  useEffect(() => stopAll, [stopAll])
 
-  /* --- slicing ------------------------------------------------------------ */
-  const applySlicePoints = (points: number[], duration: number) => {
-    const regions = regionsRef.current
-    if (!regions) return
-    regions.clearRegions()
-    points.forEach((start, index) => {
-      const end = index + 1 < points.length ? points[index + 1] : duration
-      if (end - start < 0.01) return
-      regions.addRegion({
-        start,
-        end,
-        color: withAlpha(readPalette().ink, 0.1),
-        drag: true,
-        resize: true,
+  /* --- chopping ----------------------------------------------------------- */
+  const applyCuts = useCallback(
+    (points: number[], label: string) => {
+      const regions = regionsRef.current
+      if (!regions || !audio) return
+
+      const cuts = snap ? points.map((at) => snapToZeroCrossing(audio, at)) : points
+      const unique = [...new Set(cuts.map((at) => Math.max(0, Math.min(duration, at))))].sort((a, b) => a - b)
+
+      regions.clearRegions()
+      const palette = readPalette()
+      let made = 0
+      unique.forEach((start, index) => {
+        // Each slice runs to the next cut, so they tile the file with no gaps.
+        const end = index + 1 < unique.length ? unique[index + 1] : duration
+        if (end - start < 0.015) return
+        regions.addRegion({ start, end, color: withAlpha(palette.ink, 0.1), drag: true, resize: true })
+        made += 1
       })
-    })
+      log('sampler', `${label}: ${made} Slices${snap ? ', an Nulldurchgänge gerastet' : ''}`)
+    },
+    [audio, duration, log, snap],
+  )
+
+  const chopTransients = () => {
+    if (!audio) return
+    applyCuts(detectOnsets(audio), 'Transienten')
   }
 
-  const sliceByOnsets = () => {
+  const chopGrid = () => {
     if (!audio) return
-    const duration = (audio.channels[0]?.length ?? 0) / audio.sampleRate
-    const points = detectOnsets(audio)
-    applySlicePoints(points, duration)
-    log('sampler', `${points.length} Transienten gefunden`)
+    applyCuts(
+      beatGrid({ bpm, offsetSeconds: tempo?.offsetSeconds ?? 0, beatsPerSlice: division, durationSeconds: duration }),
+      `Raster ${bpm} BPM`,
+    )
   }
 
-  const sliceEvenly = () => {
+  const chopEven = () => {
     if (!audio) return
-    const duration = (audio.channels[0]?.length ?? 0) / audio.sampleRate
-    applySlicePoints(divideEvenly(duration, sliceCount), duration)
-    log('sampler', `In ${sliceCount} gleiche Teile zerlegt`)
+    applyCuts(divideEvenly(duration, sliceCount), `${sliceCount} gleiche Teile`)
+  }
+
+  /* --- per-pad editing ---------------------------------------------------- */
+  const selected = useMemo(() => slices.find((slice) => slice.id === activeSlice) ?? null, [activeSlice, slices])
+  const selectedIndex = selected ? slices.indexOf(selected) : -1
+
+  const updateSlice = (id: string, patch: Partial<Slice>) =>
+    setSlices((current) => current.map((slice) => (slice.id === id ? { ...slice, ...patch } : slice)))
+
+  const applyToAll = () => {
+    if (!selected) return
+    setSlices((current) =>
+      current.map((slice) => ({
+        ...slice,
+        semitones: selected.semitones,
+        gainDb: selected.gainDb,
+        reverse: selected.reverse,
+        mode: selected.mode,
+      })),
+    )
+    log('sampler', 'Einstellungen des gewählten Pads auf alle übertragen')
   }
 
   /* --- export ------------------------------------------------------------- */
@@ -278,12 +418,12 @@ export function SamplerPanel({ theme }: { theme: ResolvedTheme }) {
     async (slice: Slice): Promise<AudioData | null> => {
       if (!audio) return null
       let piece = sliceAudio(audio, slice.start, slice.end)
-      if (reversed) piece = reverseAudio(piece)
+      if (slice.reverse) piece = reverseAudio(piece)
 
-      if (Math.abs(semitones) > 1e-6 || Math.abs(stretchFactor - 1) > 1e-6) {
+      if (Math.abs(slice.semitones) > 1e-6) {
         piece = await renderSliceInWorker(
           piece,
-          { semitones, stretchFactor, preserveDuration },
+          { semitones: slice.semitones, stretchFactor: 1, preserveDuration },
           (fraction) => setProgress(fraction),
         )
       }
@@ -292,7 +432,7 @@ export function SamplerPanel({ theme }: { theme: ResolvedTheme }) {
       piece = applyFades(piece, fade, fade)
       if (normalize) piece = normalizePeak(piece, -0.3)
 
-      const gain = dbToGain(gainDb)
+      const gain = dbToGain(slice.gainDb)
       if (Math.abs(gain - 1) > 1e-6) {
         piece = {
           channels: piece.channels.map((channel) => {
@@ -305,15 +445,17 @@ export function SamplerPanel({ theme }: { theme: ResolvedTheme }) {
       }
       return piece
     },
-    [audio, fadeMs, gainDb, normalize, preserveDuration, reversed, semitones, stretchFactor],
+    [audio, fadeMs, normalize, preserveDuration],
   )
 
-  const exportSlice = async (slice: Slice, index: number) => {
+  const baseName = asset?.name.replace(/\.[^.]+$/, '') ?? 'sample'
+
+  const exportOne = async (slice: Slice, index: number) => {
     setRendering(true)
     try {
       const piece = await buildSlice(slice)
       if (!piece) return
-      const name = withExtension(`${asset?.name ?? 'sample'}_slice${index + 1}`, 'wav')
+      const name = `${baseName}_${String(index + 1).padStart(2, '0')}.wav`
       saveBytes(encodeWav(piece, 24), name, 'audio/wav')
       log('sampler', `${name} exportiert`)
     } finally {
@@ -322,19 +464,17 @@ export function SamplerPanel({ theme }: { theme: ResolvedTheme }) {
     }
   }
 
-  /** Renders every slice once, then either keeps them or zips them. */
   const renderAll = async (destination: 'session' | 'zip') => {
     setRendering(true)
-    const base = asset?.name.replace(/\.[^.]+$/, '') ?? 'sample'
     const files: { name: string; data: Uint8Array }[] = []
     try {
       for (const [index, slice] of slices.entries()) {
         const piece = await buildSlice(slice)
         if (!piece) continue
         const bytes = encodeWav(piece, 24)
-        const name = `${base}_slice${String(index + 1).padStart(2, '0')}.wav`
+        const name = `${baseName}_${String(index + 1).padStart(2, '0')}.wav`
         if (destination === 'zip') {
-          files.push({ name: `${base}/${name}`, data: bytes })
+          files.push({ name: `${baseName}/${name}`, data: bytes })
         } else {
           addAsset({
             name,
@@ -349,10 +489,10 @@ export function SamplerPanel({ theme }: { theme: ResolvedTheme }) {
         }
       }
       if (destination === 'zip' && files.length > 0) {
-        saveBytes(createZip(files), `${base}-slices.zip`, 'application/zip')
-        log('sampler', `${files.length} Slices als ZIP gespeichert`)
+        saveBytes(createZip(files), `${baseName}-chops.zip`, 'application/zip')
+        log('sampler', `${files.length} Chops als ZIP gespeichert`)
       } else if (destination === 'session') {
-        log('sampler', `${slices.length} Slices in die Sitzung übernommen`)
+        log('sampler', `${slices.length} Chops in die Sitzung übernommen`)
       }
     } finally {
       setRendering(false)
@@ -360,27 +500,26 @@ export function SamplerPanel({ theme }: { theme: ResolvedTheme }) {
     }
   }
 
-  const selected = useMemo(() => slices.find((slice) => slice.id === activeSlice) ?? null, [activeSlice, slices])
+  const confident = (tempo?.confidence ?? 0) >= 0.5
 
   return (
-    <div className="grid gap-[21px] lg:grid-cols-[minmax(0,1fr)_360px]">
-      <div className="flex flex-col gap-[21px]">
-        <Card tone="keylime">
-          <Eyebrow>Sampler</Eyebrow>
-          <h2 className="display-md mt-[11px] mb-[14px]">Schneiden, loopen, transponieren</h2>
-          <p className="max-w-[60ch] text-body leading-[1.6] text-prose/85">
-            Ziehen Sie über die Wellenform, um einen Bereich zu setzen, oder lassen Sie Lizge an den
-            Transienten schneiden. Die Pads spielen über die Web Audio API — Tonhöhe live per
-            Abspielrate, beim Export wahlweise längentreu über einen Phasenvocoder.
-          </p>
+    <div className="grid gap-[18px] lg:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="flex flex-col gap-[18px]">
+        <Card tone="keylime" size="compact">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-[14px] gap-y-[4px]">
+            <Eyebrow>Chopper</Eyebrow>
+            <span className="text-[12px] text-muted">
+              Ziehen für einen eigenen Bereich, Tasten 1–4 · Q–R · A–F · Y–V zum Spielen.
+            </span>
+          </div>
 
           {!asset ? (
-            <div className="mt-[28px]">
+            <div className="mt-[14px]">
               <FileDrop />
             </div>
           ) : (
             <>
-              <div className="lizge-wave mt-[28px] rounded-card bg-raised p-[21px]">
+              <div className="lizge-wave mt-[14px] overflow-x-auto rounded-card bg-raised p-[14px]">
                 <div ref={containerRef} />
                 {!audio ? (
                   <p className="py-[28px] text-center text-[13px] text-muted">
@@ -389,56 +528,152 @@ export function SamplerPanel({ theme }: { theme: ResolvedTheme }) {
                 ) : null}
               </div>
 
-              <div className="mt-[18px] flex flex-wrap items-center gap-[11px]">
-                <Button size="sm" onClick={sliceByOnsets} disabled={!audio}>
-                  An Transienten schneiden
-                </Button>
-                <Button size="sm" variant="quiet" onClick={sliceEvenly} disabled={!audio}>
-                  Gleichmäßig teilen
-                </Button>
-                <Select
-                  value={sliceCount}
-                  onChange={(event) => setSliceCount(Number(event.target.value))}
-                  className="w-auto"
-                  aria-label="Anzahl der Teile"
-                >
-                  {[2, 4, 8, 12, 16].map((count) => (
-                    <option key={count} value={count}>
-                      {count} Teile
-                    </option>
-                  ))}
-                </Select>
+              {/* ---- chop controls ------------------------------------------ */}
+              <div className="mt-[14px] grid gap-[11px] sm:grid-cols-3">
+                <div className="flex flex-col gap-[7px] rounded-card bg-raised p-[14px]">
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink">
+                    Transienten
+                  </span>
+                  <p className="text-[12px] leading-[1.4] text-muted">Schneidet, wo etwas anfängt.</p>
+                  <Button size="sm" onClick={chopTransients} disabled={!audio}>
+                    Chop
+                  </Button>
+                </div>
+
+                <div className="flex flex-col gap-[7px] rounded-card bg-raised p-[14px]">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink">
+                      Raster
+                    </span>
+                    {tempo ? (
+                      <span className="numeric text-[11px] text-muted">
+                        {confident ? 'erkannt' : 'unsicher'}
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="flex items-center gap-[4px]">
+                    <button
+                      type="button"
+                      onClick={() => setBpm((value) => Math.max(30, Math.round(value / 2)))}
+                      className="rounded-nav bg-panel-soft px-[9px] py-[4px] text-[12px] text-ink hover:bg-panel-mid"
+                      title="Halbes Tempo"
+                    >
+                      ÷2
+                    </button>
+                    <input
+                      type="number"
+                      value={bpm}
+                      min={30}
+                      max={300}
+                      step={0.1}
+                      onChange={(event) => setBpm(Number(event.target.value) || 120)}
+                      aria-label="Tempo in BPM"
+                      className="numeric w-full min-w-0 rounded-nav bg-panel-soft px-[9px] py-[4px] text-center text-[13px] text-ink outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setBpm((value) => Math.min(300, Math.round(value * 2)))}
+                      className="rounded-nav bg-panel-soft px-[9px] py-[4px] text-[12px] text-ink hover:bg-panel-mid"
+                      title="Doppeltes Tempo"
+                    >
+                      ×2
+                    </button>
+                  </div>
+                  <Select
+                    value={division}
+                    onChange={(event) => setDivision(Number(event.target.value))}
+                    aria-label="Rasterweite"
+                    className="py-[7px] text-[13px]"
+                  >
+                    {GRID_DIVISIONS.map((entry) => (
+                      <option key={entry.label} value={entry.value}>
+                        {entry.label}
+                      </option>
+                    ))}
+                  </Select>
+                  <Button size="sm" onClick={chopGrid} disabled={!audio}>
+                    Chop
+                  </Button>
+                </div>
+
+                <div className="flex flex-col gap-[7px] rounded-card bg-raised p-[14px]">
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink">
+                    Gleichmäßig
+                  </span>
+                  <Select
+                    value={sliceCount}
+                    onChange={(event) => setSliceCount(Number(event.target.value))}
+                    aria-label="Anzahl der Teile"
+                    className="py-[7px] text-[13px]"
+                  >
+                    {[2, 4, 8, 12, 16].map((count) => (
+                      <option key={count} value={count}>
+                        {count} Teile
+                      </option>
+                    ))}
+                  </Select>
+                  <Button size="sm" onClick={chopEven} disabled={!audio}>
+                    Chop
+                  </Button>
+                </div>
+              </div>
+
+              <div className="mt-[11px] flex flex-wrap items-center gap-[9px]">
                 <Button size="sm" variant="ghost" onClick={() => regionsRef.current?.clearRegions()}>
                   Leeren
                 </Button>
-                <Button size="sm" variant="ghost" onClick={stopVoices}>
+                <Button size="sm" variant="ghost" onClick={stopAll}>
                   Stopp (Leertaste)
                 </Button>
+                <label className="ml-auto flex items-center gap-[9px] text-[12px] text-muted">
+                  Zoom
+                  <input
+                    type="range"
+                    min={0}
+                    max={400}
+                    step={10}
+                    value={zoom}
+                    onChange={(event) => setZoom(Number(event.target.value))}
+                    className="w-[120px]"
+                    aria-label="Zoom"
+                  />
+                </label>
               </div>
             </>
           )}
         </Card>
 
+        {/* ---- pads --------------------------------------------------------- */}
         {slices.length > 0 ? (
-          <Card tone="slate">
+          <Card tone="slate" size="compact">
             <div className="flex flex-wrap items-baseline justify-between gap-3">
-              <Eyebrow>Pads</Eyebrow>
-              <span className="text-[12px] text-muted">Tasten 1–4, Q–R, A–F, Y–V</span>
+              <Eyebrow>Pads · {slices.length}</Eyebrow>
+              {slices.length > MAX_PADS ? (
+                <span className="text-[12px] text-muted">
+                  Nur die ersten {MAX_PADS} liegen auf Tasten; exportiert werden alle.
+                </span>
+              ) : null}
             </div>
 
-            <div className="mt-[18px] grid grid-cols-2 gap-[11px] sm:grid-cols-4">
-              {slices.slice(0, 16).map((slice, index) => {
-                const isPlaying = playingPad === index
+            <div className="mt-[14px] grid grid-cols-4 gap-[7px]">
+              {slices.slice(0, MAX_PADS).map((slice, index) => {
+                const isPlaying = playing.includes(index)
                 const isSelected = slice.id === activeSlice
                 return (
                   <button
                     key={slice.id}
                     type="button"
-                    onClick={() => {
+                    onPointerDown={() => {
                       setActiveSlice(slice.id)
-                      playRange(slice.start, slice.end, index)
+                      triggerPad(index)
                     }}
-                    className={`flex aspect-4/3 flex-col items-start justify-between rounded-card p-[14px] text-left transition-colors ${
+                    onPointerUp={() => {
+                      if (slice.mode !== 'oneshot') stopPad(index)
+                    }}
+                    onPointerLeave={() => {
+                      if (slice.mode === 'gate') stopPad(index)
+                    }}
+                    className={`flex aspect-square flex-col justify-between rounded-card p-[9px] text-left transition-colors ${
                       isPlaying
                         ? 'bg-ink text-on-ink'
                         : isSelected
@@ -446,12 +681,15 @@ export function SamplerPanel({ theme }: { theme: ResolvedTheme }) {
                           : 'bg-raised text-ink hover:bg-panel-soft'
                     }`}
                   >
-                    <span className="text-[11px] font-semibold uppercase tracking-[0.08em] opacity-70">
-                      {PAD_KEYS[index] ?? '—'}
+                    <span className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.08em] opacity-70">
+                      {PAD_KEYS[index]}
+                      <span className="flex gap-[3px] text-[10px]">
+                        {slice.reverse ? '◀' : ''}
+                        {slice.mode === 'loop' ? '∞' : slice.mode === 'gate' ? '⌷' : ''}
+                        {slice.semitones !== 0 ? (slice.semitones > 0 ? `+${slice.semitones}` : slice.semitones) : ''}
+                      </span>
                     </span>
-                    <span className="numeric text-[12px] opacity-80">
-                      {formatTimecode(slice.start)}
-                      <br />
+                    <span className="numeric text-[11px] opacity-80">
                       {(slice.end - slice.start).toFixed(2)} s
                     </span>
                   </button>
@@ -459,141 +697,149 @@ export function SamplerPanel({ theme }: { theme: ResolvedTheme }) {
               })}
             </div>
 
-            <div className="mt-[21px] flex flex-wrap gap-[11px]">
-              <Button onClick={() => renderAll('session')} disabled={rendering} variant="quiet">
-                {rendering ? 'Wird gerendert…' : `Alle ${slices.length} übernehmen`}
+            <div className="mt-[14px] flex flex-wrap gap-[9px]">
+              <Button size="sm" variant="quiet" onClick={() => renderAll('session')} disabled={rendering}>
+                {rendering ? 'Rendert…' : 'In die Sitzung'}
               </Button>
-              <Button onClick={() => renderAll('zip')} disabled={rendering} variant="quiet">
+              <Button size="sm" variant="quiet" onClick={() => renderAll('zip')} disabled={rendering}>
                 Alle als ZIP
               </Button>
               {selected ? (
-                <Button
-                  onClick={() => exportSlice(selected, slices.indexOf(selected))}
-                  disabled={rendering}
-                >
-                  Auswahl als WAV
+                <Button size="sm" onClick={() => exportOne(selected, selectedIndex)} disabled={rendering}>
+                  Pad {selectedIndex + 1} als WAV
                   <ArrowRight />
                 </Button>
               ) : null}
             </div>
 
             {rendering ? (
-              <div className="mt-[18px]">
-                <Progress value={progress} label="Phasenvocoder" />
+              <div className="mt-[11px]">
+                <Progress value={progress} label="Wird gerendert" />
               </div>
             ) : null}
           </Card>
         ) : null}
 
         {audio && slices.length === 0 ? (
-          <Notice title="Noch keine Slices">
-            Ziehen Sie mit der Maus über die Wellenform, um einen Bereich aufzuziehen, oder nutzen Sie
-            die Schaltflächen oben. Ein Klick auf einen Bereich spielt ihn ab.
+          <Notice title="Noch nichts gechoppt">
+            Wählen Sie oben ein Verfahren, oder ziehen Sie mit der Maus über die Wellenform, um einen
+            Bereich von Hand aufzuziehen.
           </Notice>
         ) : null}
       </div>
 
-      <aside className="flex flex-col gap-[21px]">
-        <Card tone="mint">
-          <Eyebrow>Klang</Eyebrow>
-          <div className="mt-[18px] flex flex-col gap-[21px]">
-            <Slider
-              label="Tonhöhe"
-              display={`${semitones > 0 ? '+' : ''}${semitones} HT`}
-              min={-24}
-              max={24}
-              step={1}
-              value={semitones}
-              onChange={(event) => setSemitones(Number(event.target.value))}
-            />
-            <Slider
-              label="Länge"
-              display={`${stretchFactor.toFixed(2)}×`}
-              min={0.25}
-              max={4}
-              step={0.05}
-              value={stretchFactor}
-              onChange={(event) => setStretchFactor(Number(event.target.value))}
-            />
-            <Slider
-              label="Pegel"
-              display={`${gainDb > 0 ? '+' : ''}${gainDb.toFixed(1)} dB`}
-              min={-24}
-              max={12}
-              step={0.5}
-              value={gainDb}
-              onChange={(event) => setGainDb(Number(event.target.value))}
-            />
+      {/* ---- sidebar: the selected pad, then defaults --------------------- */}
+      <aside className="flex flex-col gap-[18px]">
+        <Card tone="mint" size="compact">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <Eyebrow>{selected ? `Pad ${selectedIndex + 1}` : 'Pad'}</Eyebrow>
+            {selected ? (
+              <button
+                type="button"
+                onClick={applyToAll}
+                className="rounded-nav text-[12px] text-muted underline-offset-2 hover:text-ink hover:underline"
+              >
+                Auf alle übertragen
+              </button>
+            ) : null}
+          </div>
+
+          {selected ? (
+            <div className="mt-[11px] flex flex-col gap-[14px]">
+              <div className="flex flex-wrap gap-[4px]">
+                <Badge>{formatTimecode(selected.start)}</Badge>
+                <Badge tone="forest">{(selected.end - selected.start).toFixed(3)} s</Badge>
+              </div>
+
+              <Slider
+                label="Tonhöhe"
+                display={`${selected.semitones > 0 ? '+' : ''}${selected.semitones} HT`}
+                min={-24}
+                max={24}
+                step={1}
+                value={selected.semitones}
+                onChange={(event) => updateSlice(selected.id, { semitones: Number(event.target.value) })}
+              />
+              <Slider
+                label="Pegel"
+                display={`${selected.gainDb > 0 ? '+' : ''}${selected.gainDb.toFixed(1)} dB`}
+                min={-24}
+                max={12}
+                step={0.5}
+                value={selected.gainDb}
+                onChange={(event) => updateSlice(selected.id, { gainDb: Number(event.target.value) })}
+              />
+              <Field label="Verhalten">
+                <Select
+                  value={selected.mode}
+                  onChange={(event) => updateSlice(selected.id, { mode: event.target.value as PlayMode })}
+                >
+                  {(Object.keys(MODE_LABELS) as PlayMode[]).map((mode) => (
+                    <option key={mode} value={mode}>
+                      {MODE_LABELS[mode]}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+              <Toggle
+                label="Rückwärts"
+                checked={selected.reverse}
+                onChange={(value) => updateSlice(selected.id, { reverse: value })}
+              />
+            </div>
+          ) : (
+            <p className="mt-[11px] text-[13px] leading-[1.5] text-muted">
+              Ein Pad anklicken oder eine Taste drücken, um es hier einzustellen. Tonhöhe, Pegel,
+              Richtung und Verhalten gelten je Pad.
+            </p>
+          )}
+        </Card>
+
+        <Card tone="cream" size="compact" className="ring-1 ring-inset ring-line">
+          <Eyebrow>Voreinstellungen</Eyebrow>
+          <div className="mt-[11px] flex flex-col gap-[14px]">
+            <Field label="Neue Pads spielen als">
+              <Select value={defaultMode} onChange={(event) => setDefaultMode(event.target.value as PlayMode)}>
+                {(Object.keys(MODE_LABELS) as PlayMode[]).map((mode) => (
+                  <option key={mode} value={mode}>
+                    {MODE_LABELS[mode]}
+                  </option>
+                ))}
+              </Select>
+            </Field>
             <Slider
               label="Blende"
               display={`${fadeMs} ms`}
               min={0}
-              max={200}
+              max={60}
               step={1}
               value={fadeMs}
               onChange={(event) => setFadeMs(Number(event.target.value))}
             />
-
+            <Toggle
+              label="An Nulldurchgänge rasten"
+              hint="Verschiebt Schnitte um wenige Millisekunden und spart die Klicks."
+              checked={snap}
+              onChange={setSnap}
+            />
+            <Toggle
+              label="Neuer Anschlag stoppt den alten"
+              checked={choke}
+              onChange={setChoke}
+            />
             <Toggle
               label="Länge beim Transponieren halten"
-              hint="Phasenvocoder beim Export. Ohne Haken klingt es wie ein Bandgerät."
+              hint="Phasenvocoder beim Export. Die Pads spielen immer per Abspielrate."
               checked={preserveDuration}
               onChange={setPreserveDuration}
             />
-            <Toggle label="Schleife" checked={loop} onChange={setLoop} />
-            <Toggle label="Rückwärts" checked={reversed} onChange={setReversed} />
-            <Toggle
-              label="Auf −0,3 dBFS normalisieren"
-              checked={normalize}
-              onChange={setNormalize}
-            />
+            <Toggle label="Auf −0,3 dBFS normalisieren" checked={normalize} onChange={setNormalize} />
           </div>
         </Card>
 
-        {selected ? (
-          <Card tone="cream" className="ring-1 ring-inset ring-line">
-            <Eyebrow>Auswahl</Eyebrow>
-            <div className="mt-[14px] flex flex-wrap gap-[7px]">
-              <Badge>{formatTimecode(selected.start)}</Badge>
-              <Badge>bis {formatTimecode(selected.end)}</Badge>
-              <Badge tone="forest">{(selected.end - selected.start).toFixed(3)} s</Badge>
-            </div>
-            <div className="mt-[18px]">
-              <Field label="Feinabstimmung">
-                <div className="grid grid-cols-2 gap-[11px]">
-                  <Button
-                    size="sm"
-                    variant="quiet"
-                    onClick={() => {
-                      const region = regionsRef.current
-                        ?.getRegions()
-                        .find((candidate) => candidate.id === selected.id)
-                      region?.setOptions({ start: Math.max(0, selected.start - 0.01), end: selected.end })
-                    }}
-                  >
-                    Anfang −10 ms
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="quiet"
-                    onClick={() => {
-                      const region = regionsRef.current
-                        ?.getRegions()
-                        .find((candidate) => candidate.id === selected.id)
-                      region?.setOptions({ start: selected.start + 0.01, end: selected.end })
-                    }}
-                  >
-                    Anfang +10 ms
-                  </Button>
-                </div>
-              </Field>
-            </div>
-          </Card>
-        ) : null}
-
-        <Card tone="cream" className="ring-1 ring-inset ring-line">
+        <Card tone="cream" size="compact" className="ring-1 ring-inset ring-line">
           <AssetList />
-          <div className="mt-[18px]">
+          <div className="mt-[14px]">
             <FileDrop compact />
           </div>
         </Card>

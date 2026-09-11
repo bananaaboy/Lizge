@@ -10,7 +10,7 @@ ausschließlich der Rechner des Besuchers.
 | **Konverter** | FFmpeg als WebAssembly, zehn Ausgabeformate |
 | **Spurentrennung** | Gesang, Schlagzeug, Bass, Übriges — ohne Modell-Download |
 | **Lautheit** | Vollständiges EBU R128 / ITU-R BS.1770-4 mit True-Peak-Grenze |
-| **Sampler** | Schneiden an Transienten, Pads, Phasenvocoder-Export |
+| **Chopper** | Chops an Transienten oder im Tempo-Raster, 16 Pads, Sample-Pack |
 
 Dazu: helles und dunkles Erscheinungsbild, Stapelverarbeitung mit ZIP-Ausgabe,
 Installation als PWA und vollständiger Offline-Betrieb.
@@ -24,7 +24,7 @@ npm run build    # statisches Bündel in dist/
 npm run preview  # dist/ mit den richtigen Headern ausliefern
 
 npm run typecheck        # TypeScript ohne Emit
-npm run verify:loudness   # Kalibrierung des Lautheitsmessers prüfen
+npm run verify            # Lautheit und Timing prüfen
 ```
 
 `dist/` ist ein Ordner mit statischen Dateien. Es gibt keine Laufzeit, keine
@@ -51,7 +51,8 @@ Lizge/
 ├── vite.config.ts                 Build, COOP/COEP im Entwicklungsserver
 ├── vercel.json                    Header für Vercel
 ├── scripts/
-│   └── verify-loudness.mts        Kalibrierungstest gegen BS.1770-4
+│   ├── verify-loudness.mts        Kalibrierungstest gegen BS.1770-4
+│   └── verify-tempo.mts           Tempoerkennung, Raster, Nulldurchgänge
 ├── public/
 │   ├── _headers                   Header für Netlify und Cloudflare Pages
 │   ├── staticwebapp.config.json   Header für Azure Static Web Apps
@@ -76,6 +77,7 @@ Lizge/
     │   ├── onnx.ts                Optionaler Modell-Läufer (WebGPU/WASM)
     │   ├── timestretch.ts         Phasenvocoder, Resampler
     │   ├── onsets.ts              Transientenerkennung über Spektralfluss
+    │   ├── tempo.ts               Tempo, Beat-Raster, Nulldurchgänge
     │   ├── audio.ts               Web-Audio-Brücke, Schnittoperationen
     │   ├── wav.ts                 RIFF-Leser und -Schreiber
     │   ├── workerClient.ts        Promise-Fassade über die Worker
@@ -285,6 +287,23 @@ Ausgabewert statt einer Sortierung. Verarbeitet wird in Abschnitten mit
 Rahmen zu Rahmen; Transponieren ist Dehnen plus Resampling mit dem Kehrwert. Die
 Pads spielen dagegen über die Abspielrate — sofort hörbar, so wie es
 Hardware-Sampler tun.
+
+**Tempo.** Autokorrelation der Onset-Hüllkurve: erst messen, wie stark sich das
+Spektrum von Rahmen zu Rahmen nach oben ändert, dann fragen, bei welcher
+Verschiebung dieses Signal am besten mit sich selbst zusammenfällt. Eine zweite
+Suche findet die Phase, damit das Raster auf dem ersten Schlag beginnt und nicht
+bei Sekunde null.
+
+Die Sicherheit hat zwei Bedingungen: die Korrelationsspitze muss aus dem Feld
+herausragen *und* das Material muss überhaupt Transienten haben. Ein gehaltener
+Akkord erfüllt nur die erste und bekäme sonst ein erfundenes Tempo attestiert.
+Halbes und doppeltes Tempo beschreiben dasselbe Raster, deshalb stehen ×2 und ÷2
+daneben — eine Automatik kann das nicht entscheiden, ein Ohr schon.
+
+**Schnittpunkte** wandern auf den nächsten steigenden Nulldurchgang, höchstens
+wenige Millisekunden weit. Ein Schnitt mitten in der Wellenform hinterlässt eine
+Stufe, und eine Stufe klickt. Blenden verdecken das, kosten aber den Anschlag —
+genau den Teil eines Chops, auf den es ankommt.
 
 ## Eigenes Trennmodell verwenden
 

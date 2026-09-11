@@ -157,6 +157,17 @@ export function decodeWav(bytes: Uint8Array): AudioData {
   return { channels, sampleRate }
 }
 
+/** Sums every channel down to one, at equal weight. */
+export function mixToMono(audio: AudioData): AudioData {
+  if (audio.channels.length === 1) return audio
+  const frames = audio.channels[0].length
+  const mono = new Float32Array(frames)
+  for (const channel of audio.channels) {
+    for (let i = 0; i < frames; i += 1) mono[i] += channel[i] / audio.channels.length
+  }
+  return { channels: [mono], sampleRate: audio.sampleRate }
+}
+
 /** Copies an `AudioBuffer` out of the Web Audio graph into planar floats. */
 export function fromAudioBuffer(buffer: AudioBuffer): AudioData {
   const channels: Samples[] = []
