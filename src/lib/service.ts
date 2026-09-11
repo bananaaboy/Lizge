@@ -185,18 +185,14 @@ export async function resolveMedia(
 export const SERVICE_DISCLAIMER = {
   title: 'Diese Funktion verlässt das lokale Prinzip',
   paragraphs: [
-    'YouTube und vergleichbare Portale liefern ihre Medien nicht an fremde Webseiten aus. ' +
-      'Im Browser allein ist das technisch nicht möglich — ohne einen Server dazwischen geht es nicht.',
-    'Wenn Sie diese Funktion nutzen, wird die eingegebene Adresse an den unten hinterlegten Dienst ' +
-      'gesendet, zusammen mit Ihrer IP-Adresse. Dieser Dienst holt die Datei und reicht sie durch. ' +
-      'Was sein Betreiber dabei protokolliert, entzieht sich Lizge vollständig. Wählen Sie einen ' +
-      'Dienst, dem Sie vertrauen, oder betreiben Sie eine eigene Instanz.',
-    'Alle übrigen Werkzeuge bleiben davon unberührt: Konvertierung, Spurentrennung, Lautheit und ' +
-      'Sampler rechnen weiterhin ausschließlich auf Ihrem Gerät.',
+    'Die eingegebene Adresse geht samt Ihrer IP an den hinterlegten Dienst; er holt die Datei und ' +
+      'reicht sie durch. Was sein Betreiber protokolliert, entzieht sich Lizge vollständig — wählen ' +
+      'Sie einen Dienst, dem Sie vertrauen, oder betreiben Sie eine eigene Instanz.',
+    'Alle übrigen Werkzeuge bleiben lokal: Konvertierung, Spurentrennung, Lautheit und Sampler ' +
+      'rechnen weiterhin ausschließlich auf Ihrem Gerät.',
   ],
   liability:
-    'Haftungsausschluss: Die Nutzung erfolgt auf eigene Verantwortung und auf eigenes Risiko. ' +
-    'Für die Rechtmäßigkeit der abgerufenen Inhalte, für Verstöße gegen Nutzungsbedingungen oder ' +
-    'Urheberrechte Dritter und für Schäden jeder Art wird keinerlei Haftung übernommen. Prüfen Sie ' +
-    'selbst, was Sie herunterladen dürfen.',
+    'Haftungsausschluss: Die Nutzung erfolgt auf eigene Verantwortung und eigenes Risiko. Für die ' +
+    'Rechtmäßigkeit der abgerufenen Inhalte, für Verstöße gegen Nutzungsbedingungen oder ' +
+    'Urheberrechte Dritter und für Schäden jeder Art wird keinerlei Haftung übernommen.',
 } as const

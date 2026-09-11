@@ -22,19 +22,19 @@ const TONE_CLASS: Record<Tone, string> = {
 export function Card({
   tone = 'keylime',
   padded = true,
+  size = 'default',
   className = '',
   children,
 }: {
   tone?: Tone
   padded?: boolean
+  /** `compact` trades some of the system's breathing room for density. */
+  size?: 'default' | 'compact'
   className?: string
   children: ReactNode
 }) {
-  return (
-    <div className={`rounded-card ${TONE_CLASS[tone]} ${padded ? 'p-7 sm:p-[28px]' : ''} ${className}`}>
-      {children}
-    </div>
-  )
+  const padding = !padded ? '' : size === 'compact' ? 'p-[18px] sm:p-[21px]' : 'p-7 sm:p-[28px]'
+  return <div className={`rounded-card ${TONE_CLASS[tone]} ${padding} ${className}`}>{children}</div>
 }
 
 export function Eyebrow({ children, className = '' }: { children: ReactNode; className?: string }) {

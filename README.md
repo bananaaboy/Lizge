@@ -186,9 +186,14 @@ unterbrechen. Der nächste Aufruf lädt ihn transparent neu.
 Ein Panel, drei Wege. Direkter Link, HLS-Playlist und Portal-Adresse sind aus
 Sicht des Nutzers dieselbe Aufgabe — Adresse einfügen, Datei bekommen —, also
 teilen sie sich ein Adressfeld und einen Knopf. Der Weg ergibt sich aus der
-Adresse; darunter zeigen drei Chips, welcher gewählt wurde, und erlauben, ihn zu
-überschreiben. Die Zusatzoptionen für Portale klappen an Ort und Stelle auf,
-statt einen zweiten Downloader darunter zu bilden.
+Adresse; drei Chips zeigen, welcher gewählt wurde, und erlauben, ihn zu
+überschreiben.
+
+Die Reihenfolge ist bewusst: erst alles zum Laden, dann die Zusatzoptionen für
+Portale, und ganz unten deren Bedingungen. Wer die Funktion einschaltet, füllt
+zuerst Felder aus; der Hinweistext steht unter den Eingaben, auf die er sich
+bezieht, nicht davor. Geschlossen misst die Karte rund 325 px, mit
+aufgeklappten Portal-Optionen rund 675 px — beides passt ohne Scrollen.
 
 Zeigt eine Adresse auf ein Portal, sagt der Hinweis unter den Chips genau das —
 auch dann, wenn jemand von Hand auf „Direkter Link“ stellt. Ein Weg, den der
