@@ -83,3 +83,31 @@ export interface SamplerRequest {
 }
 
 export type SamplerResponse = JobProgress | JobError | { type: 'rendered'; id: number; audio: PlainAudio }
+
+/* --- harmony worker ------------------------------------------------------- */
+
+export interface HarmonyRequest {
+  type: 'analyse'
+  id: number
+  audio: PlainAudio
+  /** Chord window in seconds. */
+  chordWindow: number
+  /** Run the pitch tracker too; it is the expensive half. */
+  transcribe: boolean
+  minimumClarity: number
+  minimumNoteSeconds: number
+  /** Snap note starts to this grid. 0 disables it. */
+  quantizeSeconds: number
+}
+
+export type HarmonyResponse =
+  | JobProgress
+  | JobError
+  | {
+      type: 'analysed'
+      id: number
+      key: import('../lib/key').KeyEstimate
+      chords: import('../lib/key').ChordSpan[]
+      chroma: Float32Array
+      notes: import('../lib/pitch').Note[]
+    }
