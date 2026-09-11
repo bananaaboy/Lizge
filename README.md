@@ -6,7 +6,7 @@ ausschließlich der Rechner des Besuchers.
 
 | | |
 |---|---|
-| **Downloader** | Direkte Links und HLS-Playlisten, vom Browser selbst geholt |
+| **Downloader** | Direkte Links, HLS-Playlisten und — auf Wunsch — Portale |
 | **Konverter** | FFmpeg als WebAssembly, zehn Ausgabeformate |
 | **Spurentrennung** | Gesang, Schlagzeug, Bass, Übriges — ohne Modell-Download |
 | **Lautheit** | Vollständiges EBU R128 / ITU-R BS.1770-4 mit True-Peak-Grenze |
@@ -181,7 +181,20 @@ der Heap über eine lange Sitzung mit jeder Datei weiter.
 Abbrechen geht nur über `terminate()`: ein laufender Core lässt sich nicht
 unterbrechen. Der nächste Aufruf lädt ihn transparent neu.
 
-## YouTube und andere Portale
+## Der Downloader
+
+Ein Panel, drei Wege. Direkter Link, HLS-Playlist und Portal-Adresse sind aus
+Sicht des Nutzers dieselbe Aufgabe — Adresse einfügen, Datei bekommen —, also
+teilen sie sich ein Adressfeld und einen Knopf. Der Weg ergibt sich aus der
+Adresse; darunter zeigen drei Chips, welcher gewählt wurde, und erlauben, ihn zu
+überschreiben. Die Zusatzoptionen für Portale klappen an Ort und Stelle auf,
+statt einen zweiten Downloader darunter zu bilden.
+
+Zeigt eine Adresse auf ein Portal, sagt der Hinweis unter den Chips genau das —
+auch dann, wenn jemand von Hand auf „Direkter Link“ stellt. Ein Weg, den der
+Browser nicht gehen kann, wird nicht als gangbar dargestellt.
+
+### YouTube und andere Portale
 
 Direkt geht das nicht, und das ist keine Nachlässigkeit: Portale liefern ihre
 Medien ohne `Access-Control-Allow-Origin` aus, der Browser lässt eine fremde

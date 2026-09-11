@@ -1,10 +1,17 @@
 /**
- * Media downloader.
+ * Media downloader — one panel, three paths.
  *
- * Honest about its limits: a browser can only read a remote file if that server
- * allows it. Lizge does not proxy, because a proxy would mean the visitor's URLs
- * and IP address travelling through a machine they do not control — which is the
- * one thing this app promises not to do.
+ * A direct link, an HLS playlist and a portal URL are the same task from the
+ * user's side: paste an address, get the file. So they share one address field
+ * and one button, and the path is picked from the address itself rather than
+ * asked about up front. The chips underneath say which path was chosen and let
+ * it be overridden.
+ *
+ * The third path is the one that costs something. A browser can only read a
+ * remote file if that server allows it, and portals do not — so reaching them
+ * means a server in the middle that sees the address and the IP. That option is
+ * off by default, and switching it on unfolds its terms in place rather than
+ * hiding them behind a link.
  */
 
 import { useRef, useState } from 'react'
@@ -89,7 +96,8 @@ export function DownloaderPanel() {
   const caps = detectCapabilities()
 
   const [url, setUrl] = useState('')
-  const [mode, setMode] = useState<Mode>('direct')
+  // Null means "whatever the address implies"; a value is a deliberate override.
+  const [modeOverride, setModeOverride] = useState<Mode | null>(null)
   // Off by default: a download that lands in the session can be fed straight
   // into the converter or the sampler, whereas one streamed to disk cannot.
   const [streamToDiskEnabled, setStreamToDiskEnabled] = useState(false)
@@ -118,7 +126,8 @@ export function DownloaderPanel() {
 
   const detectedHls = /\.m3u8(\?|$)/i.test(url.trim())
   const detectedPortal = isPortalUrl(url)
-  const effectiveMode: Mode = detectedHls ? 'hls' : detectedPortal && serviceEnabled ? 'service' : mode
+  const autoMode: Mode = detectedHls ? 'hls' : detectedPortal && serviceEnabled ? 'service' : 'direct'
+  const effectiveMode: Mode = modeOverride ?? autoMode
 
   const reset = () => {
     setError(null)
@@ -318,206 +327,238 @@ export function DownloaderPanel() {
     }
   }
 
+  const PATHS: { id: Mode; label: string; hint: string; disabled: boolean }[] = [
+    { id: 'direct', label: 'Direkter Link', hint: 'Der Browser holt die Datei selbst.', disabled: false },
+    { id: 'hls', label: 'HLS-Stream', hint: 'Segmente laden, lokal zu MP4 fassen.', disabled: false },
+    {
+      id: 'service',
+      label: 'Portal über Dienst',
+      hint: serviceEnabled
+        ? 'Läuft über einen fremden Server.'
+        : 'Muss unten eingeschaltet werden.',
+      disabled: !serviceEnabled,
+    },
+  ]
+
+  const canStart = Boolean(url.trim()) && (effectiveMode !== 'service' || Boolean(service.endpoint))
+
   return (
     <div className="grid gap-[21px] lg:grid-cols-[minmax(0,1fr)_360px]">
-      <div className="flex flex-col gap-[21px]">
-        <Card tone="keylime">
-          <Eyebrow>Downloader</Eyebrow>
-          <h2 className="display-md mt-[11px] mb-[14px]">Medien direkt in den Tab laden</h2>
-          <p className="max-w-[60ch] text-body leading-[1.6] text-prose/85">
-            Bei direkten Links und HLS-Playlisten holt der Browser die Datei selbst — es gibt keinen
-            Server dazwischen, der die Adresse mitlesen könnte. Direkte Links landen im
-            Arbeitsspeicher oder, wo die Dateisystem-API vorhanden ist, gleich auf der Festplatte;
-            HLS-Segmente werden lokal zu einer MP4 zusammengefasst.
-          </p>
-          {serviceEnabled ? (
-            <p className="mt-[11px] max-w-[60ch] text-[13px] leading-[1.6] text-muted">
-              Der Extraktions-Dienst ist eingeschaltet. Für Portal-Adressen gilt das oben Gesagte
-              nicht — die Anfrage läuft dann über einen fremden Server. Siehe unten.
+      <Card tone="keylime">
+        <Eyebrow>Downloader</Eyebrow>
+        <h2 className="display-md mt-[11px] mb-[14px]">Medien laden</h2>
+        <p className="max-w-[62ch] text-body leading-[1.6] text-prose/85">
+          Adresse einfügen — der Weg ergibt sich daraus. Direkte Links und HLS-Streams holt der
+          Browser selbst, ohne Server dazwischen. Portale wie YouTube gehen nur über einen
+          Extraktions-Dienst, und der muss weiter unten ausdrücklich eingeschaltet werden.
+        </p>
+
+        {/* ---- address ---------------------------------------------------- */}
+        <div className="mt-[28px] flex flex-col gap-[18px]">
+          <Field
+            label="Adresse"
+            /* Describes what will actually happen, including after a manual
+               override — not merely what the address looked like. */
+            hint={
+              !url.trim()
+                ? 'Audio, Video, Playlist oder Portal-Link.'
+                : effectiveMode === 'service'
+                  ? 'Wird über den hinterlegten Dienst geholt.'
+                  : effectiveMode === 'hls'
+                    ? 'Wird als HLS-Playlist gelesen.'
+                    : detectedPortal
+                      ? 'Portal erkannt. Direkt geht das nicht.'
+                      : 'Wird direkt vom Browser geholt.'
+            }
+          >
+            <TextInput
+              type="url"
+              inputMode="url"
+              placeholder="https://beispiel.org/aufnahme.mp3"
+              value={url}
+              onChange={(event) => {
+                setUrl(event.target.value)
+                // A new address re-decides the path on its own.
+                setModeOverride(null)
+                reset()
+              }}
+            />
+          </Field>
+
+          {/* ---- path chips ------------------------------------------------ */}
+          <div className="flex flex-col gap-[9px]">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink">Weg</span>
+            <div role="radiogroup" aria-label="Weg" className="flex flex-wrap gap-[7px]">
+              {PATHS.map((path) => {
+                const active = path.id === effectiveMode
+                return (
+                  <button
+                    key={path.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={active}
+                    disabled={path.disabled}
+                    title={path.hint}
+                    onClick={() => {
+                      setModeOverride(path.id)
+                      reset()
+                    }}
+                    className={`rounded-pill px-[14px] py-[7px] text-[13px] transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+                      active ? 'bg-ink text-on-ink' : 'bg-raised text-ink hover:bg-panel-mid'
+                    }`}
+                  >
+                    {path.label}
+                  </button>
+                )
+              })}
+            </div>
+            <p className="text-[12px] leading-[1.5] text-muted">
+              {/* A portal address on any path but the service will fail, whether
+                  that path was detected or chosen. Say so instead of letting the
+                  chip promise something the browser cannot do. */}
+              {detectedPortal && effectiveMode !== 'service'
+                ? serviceEnabled
+                  ? 'Diese Adresse braucht den Weg über den Dienst — direkt lässt das Portal den Browser nicht heran.'
+                  : 'Für diese Adresse reicht keiner dieser Wege — Portale brauchen den Dienst weiter unten.'
+                : PATHS.find((path) => path.id === effectiveMode)?.hint}
             </p>
+          </div>
+
+          {effectiveMode === 'direct' ? (
+            <Toggle
+              label="Direkt auf die Festplatte schreiben"
+              hint={
+                caps.fileSystemAccess
+                  ? 'Für sehr große Dateien. Die Datei landet dann nicht in der Sitzung und steht den anderen Werkzeugen nicht zur Verfügung.'
+                  : 'Dieser Browser bietet die Dateisystem-API nicht an.'
+              }
+              checked={streamToDiskEnabled && caps.fileSystemAccess}
+              onChange={setStreamToDiskEnabled}
+              disabled={!caps.fileSystemAccess}
+            />
           ) : null}
 
-          <div className="mt-[28px] flex flex-col gap-[18px]">
-            <Field
-              label="Adresse"
-              hint={
-                detectedHls
-                  ? 'HLS-Playlist erkannt.'
-                  : detectedPortal
-                    ? serviceEnabled
-                      ? 'Portal erkannt — der Abruf läuft über den hinterlegten Dienst.'
-                      : 'Portal erkannt. Direkt geht das nicht; schalten Sie unten den Dienst ein.'
-                    : 'Direkter Link zu einer Audio- oder Videodatei.'
-              }
-            >
-              <TextInput
-                type="url"
-                inputMode="url"
-                placeholder="https://beispiel.org/aufnahme.mp3"
-                value={url}
-                onChange={(event) => {
-                  setUrl(event.target.value)
-                  reset()
-                }}
-              />
-            </Field>
-
-            {!detectedHls ? (
-              <Field label="Art">
-                <Select value={effectiveMode} onChange={(event) => setMode(event.target.value as Mode)}>
-                  <option value="direct">Direkte Datei</option>
-                  <option value="hls">HLS-Playlist (.m3u8)</option>
-                  <option value="service" disabled={!serviceEnabled}>
-                    Portal über einen Dienst {serviceEnabled ? '' : '(ausgeschaltet)'}
+          {/* ---- HLS quality, inline once the playlist has been read -------- */}
+          {playlist && playlist.kind === 'master' ? (
+            <Field label="Qualitätsstufe" hint={`${playlist.variants.length} Stufen gefunden.`}>
+              <Select value={variantUrl} onChange={(event) => setVariantUrl(event.target.value)}>
+                {playlist.variants.map((variant) => (
+                  <option key={variant.url} value={variant.url}>
+                    {variant.resolution ?? 'unbekannt'} · {Math.round(variant.bandwidth / 1000)} kbit/s
+                    {variant.codecs ? ` · ${variant.codecs}` : ''}
                   </option>
-                </Select>
-              </Field>
-            ) : null}
+                ))}
+              </Select>
+            </Field>
+          ) : null}
 
-            {effectiveMode === 'direct' ? (
-              <Toggle
-                label="Direkt auf die Festplatte schreiben"
-                hint={
-                  caps.fileSystemAccess
-                    ? 'Für sehr große Dateien. Die Datei landet dann nicht in der Sitzung und steht den anderen Werkzeugen nicht zur Verfügung.'
-                    : 'Dieser Browser bietet die Dateisystem-API nicht an.'
-                }
-                checked={streamToDiskEnabled && caps.fileSystemAccess}
-                onChange={setStreamToDiskEnabled}
-                disabled={!caps.fileSystemAccess}
-              />
-            ) : null}
-
-            <div className="flex flex-wrap items-center gap-[11px]">
-              {effectiveMode === 'service' ? (
-                <Button onClick={() => runService()} disabled={busy || !url.trim() || !service.endpoint}>
-                  {busy ? 'Lädt…' : 'Über den Dienst laden'}
-                  {!busy ? <ArrowRight /> : null}
-                </Button>
-              ) : effectiveMode === 'direct' ? (
-                <Button onClick={downloadDirect} disabled={busy || !url.trim()}>
-                  {busy ? 'Lädt…' : 'Laden'}
-                  {!busy ? <ArrowRight /> : null}
-                </Button>
-              ) : (
-                <>
-                  <Button onClick={inspectPlaylist} disabled={busy || !url.trim()}>
-                    {busy && !playlist ? 'Wird gelesen…' : 'Playlist lesen'}
-                  </Button>
-                  {playlist ? (
-                    <Button variant="quiet" onClick={downloadHls} disabled={busy}>
-                      {busy ? 'Lädt…' : 'Stream laden'}
-                    </Button>
-                  ) : null}
-                </>
-              )}
-              {busy ? (
-                <Button variant="ghost" onClick={() => abortRef.current?.abort()}>
-                  Abbrechen
-                </Button>
-              ) : null}
-            </div>
-
-            {busy || progress ? (
-              <Progress
-                value={progress?.fraction ?? null}
-                label={
-                  note ??
-                  (progress
-                    ? `${formatBytes(progress.receivedBytes)}${
-                        progress.totalBytes ? ` von ${formatBytes(progress.totalBytes)}` : ''
-                      }${progress.bytesPerSecond ? ` · ${formatBytes(progress.bytesPerSecond)}/s` : ''}`
-                    : 'Verbindung wird aufgebaut')
-                }
-              />
-            ) : null}
-          </div>
-        </Card>
-
-        {playlist && playlist.kind === 'master' ? (
-          <Card tone="slate">
-            <Eyebrow>Qualitätsstufen</Eyebrow>
-            <div className="mt-[18px] rounded-card bg-raised p-[28px]">
-              <Field label="Stufe">
-                <Select value={variantUrl} onChange={(event) => setVariantUrl(event.target.value)}>
-                  {playlist.variants.map((variant) => (
-                    <option key={variant.url} value={variant.url}>
-                      {variant.resolution ?? 'unbekannt'} · {Math.round(variant.bandwidth / 1000)} kbit/s
-                      {variant.codecs ? ` · ${variant.codecs}` : ''}
-                    </option>
-                  ))}
-                </Select>
-              </Field>
-            </div>
-          </Card>
-        ) : null}
-
-        {playlist && playlist.kind === 'media' ? (
-          <Card tone="slate">
-            <Eyebrow>Playlist</Eyebrow>
-            <div className="mt-[18px] flex flex-wrap gap-[7px]">
+          {playlist && playlist.kind === 'media' ? (
+            <div className="flex flex-wrap gap-[7px]">
               <Badge tone="forest">{playlist.segments.length} Segmente</Badge>
               {playlist.encrypted ? <Badge>verschlüsselt</Badge> : null}
             </div>
-          </Card>
-        ) : null}
+          ) : null}
 
-        {items ? (
-          <Card tone="slate">
-            <Eyebrow>Auswahl</Eyebrow>
-            <p className="mt-[11px] text-[13px] text-muted">
-              Der Beitrag enthält mehrere Medien. Wählen Sie, was geholt werden soll.
-            </p>
-            <ul className="mt-[18px] flex flex-col gap-[7px]">
-              {items.map((item) => (
-                <li
-                  key={item.url}
-                  className="flex flex-wrap items-center justify-between gap-[11px] rounded-card bg-raised px-[18px] py-[14px]"
-                >
-                  <span className="min-w-0 flex-1 truncate text-body text-ink">{item.filename}</span>
-                  <Badge>{item.kind}</Badge>
-                  <Button size="sm" onClick={() => runService(item)} disabled={busy}>
-                    Holen
+          {/* ---- picker, inline when a post holds several media ------------- */}
+          {items ? (
+            <div className="flex flex-col gap-[9px]">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink">
+                Auswahl
+              </span>
+              <ul className="flex flex-col gap-[7px]">
+                {items.map((item) => (
+                  <li
+                    key={item.url}
+                    className="flex flex-wrap items-center gap-[11px] rounded-card bg-raised px-[18px] py-[11px]"
+                  >
+                    <span className="min-w-0 flex-1 truncate text-body text-ink">{item.filename}</span>
+                    <Badge>{item.kind}</Badge>
+                    <Button size="sm" onClick={() => runService(item)} disabled={busy}>
+                      Holen
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
+          {/* ---- action ----------------------------------------------------- */}
+          <div className="flex flex-wrap items-center gap-[11px]">
+            {effectiveMode === 'service' ? (
+              <Button onClick={() => runService()} disabled={busy || !canStart}>
+                {busy ? 'Lädt…' : 'Über den Dienst laden'}
+                {!busy ? <ArrowRight /> : null}
+              </Button>
+            ) : effectiveMode === 'hls' ? (
+              <>
+                <Button onClick={playlist ? downloadHls : inspectPlaylist} disabled={busy || !canStart}>
+                  {busy ? 'Lädt…' : playlist ? 'Stream laden' : 'Playlist lesen'}
+                  {!busy ? <ArrowRight /> : null}
+                </Button>
+                {playlist ? (
+                  <Button variant="quiet" onClick={inspectPlaylist} disabled={busy}>
+                    Neu einlesen
                   </Button>
-                </li>
-              ))}
-            </ul>
-          </Card>
-        ) : null}
+                ) : null}
+              </>
+            ) : (
+              <Button onClick={downloadDirect} disabled={busy || !canStart}>
+                {busy ? 'Lädt…' : 'Laden'}
+                {!busy ? <ArrowRight /> : null}
+              </Button>
+            )}
 
-        {error ? (
-          <Notice tone="error" title="Nicht abrufbar">
-            {error}
-          </Notice>
-        ) : null}
+            {busy ? (
+              <Button variant="ghost" onClick={() => abortRef.current?.abort()}>
+                Abbrechen
+              </Button>
+            ) : null}
 
-        <Card tone={serviceEnabled ? 'sage' : 'cream'} className={serviceEnabled ? '' : 'ring-1 ring-inset ring-line'}>
-          <Eyebrow>YouTube und andere Portale</Eyebrow>
-          <p className="mt-[11px] max-w-[62ch] text-[13px] leading-[1.6] text-prose/85">
-            Direkt geht das nicht: Portale liefern ihre Medien ohne{' '}
-            <code className="font-mono text-[12px]">Access-Control-Allow-Origin</code> aus, und der
-            Browser lässt eine fremde Seite deshalb nicht an die Daten. Das ist eine Schutzmaßnahme,
-            keine Lücke. Möglich wird es nur mit einem Server als Zwischenstation.
-          </p>
-
-          <div className="mt-[21px]">
-            <Toggle
-              label="Abruf über einen Extraktions-Dienst erlauben"
-              hint="Standardmäßig aus. Bleibt aus, bis Sie es in dieser Sitzung ausdrücklich einschalten."
-              checked={serviceEnabled}
-              onChange={(value) => {
-                setServiceEnabled(value)
-                reset()
-                log(
-                  'dienst',
-                  value
-                    ? 'Extraktions-Dienst eingeschaltet — Adressen verlassen ab jetzt den Rechner'
-                    : 'Extraktions-Dienst ausgeschaltet',
-                  value ? 'warn' : 'info',
-                )
-              }}
-            />
+            {effectiveMode === 'service' && !service.endpoint ? (
+              <span className="text-[12px] text-muted">Erst eine Adresse für den Dienst hinterlegen.</span>
+            ) : null}
           </div>
+
+          {busy || progress ? (
+            <Progress
+              value={progress?.fraction ?? null}
+              label={
+                note ??
+                (progress
+                  ? `${formatBytes(progress.receivedBytes)}${
+                      progress.totalBytes ? ` von ${formatBytes(progress.totalBytes)}` : ''
+                    }${progress.bytesPerSecond ? ` · ${formatBytes(progress.bytesPerSecond)}/s` : ''}`
+                  : 'Verbindung wird aufgebaut')
+              }
+            />
+          ) : null}
+
+          {error ? (
+            <Notice tone="error" title="Nicht abrufbar">
+              {error}
+            </Notice>
+          ) : null}
+        </div>
+
+        {/* ---- external downloaders, unfolding in place -------------------- */}
+        <div className="mt-[28px] border-t border-line pt-[28px]">
+          <Toggle
+            label="YouTube und externe Downloader"
+            hint="Standardmäßig aus. Bleibt aus, bis Sie es in dieser Sitzung ausdrücklich einschalten."
+            checked={serviceEnabled}
+            onChange={(value) => {
+              setServiceEnabled(value)
+              setModeOverride(null)
+              reset()
+              log(
+                'dienst',
+                value
+                  ? 'Externe Downloader eingeschaltet — Adressen verlassen ab jetzt den Rechner'
+                  : 'Externe Downloader ausgeschaltet',
+                value ? 'warn' : 'info',
+              )
+            }}
+          />
 
           {serviceEnabled ? (
             <div className="mt-[21px] flex flex-col gap-[18px]">
@@ -533,35 +574,33 @@ export function DownloaderPanel() {
                 </p>
               </div>
 
+              <Field
+                label="Adresse des Dienstes"
+                hint="Eine cobalt-kompatible Instanz — eine, der Sie vertrauen, oder Ihre eigene. Wird lokal gespeichert."
+              >
+                <TextInput
+                  type="url"
+                  inputMode="url"
+                  placeholder="https://meine-instanz.example/"
+                  value={service.endpoint}
+                  onChange={(event) => updateService({ endpoint: event.target.value })}
+                />
+              </Field>
+
+              <Field
+                label="Zugangsschlüssel"
+                hint="Nur falls die Instanz einen verlangt. Wird nicht gespeichert und gilt bis zum Neuladen."
+              >
+                <TextInput
+                  type="password"
+                  autoComplete="off"
+                  placeholder="optional"
+                  value={apiKey}
+                  onChange={(event) => setApiKey(event.target.value)}
+                />
+              </Field>
+
               <div className="grid gap-[18px] sm:grid-cols-2">
-                <Field
-                  label="Adresse des Dienstes"
-                  className="sm:col-span-2"
-                  hint="Eine cobalt-kompatible Instanz — eine, der Sie vertrauen, oder Ihre eigene. Wird lokal gespeichert."
-                >
-                  <TextInput
-                    type="url"
-                    inputMode="url"
-                    placeholder="https://meine-instanz.example/"
-                    value={service.endpoint}
-                    onChange={(event) => updateService({ endpoint: event.target.value })}
-                  />
-                </Field>
-
-                <Field
-                  label="Zugangsschlüssel"
-                  className="sm:col-span-2"
-                  hint="Nur falls die Instanz einen verlangt. Wird nicht gespeichert und gilt bis zum Neuladen."
-                >
-                  <TextInput
-                    type="password"
-                    autoComplete="off"
-                    placeholder="optional"
-                    value={apiKey}
-                    onChange={(event) => setApiKey(event.target.value)}
-                  />
-                </Field>
-
                 <Field label="Was holen">
                   <Select
                     value={service.downloadMode}
@@ -604,13 +643,14 @@ export function DownloaderPanel() {
               </div>
             </div>
           ) : (
-            <p className="mt-[18px] text-[13px] leading-[1.6] text-muted">
-              Ohne den Dienst funktionieren weiterhin: eigene Dateien, offene Archive, Podcast-Feeds,
-              Mediatheken mit CORS-Freigabe und HLS-Streams, die ihre Segmente freigeben.
+            <p className="mt-[14px] max-w-[62ch] text-[13px] leading-[1.6] text-muted">
+              Ohne diese Option funktionieren weiterhin: eigene Dateien, offene Archive,
+              Podcast-Feeds, Mediatheken mit CORS-Freigabe und HLS-Streams, die ihre Segmente
+              freigeben.
             </p>
           )}
-        </Card>
-      </div>
+        </div>
+      </Card>
 
       <aside className="flex flex-col gap-[21px]">
         <Card tone="mint">
