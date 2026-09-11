@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 
 import { detectCapabilities, hasWebGpuAdapter, suggestedThreads } from '../lib/capabilities'
 import { loadFfmpeg, onFfmpegStatus, type FfmpegStatus } from '../lib/ffmpegClient'
+import type { ResolvedTheme } from '../lib/theme'
 import { useSession, type PanelId } from '../state/store'
 import { ConverterPanel } from './panels/ConverterPanel'
 import { DownloaderPanel } from './panels/DownloaderPanel'
@@ -30,7 +31,7 @@ function PanelTabs() {
     <div
       role="tablist"
       aria-label="Werkzeuge"
-      className="flex gap-[7px] overflow-x-auto rounded-card bg-cream-paper p-[7px] ring-1 ring-inset ring-border-mist"
+      className="flex gap-[7px] overflow-x-auto rounded-card bg-raised p-[7px] ring-1 ring-inset ring-line"
     >
       {PANELS.map((entry) => {
         const active = entry.id === panel
@@ -41,8 +42,9 @@ function PanelTabs() {
             aria-selected={active}
             onClick={() => setPanel(entry.id)}
             className={`shrink-0 rounded-nav px-[18px] py-[11px] text-body transition-colors ${
-              active ? 'bg-forest-ink text-cream-paper' : 'text-charcoal hover:bg-keylime-wash'
+              active ? 'bg-ink text-on-ink' : 'text-prose hover:bg-panel-soft'
             }`}
+            title={entry.summary}
           >
             {entry.label}
           </button>
@@ -106,11 +108,11 @@ function CapabilityStrip() {
       <dl className="mt-[21px] grid gap-[21px] sm:grid-cols-3 lg:grid-cols-5">
         {entries.map((entry) => (
           <div key={entry.label} className="flex flex-col gap-[4px]">
-            <dt className="text-[11px] font-semibold uppercase tracking-[0.08em] text-forest-ink/70">
+            <dt className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink/70">
               {entry.label}
             </dt>
-            <dd className="text-subheading text-forest-ink">{entry.value}</dd>
-            <p className="text-[12px] leading-[1.4] text-charcoal/65">{entry.note}</p>
+            <dd className="text-subheading text-ink">{entry.value}</dd>
+            <p className="text-[12px] leading-[1.4] text-muted">{entry.note}</p>
           </div>
         ))}
       </dl>
@@ -124,7 +126,7 @@ function ActivityLog() {
   const [open, setOpen] = useState(false)
 
   return (
-    <Card tone="cream" className="ring-1 ring-inset ring-border-mist">
+    <Card tone="cream" className="ring-1 ring-inset ring-line">
       <div className="flex flex-wrap items-center justify-between gap-[14px]">
         <div className="flex items-center gap-[11px]">
           <Eyebrow>Protokoll</Eyebrow>
@@ -143,9 +145,9 @@ function ActivityLog() {
       </div>
 
       {open ? (
-        <div className="mt-[18px] max-h-[260px] overflow-y-auto rounded-card bg-keylime-wash p-[18px]">
+        <div className="mt-[18px] max-h-[260px] overflow-y-auto rounded-card bg-panel-soft p-[18px]">
           {logs.length === 0 ? (
-            <p className="text-[13px] text-charcoal/60">Noch keine Einträge.</p>
+            <p className="text-[13px] text-muted">Noch keine Einträge.</p>
           ) : (
             <ol className="flex flex-col gap-[7px] font-mono text-[12px] leading-[1.5]">
               {logs
@@ -153,17 +155,17 @@ function ActivityLog() {
                 .reverse()
                 .map((line) => (
                   <li key={line.id} className="flex gap-[11px]">
-                    <span className="numeric shrink-0 text-charcoal/45">
+                    <span className="numeric shrink-0 text-muted">
                       {new Date(line.at).toLocaleTimeString('de-DE')}
                     </span>
-                    <span className="shrink-0 text-forest-ink">{line.scope}</span>
+                    <span className="shrink-0 text-ink">{line.scope}</span>
                     <span
                       className={
                         line.level === 'error'
-                          ? 'text-forest-ink'
+                          ? 'text-ink'
                           : line.level === 'warn'
-                            ? 'text-charcoal'
-                            : 'text-charcoal/75'
+                            ? 'text-prose'
+                            : 'text-prose/85'
                       }
                     >
                       {line.message}
@@ -178,20 +180,12 @@ function ActivityLog() {
   )
 }
 
-export function Dashboard() {
+export function Dashboard({ theme }: { theme: ResolvedTheme }) {
   const panel = useSession((state) => state.panel)
   const current = PANELS.find((entry) => entry.id === panel)
 
   return (
-    <section id="studio" className="shell flex flex-col gap-[21px] py-[56px] sm:py-[76px]">
-      <div className="flex flex-col gap-[14px]">
-        <Eyebrow>Studio</Eyebrow>
-        <div className="flex flex-wrap items-end justify-between gap-[21px]">
-          <h2 className="display-lg max-w-[16ch]">Fünf Werkzeuge, ein Tab</h2>
-          <p className="max-w-[38ch] text-body leading-[1.6] text-charcoal/70">{current?.summary}</p>
-        </div>
-      </div>
-
+    <section id="studio" className="shell flex flex-col gap-[18px] py-[21px]">
       <PanelTabs />
 
       <div role="tabpanel" aria-label={current?.label}>
@@ -199,7 +193,7 @@ export function Dashboard() {
         {panel === 'converter' ? <ConverterPanel /> : null}
         {panel === 'stems' ? <StemsPanel /> : null}
         {panel === 'normalize' ? <NormalizePanel /> : null}
-        {panel === 'sampler' ? <SamplerPanel /> : null}
+        {panel === 'sampler' ? <SamplerPanel theme={theme} /> : null}
       </div>
 
       <CapabilityStrip />

@@ -55,8 +55,8 @@ export function FileDrop({ compact = false }: { compact?: boolean }) {
         setDragging(false)
         if (event.dataTransfer.files.length) void ingest(event.dataTransfer.files)
       }}
-      className={`rounded-card bg-cream-paper text-center ring-1 ring-inset transition-colors ${
-        dragging ? 'ring-forest-ink' : 'ring-border-mist'
+      className={`rounded-card bg-raised text-center ring-1 ring-inset transition-colors ${
+        dragging ? 'ring-ink' : 'ring-line'
       } ${compact ? 'p-[21px]' : 'p-[42px]'}`}
     >
       <input
@@ -73,7 +73,7 @@ export function FileDrop({ compact = false }: { compact?: boolean }) {
       {!compact ? (
         <p className="display-sm mb-[7px]">Dateien hierher ziehen</p>
       ) : null}
-      <p className="mx-auto mb-[18px] max-w-[42ch] text-[13px] leading-[1.55] text-charcoal/70">
+      <p className="mx-auto mb-[18px] max-w-[42ch] text-[13px] leading-[1.55] text-muted">
         Audio oder Video, beliebig viele. Die Dateien bleiben im Arbeitsspeicher dieses Tabs.
       </p>
       <Button size={compact ? 'sm' : 'md'} onClick={() => inputRef.current?.click()} disabled={busy}>

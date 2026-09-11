@@ -12,6 +12,9 @@ ausschließlich der Rechner des Besuchers.
 | **Lautheit** | Vollständiges EBU R128 / ITU-R BS.1770-4 mit True-Peak-Grenze |
 | **Sampler** | Schneiden an Transienten, Pads, Phasenvocoder-Export |
 
+Dazu: helles und dunkles Erscheinungsbild, Stapelverarbeitung mit ZIP-Ausgabe,
+Installation als PWA und vollständiger Offline-Betrieb.
+
 ## Schnellstart
 
 ```bash
@@ -52,14 +55,19 @@ Lizge/
 ├── public/
 │   ├── _headers                   Header für Netlify und Cloudflare Pages
 │   ├── staticwebapp.config.json   Header für Azure Static Web Apps
-│   ├── coi-serviceworker.js       Header-Ersatz für Hosts ohne Header-Kontrolle
+│   ├── coi-serviceworker.js       Isolations-Header und Offline-Cache
+│   ├── manifest.webmanifest       PWA-Manifest
 │   ├── fonts.css, fonts/          Selbst gehostete Schriften
-│   └── favicon.svg
+│   └── favicon.svg, icon-*.png
 └── src/
     ├── main.tsx, App.tsx
     ├── styles/theme.css           Designsystem als Tailwind-v4-Theme
     ├── lib/
     │   ├── ffmpegClient.ts        FFmpeg-WASM-Anbindung  ← siehe unten
+    │   ├── service.ts             Extraktions-Dienst (YouTube und Co.)
+    │   ├── theme.ts               Hell/Dunkel/System
+    │   ├── zip.ts                 ZIP-Schreiber ohne Abhängigkeit
+    │   ├── wakeLock.ts            Bildschirm wach halten
     │   ├── convert.ts             Ausgabeformate und Argumentbau
     │   ├── download.ts            Fetch mit Fortschritt, HLS, Speichern
     │   ├── fft.ts                 FFT, STFT, ISTFT mit WOLA
@@ -173,6 +181,59 @@ der Heap über eine lange Sitzung mit jeder Datei weiter.
 Abbrechen geht nur über `terminate()`: ein laufender Core lässt sich nicht
 unterbrechen. Der nächste Aufruf lädt ihn transparent neu.
 
+## YouTube und andere Portale
+
+Direkt geht das nicht, und das ist keine Nachlässigkeit: Portale liefern ihre
+Medien ohne `Access-Control-Allow-Origin` aus, der Browser lässt eine fremde
+Seite deshalb nicht an die Daten. Möglich wird es nur mit einem Server als
+Zwischenstation — und der sieht die angefragte Adresse und die IP des Nutzers.
+
+Deshalb ist die Funktion **standardmäßig aus** und muss in jeder Sitzung neu
+eingeschaltet werden. Solange sie aus ist, gibt es keinen Codepfad, der eine
+Adresse nach außen gibt. Wird sie eingeschaltet, steht der Hinweis dauerhaft im
+Panel: was übertragen wird, an wen, und dass die Nutzung auf eigenes Risiko
+erfolgt.
+
+Es ist **keine Standard-Instanz hinterlegt**. Eine mitgelieferte Adresse würde
+die Anfragen aller Nutzer still an eine Maschine schicken, die weder sie noch
+dieses Projekt kontrolliert. Stattdessen tragen Nutzer eine eigene oder eine
+ihnen bekannte cobalt-kompatible Instanz ein. Die Adresse wird lokal
+gespeichert, ein etwaiger Zugangsschlüssel bewusst **nicht** — ein Schlüssel in
+`localStorage` überlebt die Absicht, mit der er eingegeben wurde.
+
+Alles andere bleibt unberührt: Konvertierung, Spurentrennung, Lautheit und
+Sampler rechnen weiterhin ausschließlich lokal.
+
+## Hell und dunkel
+
+Drei Zustände statt zwei: hell, dunkel und „System“, das dem Betriebssystem
+folgt und ihm auch später noch folgt. Nur die ausdrücklichen Entscheidungen
+schreiben ein Attribut an `<html>`; „System“ lässt die Media Query in
+`theme.css` entscheiden.
+
+Farben heißen nach ihrer Rolle, nicht nach ihrem Ton — `canvas` statt
+`cream-paper` —, weil genau der Ton sich zwischen den Themes ändert. Tailwind
+gibt jede Farbklasse als `var(--color-…)` aus, sodass ein Theme-Wechsel die
+Variablen neu belegt und nichts an den Komponenten anfasst. Ein kurzes Skript im
+`<head>` setzt das Attribut vor dem ersten Paint, damit niemand kurz das falsche
+Theme sieht.
+
+Wellenformen zeichnen auf Canvas und in Wavesurfer mit echten Farbwerten. Die
+werden zur Laufzeit aus dem Cascade gelesen; beim Wechsel wird Wavesurfer
+umgefärbt statt neu aufgebaut, sonst wären alle gesetzten Bereiche weg.
+
+## Offline und Installation
+
+Der Service Worker hat zwei Aufgaben: die Isolations-Header (siehe oben) und den
+Offline-Cache. Antworten vom eigenen Ursprung werden beim Abruf mitgeschrieben
+und bei fehlendem Netz aus dem Cache bedient — auch der 32 MB große FFmpeg-Core.
+Ab dem zweiten Besuch braucht die Anwendung kein Netz mehr. Fremde Ursprünge
+werden nie zwischengespeichert; der Verkehr des Extraktions-Dienstes läuft
+unverändert durch.
+
+Über das Manifest lässt sich Lizge installieren. Der Knopf erscheint nur, wenn
+der Browser ihn anbietet.
+
 ## Die Rechenverfahren
 
 **Lautheit.** Vollständiges BS.1770-4, gegen den Referenzpunkt der Norm geprüft
@@ -224,9 +285,9 @@ dynamisch importiert — wer die Funktion nie benutzt, lädt sie nie.
 
 ## Bekannte Grenzen
 
-- **Portale mit CORS-Sperre** (YouTube und ähnliche) lassen sich nicht laden.
-  Umgehen ließe sich das nur über einen fremden Server als Zwischenstation, und
-  darauf verzichtet diese Anwendung bewusst.
+- **Portale mit CORS-Sperre** (YouTube und ähnliche) lassen sich nur über den
+  ausdrücklich einzuschaltenden Extraktions-Dienst laden — und dann nicht mehr
+  lokal. Ohne eigene Instanz funktioniert die Funktion nicht.
 - **AES-verschlüsselte HLS-Streams** werden abgelehnt. Lizge lädt keine
   Schlüssel und umgeht keinen Kopierschutz.
 - **Die eingebaute Spurentrennung erreicht kein Demucs.** Sie ist gut genug für

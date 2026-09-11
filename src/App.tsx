@@ -1,18 +1,23 @@
 import { Dashboard } from './components/Dashboard'
-import { Architecture, Faq, Footer, Hero, Nav, PrivacyBanner } from './components/Landing'
+import { DropOverlay, Footer, Header, SessionBar } from './components/AppShell'
+import { useGlobalIngest } from './hooks/useGlobalIngest'
+import { useInstallPrompt } from './hooks/useInstallPrompt'
+import { useTheme } from './hooks/useTheme'
 
 export default function App() {
+  const { choice, resolved, setChoice } = useTheme()
+  const { dragging } = useGlobalIngest()
+  const install = useInstallPrompt()
+
   return (
-    <div className="min-h-dvh bg-cream-paper">
-      <Nav />
-      <main>
-        <Hero />
-        <PrivacyBanner />
-        <Dashboard />
-        <Architecture />
-        <Faq />
+    <div className="flex min-h-dvh flex-col bg-canvas">
+      <Header themeChoice={choice} onThemeChange={setChoice} install={install} />
+      <SessionBar />
+      <main className="flex-1">
+        <Dashboard theme={resolved} />
       </main>
       <Footer />
+      <DropOverlay visible={dragging} />
     </div>
   )
 }
