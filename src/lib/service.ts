@@ -122,12 +122,31 @@ interface ServiceResponse {
   error?: { code?: string }
 }
 
+/**
+ * Hosts that are obviously media pages rather than an API.
+ *
+ * Pasting the video URL into the service field is the mistake everyone makes
+ * first — the two fields sit near each other and both want a URL. Catching it
+ * by name gives a useful answer instead of "youtube.com does not respond",
+ * which is true but tells nobody anything.
+ */
+const MEDIA_HOSTS =
+  /(?:^|\.)(?:youtube\.com|youtu\.be|soundcloud\.com|vimeo\.com|tiktok\.com|twitter\.com|x\.com|instagram\.com|reddit\.com|twitch\.tv|bilibili\.com|dailymotion\.com|facebook\.com|spotify\.com)$/i
+
 function normalizeEndpoint(endpoint: string): string {
   const trimmed = endpoint.trim()
   if (!trimmed) throw new ServiceError('Es ist kein Dienst hinterlegt.')
   const withScheme = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`
   try {
     const url = new URL(withScheme)
+
+    if (MEDIA_HOSTS.test(url.hostname)) {
+      throw new ServiceError(
+        `${url.hostname} ist die Adresse des Videos, nicht die des Dienstes. Oben gehört der Link ` +
+          'zum Medium hin; hier die Adresse Ihrer eigenen cobalt-Instanz.',
+      )
+    }
+
     const local = ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)
     if (url.protocol !== 'https:' && !local) {
       // A page served over HTTPS cannot talk to an HTTP endpoint at all — the

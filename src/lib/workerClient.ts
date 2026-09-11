@@ -8,6 +8,8 @@
  */
 
 import type {
+  HarmonyRequest,
+  HarmonyResponse,
   LoudnessRequest,
   LoudnessResponse,
   PlainAudio,
@@ -16,6 +18,8 @@ import type {
   StemsRequest,
   StemsResponse,
 } from '../workers/protocol'
+import type { ChordSpan, KeyEstimate } from './key'
+import type { Note } from './pitch'
 import type { GainPlan, LoudnessReport, NormalizationSettings } from './loudness'
 import type { SeparationOptions, StemId } from './separation'
 import type { AudioData } from './wav'
@@ -85,6 +89,7 @@ function runJob<Request extends { id: number }, Response extends { type: string;
 let loudnessWorker: Worker | null = null
 let stemsWorker: Worker | null = null
 let samplerWorker: Worker | null = null
+let harmonyWorker: Worker | null = null
 
 function getLoudnessWorker(): Worker {
   loudnessWorker ??= new Worker(new URL('../workers/loudness.worker.ts', import.meta.url), {
@@ -110,11 +115,20 @@ function getSamplerWorker(): Worker {
   return samplerWorker
 }
 
+function getHarmonyWorker(): Worker {
+  harmonyWorker ??= new Worker(new URL('../workers/harmony.worker.ts', import.meta.url), {
+    type: 'module',
+    name: 'lizge-harmony',
+  })
+  return harmonyWorker
+}
+
 /** Drops every cached worker; the next call builds new ones. */
 export function resetWorkers(): void {
   loudnessWorker = null
   stemsWorker = null
   samplerWorker = null
+  harmonyWorker = null
 }
 
 /** Detaching the caller's buffers would leave the UI holding empty arrays. */
@@ -234,6 +248,43 @@ export function renderSliceInWorker(
     buffersOf(payload),
     (message) => message.type === 'rendered',
     (message) => (message as Extract<SamplerResponse, { type: 'rendered' }>).audio,
+    onProgress,
+    signal,
+  )
+}
+
+export interface HarmonyOutcome {
+  key: KeyEstimate
+  chords: ChordSpan[]
+  chroma: Float32Array
+  notes: Note[]
+}
+
+export interface HarmonyOptions {
+  chordWindow: number
+  transcribe: boolean
+  minimumClarity: number
+  minimumNoteSeconds: number
+  quantizeSeconds: number
+}
+
+export function analyseHarmonyInWorker(
+  audio: AudioData,
+  options: HarmonyOptions,
+  onProgress?: ProgressCallback,
+  signal?: AbortSignal,
+): Promise<HarmonyOutcome> {
+  const payload = copyAudio(audio)
+  const request: HarmonyRequest = { type: 'analyse', id: nextJobId++, audio: payload, ...options }
+  return runJob<HarmonyRequest, HarmonyResponse & { id: number }, HarmonyOutcome>(
+    getHarmonyWorker(),
+    request,
+    buffersOf(payload),
+    (message) => message.type === 'analysed',
+    (message) => {
+      const done = message as Extract<HarmonyResponse, { type: 'analysed' }>
+      return { key: done.key, chords: done.chords, chroma: done.chroma, notes: done.notes }
+    },
     onProgress,
     signal,
   )

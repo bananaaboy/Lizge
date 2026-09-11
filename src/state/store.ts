@@ -39,7 +39,7 @@ export interface LogLine {
   message: string
 }
 
-export type PanelId = 'downloader' | 'converter' | 'stems' | 'normalize' | 'sampler'
+export type PanelId = 'downloader' | 'converter' | 'stems' | 'normalize' | 'sampler' | 'harmony'
 
 interface SessionState {
   assets: Asset[]

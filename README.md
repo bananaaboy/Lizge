@@ -11,6 +11,7 @@ ausschließlich der Rechner des Besuchers.
 | **Spurentrennung** | Gesang, Schlagzeug, Bass, Übriges — ohne Modell-Download |
 | **Lautheit** | Vollständiges EBU R128 / ITU-R BS.1770-4 mit True-Peak-Grenze |
 | **Chopper** | Chops an Transienten oder im Tempo-Raster, 16 Pads, Sample-Pack |
+| **Harmonie** | Tonart mit Camelot-Code, Akkordverlauf, Melodie als MIDI |
 
 Dazu: helles und dunkles Erscheinungsbild, Stapelverarbeitung mit ZIP-Ausgabe,
 Installation als PWA und vollständiger Offline-Betrieb.
@@ -52,7 +53,8 @@ Lizge/
 ├── vercel.json                    Header für Vercel
 ├── scripts/
 │   ├── verify-loudness.mts        Kalibrierungstest gegen BS.1770-4
-│   └── verify-tempo.mts           Tempoerkennung, Raster, Nulldurchgänge
+│   ├── verify-tempo.mts           Tempoerkennung, Raster, Nulldurchgänge
+│   └── verify-harmony.mts         Tonart, Tonhöhe, MIDI-Datei
 ├── public/
 │   ├── _headers                   Header für Netlify und Cloudflare Pages
 │   ├── staticwebapp.config.json   Header für Azure Static Web Apps
@@ -78,6 +80,10 @@ Lizge/
     │   ├── timestretch.ts         Phasenvocoder, Resampler
     │   ├── onsets.ts              Transientenerkennung über Spektralfluss
     │   ├── tempo.ts               Tempo, Beat-Raster, Nulldurchgänge
+    │   ├── chroma.ts              Tonklassenprofil
+    │   ├── key.ts                 Tonart und Akkorde
+    │   ├── pitch.ts               YIN-Tonhöhenverfolgung, Notenbildung
+    │   ├── midi.ts                Standard-MIDI-Datei
     │   ├── audio.ts               Web-Audio-Brücke, Schnittoperationen
     │   ├── wav.ts                 RIFF-Leser und -Schreiber
     │   ├── workerClient.ts        Promise-Fassade über die Worker
@@ -304,6 +310,45 @@ daneben — eine Automatik kann das nicht entscheiden, ein Ohr schon.
 wenige Millisekunden weit. Ein Schnitt mitten in der Wellenform hinterlässt eine
 Stufe, und eine Stufe klickt. Blenden verdecken das, kosten aber den Anschlag —
 genau den Teil eines Chops, auf den es ankommt.
+
+## Was hier geht, was ein DAW nicht macht
+
+Zwei Dinge, für die Produzenten sonst zu Zusatzsoftware greifen.
+
+**Tonart aus Audio.** FL Studio 2026 benennt Akkorde im Piano Roll, also aus
+MIDI — nicht aus einer Aufnahme, die man hineinzieht. Der Pitch-Region-Detektor
+in Edison ist kein Tonartfinder; dafür gibt es Mixed In Key zu kaufen. Nötig ist
+das nicht: eine Tonart ist eine Verteilung über die zwölf Tonklassen, und
+Krumhansl und Kessler haben gemessen, wie diese Verteilungen aussehen. Die
+Korrelation des Tonklassenprofils gegen ihre 24 Profile ergibt die Tonart, dazu
+den Camelot-Code und die Nachbarn, die harmonisch dazu passen.
+
+Parallele Dur- und Moll-Tonarten enthalten dieselben zwölf Töne. Das Profil
+allein kann sie deshalb nicht trennen — was sie unterscheidet, ist welcher Ton
+sich wie ein Grundton verhält. Dafür kommen zwei Indizien dazu: die Basslage und
+der Anfang des Stücks. Bleibt es knapp, sagt die Oberfläche das und nennt die
+Alternative, statt eine Zahl zu erfinden.
+
+**Audio zu MIDI.** FL Studio hat das nicht eingebaut. Hier verfolgt YIN (de
+Cheveigné und Kawahara, 2002) die Tonhöhe Rahmen für Rahmen; daraus werden Noten
+gebildet und als Standard-MIDI-Datei geschrieben, die jedes DAW öffnet.
+
+Die Verfolgung ist bewusst einstimmig. Ein mehrstimmiger Transkriptor braucht
+ein trainiertes Modell und einen entsprechenden Download; eine einzelne Linie —
+Bass, Hook, Gesang — ist ohnehin das, was man heraushören will. Auf einem vollen
+Mix findet er die auffälligste Stimme statt der gewünschten, deshalb steht im
+Panel der Hinweis, vorher im Reiter „Spuren“ zu trennen.
+
+**Akkorde** werden über dieselben Tonklassen gegen Dreiklang-Vorlagen
+abgeglichen. Dabei gibt es eine Falle: eine einzelne Note buchstabiert mit ihren
+Obertönen selbst einen Durdreiklang, sodass naives Vorlagen-Matching jeder
+Durchgangsnote einen Akkord anhängt. Der Ausweg ist ein Vergleich — erklärt eine
+einzelne Tonklasse das Fenster deutlich besser als der beste Dreiklang, ist es
+eine Melodie und kein Akkord. Gemessen an synthetischem Material liegt eine
+Solostimme bei einem Verhältnis von 1,23 bis 1,48, Akkorde unter einer Melodie
+bei 0,86 bis 1,11; die Grenze liegt dazwischen.
+
+Beides rechnet lokal, ohne Modell und ohne Download.
 
 ## Eigenes Trennmodell verwenden
 

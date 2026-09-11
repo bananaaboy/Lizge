@@ -9,6 +9,7 @@ import { loadFfmpeg, onFfmpegStatus, type FfmpegStatus } from '../lib/ffmpegClie
 import type { ResolvedTheme } from '../lib/theme'
 import { useSession, type PanelId } from '../state/store'
 import { ConverterPanel } from './panels/ConverterPanel'
+import { HarmonyPanel } from './panels/HarmonyPanel'
 import { DownloaderPanel } from './panels/DownloaderPanel'
 import { NormalizePanel } from './panels/NormalizePanel'
 import { SamplerPanel } from './panels/SamplerPanel'
@@ -21,6 +22,7 @@ const PANELS: { id: PanelId; label: string; summary: string }[] = [
   { id: 'stems', label: 'Spuren', summary: 'Gesang, Schlagzeug, Bass, Rest' },
   { id: 'normalize', label: 'Lautheit', summary: 'EBU R128 messen und angleichen' },
   { id: 'sampler', label: 'Chopper', summary: 'An Transienten oder im Raster zerlegen' },
+  { id: 'harmony', label: 'Harmonie', summary: 'Tonart, Akkorde und Melodie als MIDI' },
 ]
 
 function PanelTabs() {
@@ -194,6 +196,7 @@ export function Dashboard({ theme }: { theme: ResolvedTheme }) {
         {panel === 'stems' ? <StemsPanel /> : null}
         {panel === 'normalize' ? <NormalizePanel /> : null}
         {panel === 'sampler' ? <SamplerPanel theme={theme} /> : null}
+        {panel === 'harmony' ? <HarmonyPanel /> : null}
       </div>
 
       <CapabilityStrip />

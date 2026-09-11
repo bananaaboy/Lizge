@@ -11,7 +11,8 @@
     "typecheck": "tsc -b --noEmit",
     "verify:loudness": "node --experimental-strip-types scripts/verify-loudness.mts",
     "verify:tempo": "esbuild scripts/verify-tempo.mts --bundle --platform=node --format=esm --log-level=warning --outfile=node_modules/.verify-tempo.mjs && node node_modules/.verify-tempo.mjs",
-    "verify": "npm run verify:loudness && npm run verify:tempo"
+    "verify": "npm run verify:loudness && npm run verify:tempo && npm run verify:harmony",
+    "verify:harmony": "esbuild scripts/verify-harmony.mts --bundle --platform=node --format=esm --log-level=warning --outfile=node_modules/.verify-harmony.mjs && node node_modules/.verify-harmony.mjs"
   },
   "dependencies": {
     "@ffmpeg/ffmpeg": "^0.12.15",
