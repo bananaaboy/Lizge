@@ -29,6 +29,7 @@ import {
 import { detectCapabilities } from '../../lib/capabilities'
 import {
   DEFAULT_SERVICE,
+  findLocalInstance,
   localJobArgs,
   localJobExtension,
   probeService,
@@ -45,6 +46,14 @@ import {
 } from '../../lib/service'
 import { loadFfmpeg, runFfmpeg } from '../../lib/ffmpegClient'
 import { formatBytes, sanitizeFilename, withExtension } from '../../lib/format'
+import {
+  composeFile,
+  DEFAULT_PORT,
+  localCandidates,
+  oneLiner,
+  unixScript,
+  windowsScript,
+} from '../../lib/selfhost'
 import { holdScreenAwake } from '../../lib/wakeLock'
 import { kindFromMime, useSession } from '../../state/store'
 import { AssetList } from '../AssetList'
@@ -123,6 +132,9 @@ export function DownloaderPanel() {
   const [items, setItems] = useState<ServiceItem[] | null>(null)
   const [serviceInfo, setServiceInfo] = useState<ServiceInfo | null>(null)
   const [checking, setChecking] = useState(false)
+  const [searching, setSearching] = useState(false)
+  const [setupOpen, setSetupOpen] = useState(false)
+  const [copied, setCopied] = useState(false)
 
   const updateService = (patch: Partial<ServiceSettings>) => {
     setService((current) => {
@@ -407,6 +419,48 @@ export function DownloaderPanel() {
     }
   }
 
+  /**
+   * Looks for an instance on this machine and fills the field in.
+   *
+   * This is the closest a web page can get to "set it up for me": it cannot
+   * start anything, but once something is running it can find it.
+   */
+  const searchLocal = async () => {
+    const controller = new AbortController()
+    abortRef.current = controller
+    setSearching(true)
+    setError(null)
+    setServiceInfo(null)
+    try {
+      const found = await findLocalInstance(localCandidates(), controller.signal)
+      if (found) {
+        updateService({ endpoint: found.endpoint })
+        setServiceInfo(found.info)
+        setSetupOpen(false)
+        log('dienst', `Lokale Instanz gefunden: ${found.endpoint} (cobalt ${found.info.version})`)
+      } else {
+        setSetupOpen(true)
+        setError(
+          'Auf diesem Rechner läuft keine Instanz auf Port ' +
+            `${DEFAULT_PORT}. Unten steht, wie Sie eine einrichten.`,
+        )
+      }
+    } finally {
+      setSearching(false)
+      abortRef.current = null
+    }
+  }
+
+  const copyCommand = async () => {
+    try {
+      await navigator.clipboard.writeText(oneLiner())
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      // Clipboard access can be refused; the command is visible either way.
+    }
+  }
+
   /** Checks the endpoint and says precisely what is wrong with it. */
   const checkService = async () => {
     if (!service.endpoint.trim()) return
@@ -642,11 +696,14 @@ export function DownloaderPanel() {
                         setServiceInfo(null)
                       }}
                     />
+                    <Button size="sm" variant="quiet" onClick={searchLocal} disabled={searching || checking}>
+                      {searching ? 'Sucht…' : 'Suchen'}
+                    </Button>
                     <Button
                       size="sm"
                       variant="quiet"
                       onClick={checkService}
-                      disabled={checking || !service.endpoint.trim()}
+                      disabled={checking || searching || !service.endpoint.trim()}
                     >
                       {checking ? 'Prüft…' : 'Prüfen'}
                     </Button>
@@ -721,23 +778,108 @@ export function DownloaderPanel() {
                 )}
               </div>
 
-              <p className="text-[12px] leading-[1.5] text-muted">
-                Es gibt keine öffentliche Instanz mehr, die man hier eintragen könnte: die frühere
-                wurde von YouTube gesperrt, und die verbliebenen verlangen eine ausdrückliche
-                Erlaubnis ihrer Betreiber. Praktisch heißt das, Sie brauchen eine eigene — auf einem
-                Server, in Docker oder lokal. Eine frische Instanz lädt von YouTube in der Regel
-                problemlos. Die Anleitung steht unter{' '}
-                <a
-                  className="underline underline-offset-2 hover:text-ink"
-                  href="https://github.com/imputnet/cobalt/blob/main/docs/run-an-instance.md"
-                  target="_blank"
-                  rel="noreferrer noopener"
+              <div className="rounded-card bg-raised p-[14px]">
+                <button
+                  type="button"
+                  onClick={() => setSetupOpen((value) => !value)}
+                  aria-expanded={setupOpen}
+                  className="flex w-full items-center justify-between gap-3 rounded-nav text-left"
                 >
-                  cobalt/docs/run-an-instance.md
-                </a>
-                . Läuft sie lokal, tragen Sie hier <code className="font-mono">http://localhost:9000/</code>{' '}
-                ein.
-              </p>
+                  <span className="text-[13px] font-semibold text-ink">
+                    Eigene Instanz auf diesem Rechner einrichten
+                  </span>
+                  <span className="text-[12px] text-muted">{setupOpen ? 'Schließen' : 'Anzeigen'}</span>
+                </button>
+
+                {setupOpen ? (
+                  <div className="mt-[11px] flex flex-col gap-[11px] text-[12px] leading-[1.5] text-prose/85">
+                    <p>
+                      Eine öffentliche Instanz gibt es nicht mehr — die frühere wurde von YouTube
+                      gesperrt, die verbliebenen verlangen die Erlaubnis ihrer Betreiber. Eine eigene
+                      auf dem eigenen Rechner lädt dagegen in der Regel problemlos, weil sie von
+                      Ihrer Leitung aus anfragt statt von einer bekannten.
+                    </p>
+                    <p className="text-muted">
+                      Diese Seite kann sie nicht für Sie starten: eine Webseite darf keine Programme
+                      auf Ihrem Rechner ausführen, und das ist gut so. Sie bekommt hier aber alles
+                      Nötige fertig geschrieben, und sobald etwas läuft, findet „Suchen“ es selbst.
+                    </p>
+
+                    <div className="flex flex-wrap gap-[7px]">
+                      <Button
+                        size="sm"
+                        variant="quiet"
+                        onClick={() =>
+                          saveBytes(
+                            new TextEncoder().encode(composeFile()),
+                            'docker-compose.yml',
+                            'text/yaml',
+                          )
+                        }
+                      >
+                        docker-compose.yml
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="quiet"
+                        onClick={() =>
+                          saveBytes(
+                            new TextEncoder().encode(unixScript()),
+                            'cobalt-starten.sh',
+                            'text/x-shellscript',
+                          )
+                        }
+                      >
+                        Skript für macOS/Linux
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="quiet"
+                        onClick={() =>
+                          saveBytes(
+                            new TextEncoder().encode(windowsScript()),
+                            'cobalt-starten.ps1',
+                            'text/plain',
+                          )
+                        }
+                      >
+                        Skript für Windows
+                      </Button>
+                    </div>
+
+                    <div>
+                      <p className="mb-[4px] text-[11px] font-semibold uppercase tracking-[0.08em] text-ink">
+                        Oder ein einziger Befehl
+                      </p>
+                      <div className="flex flex-wrap items-center gap-[7px]">
+                        <code className="min-w-0 flex-1 overflow-x-auto rounded-nav bg-panel-soft px-[11px] py-[9px] font-mono text-[11px] whitespace-pre text-prose">
+                          {oneLiner()}
+                        </code>
+                        <Button size="sm" variant="quiet" onClick={copyCommand}>
+                          {copied ? 'Kopiert' : 'Kopieren'}
+                        </Button>
+                      </div>
+                    </div>
+
+                    <p className="text-muted">
+                      Voraussetzung ist Docker. Danach läuft der Dienst unter{' '}
+                      <code className="font-mono">http://localhost:{DEFAULT_PORT}/</code>, nur auf
+                      diesem Rechner erreichbar. Lesen Sie die Dateien, bevor Sie sie ausführen — das
+                      gilt für alles, was eine Webseite Ihnen zum Ausführen gibt. Die
+                      Originalanleitung steht unter{' '}
+                      <a
+                        className="underline underline-offset-2 hover:text-ink"
+                        href="https://github.com/imputnet/cobalt/blob/main/docs/run-an-instance.md"
+                        target="_blank"
+                        rel="noreferrer noopener"
+                      >
+                        cobalt/docs/run-an-instance.md
+                      </a>
+                      .
+                    </p>
+                  </div>
+                ) : null}
+              </div>
 
               {/* Terms last, under the controls they apply to. */}
               <div className="rounded-card bg-raised p-[14px] text-[12px] leading-[1.5] ring-1 ring-inset ring-ink/30">

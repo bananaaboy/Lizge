@@ -220,6 +220,24 @@ Adresse nach außen gibt. Wird sie eingeschaltet, steht der Hinweis dauerhaft im
 Panel: was übertragen wird, an wen, und dass die Nutzung auf eigenes Risiko
 erfolgt.
 
+### Eine Instanz für den eigenen Rechner
+
+Eine Webseite kann keinen Server auf dem Rechner starten, der sie anzeigt — und
+das ist keine Lücke, sondern der Grund, warum man Webseiten überhaupt öffnen
+kann. Die Anwendung geht deshalb so weit, wie eine Seite ehrlich gehen kann:
+
+* Sie erzeugt die fertige `docker-compose.yml`, ein Startskript für macOS und
+  Linux, eines für Windows und einen einzelnen `docker run`-Befehl. Alles wird
+  im Browser geschrieben, nichts nachgeladen, und es ist lesbarer Text — den man
+  vor dem Ausführen auch lesen sollte, bei allem, was eine Webseite einem gibt.
+* Die Konfiguration bindet an `127.0.0.1`, nicht an `0.0.0.0`: eine Instanz auf
+  einem Laptop hat im WLAN eines Cafés nichts zu suchen.
+* Läuft etwas, findet der Knopf „Suchen“ es selbst — er probiert die üblichen
+  lokalen Adressen mit kurzem Zeitlimit und trägt die passende ein.
+
+Eine eigene Instanz lädt von YouTube meist problemlos, weil sie von der eigenen
+Leitung aus anfragt statt von einer, die dort bekannt ist.
+
 Es ist **keine Standard-Instanz hinterlegt**. Eine mitgelieferte Adresse würde
 die Anfragen aller Nutzer still an eine Maschine schicken, die weder sie noch
 dieses Projekt kontrolliert. Stattdessen tragen Nutzer eine eigene oder eine
