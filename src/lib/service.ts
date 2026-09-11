@@ -227,6 +227,31 @@ export async function probeService(
 }
 
 /**
+ * Looks for an instance running on this machine.
+ *
+ * Each candidate gets a short timeout, because a closed port on localhost fails
+ * instantly but a firewalled one can hang until the default timeout — and
+ * waiting thirty seconds to be told "nothing here" is worse than useless.
+ */
+export async function findLocalInstance(
+  candidates: string[],
+  signal?: AbortSignal,
+): Promise<{ endpoint: string; info: ServiceInfo } | null> {
+  for (const candidate of candidates) {
+    if (signal?.aborted) return null
+    try {
+      const timeout = AbortSignal.timeout(2500)
+      const combined = signal ? AbortSignal.any([signal, timeout]) : timeout
+      const info = await probeService(candidate, null, combined)
+      return { endpoint: candidate, info }
+    } catch {
+      // Nothing there, or not a cobalt API. Try the next one.
+    }
+  }
+  return null
+}
+
+/**
  * Asks the service what it can offer for `mediaUrl`.
  *
  * `apiKey` is passed through but never stored — a credential in localStorage
