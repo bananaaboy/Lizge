@@ -307,53 +307,42 @@ scheitert es sonst:
 
 ### Eine Instanz für den eigenen Rechner
 
-Dieser Weg liegt in der Oberfläche eingeklappt hinter „Eigenen Dienst
-betreiben", weil er am meisten verlangt. Dahinter stehen **zwei** Wege, und
-voreingestellt ist der ohne Docker:
+Dieser Weg steht in der Oberfläche offen unter „Eigenen Dienst betreiben".
+Dahinter liegen **drei** Wege, geordnet danach, was sie vom Rechner verlangen,
+und voreingestellt ist der mit den wenigsten Voraussetzungen:
 
-* **Ohne Docker**, direkt auf Node.js 18+ mit Git. Beides sind normale
-  Installer ohne virtuelle Maschine. Genau darin liegt der Vorteil: Docker
-  Desktop setzt unter Windows WSL2 voraus, und dieser Stapel hat offene Fehler,
-  an denen man nicht vorbeikommt — etwa
+* **Nur Node.js** (Vorgabe). Der Quelltext kommt als Archiv von GitHub statt
+  über Git; auspacken kann das jeder Rechner von Haus aus (`tar` überall,
+  `Expand-Archive` in PowerShell). Damit ist Node das Einzige, was installiert
+  werden muss.
+* **Node.js + Git.** Derselbe Dienst, geklont statt geladen. Einziger Vorteil:
+  eine neue Fassung holt später ein `git pull`.
+* **Docker.** Der bisherige Einzeiler, für alle, bei denen er läuft. Unter
+  Windows setzt er WSL2 und damit eine virtuelle Maschine voraus, und dieser
+  Stapel hat offene Fehler, an denen man nicht vorbeikommt — etwa
   `Wsl/Service/…/MountDisk/HCS/ERROR_NOT_SUPPORTED`, wo WSL seine eigene
-  Systemplatte nicht mehr einhängt. Node kennt diese Fehlerklasse gar nicht.
-* **Mit Docker**, der bisherige Einzeiler, für alle, bei denen er läuft.
+  Systemplatte nicht mehr einhängt. Die beiden Node-Wege kennen diese
+  Fehlerklasse gar nicht.
 
-Beide Wege liefern denselben Dienst auf `localhost:9000`, beide werden vom
-„Befehle kopieren"-Knopf samt Warten unterstützt, und zu beiden gibt es fertige
-Skripte für Windows und macOS/Linux. Unter Windows ist beim Node-Weg das Skript
-die bessere Wahl: PowerShell schreibt eine Datei mit `>` in einer Kodierung, die
-der Dienst nicht liest, das Skript benutzt stattdessen `Set-Content -Encoding
-UTF8`.
+Eine Eigenheit, die sich nur durch Ausführen zeigt: **der Dienst startet nicht
+außerhalb eines git-Ordners.** Er sucht von seinem Arbeitsverzeichnis aufwärts
+nach `.git` und bricht mit `no git repository root found` ab — nicht weil er git
+benutzt, sondern weil er daraus Fassung, Branch und Remote für seine eigene
+Auskunft liest (`packages/version-info`). Drei Textdateien genügen ihm:
+`.git/HEAD`, `.git/logs/HEAD`, `.git/config`. Der Node-only-Weg schreibt genau
+die, und braucht dafür kein git.
 
-Eine Webseite kann keinen Server auf dem Rechner starten, der sie anzeigt — und
-das ist keine Lücke, sondern der Grund, warum man Webseiten überhaupt öffnen
-kann. Die Anwendung geht deshalb so weit, wie eine Seite ehrlich gehen kann:
+Zwei weitere Fallen, ebenfalls beim Ausführen gefunden und in den Skripten
+berücksichtigt: `corepack` fragt vor dem Nachladen nach und bliebe im Skript
+hängen, deshalb `COREPACK_ENABLE_DOWNLOAD_PROMPT=0`; und PowerShell wertet in
+einfachen Anführungszeichen keine Escapes aus, weshalb die drei Dateien dort
+über wörtliche Here-Strings geschrieben werden statt über `` `n ``.
 
-* Wird der Schalter umgelegt, sieht die Seite zuerst **von selbst** auf diesem
-  Rechner nach. Läuft dort schon etwas, ist die Einrichtung damit vorbei — ohne
-  einen einzigen Klick. Gesucht wird ausschließlich lokal: eine gemerkte fremde
-  Adresse wird eingetragen, aber nicht ungefragt angesprochen, denn genau
-  darüber soll der Schalter ja entscheiden.
-* Ist nichts da, stehen zwei Wege nebeneinander, der kürzere zuerst: eine
-  vorhandene Adresse eintragen, oder einen Dienst auf diesem Rechner starten.
-  Keiner davon ist hinter einem Link versteckt — ein Schritt, den man nicht
-  sieht, ist ein Schritt, den man nicht geht.
-* „Befehl kopieren“ legt den `docker run`-Befehl in die Zwischenablage und
-  **wartet danach**. Der Schritt, an dem es sonst scheitert, ist nicht der
-  Befehl, sondern die Rückkehr zur Seite: Man weiß nicht, was man drücken soll.
-  Also muss nichts gedrückt werden — die Seite schaut alle zwei Sekunden nach
-  und verbindet sich selbst, sobald der Dienst antwortet.
-* Darunter liegen weiterhin die fertige `docker-compose.yml`, ein Startskript
-  für macOS und Linux und eines für Windows. Alles wird im Browser geschrieben,
-  nichts nachgeladen, und es ist lesbarer Text — den man vor dem Ausführen auch
-  lesen sollte, bei allem, was eine Webseite einem gibt.
-* Die Konfiguration bindet an `127.0.0.1`, nicht an `0.0.0.0`: eine Instanz auf
-  einem Laptop hat im WLAN eines Cafés nichts zu suchen.
-* Der Zustand steht immer in einer Zeile über allem anderen: verbunden mit wem,
-  oder dass noch kein Dienst da ist und YouTube-Links deshalb nicht gehen.
-  Einstellungen wie Auflösung und Zugangsschlüssel erscheinen erst, wenn es
-  etwas gibt, auf das sie sich beziehen.
+Geprüft wurde das nicht auf dem Papier: Das erzeugte Skript wurde unverändert
+ausgeführt, holt das Archiv, legt den Stub an, installiert mit dem festgelegten
+pnpm 9.6.0 und startet cobalt 11.7.1 — und Lizge hat sich anschließend damit
+verbunden. Die eigene Instanz führt dabei **21 Dienste einschließlich YouTube**
+und verlangt keine Bot-Prüfung, im Gegensatz zum offiziellen Endpunkt.
 
 Eine eigene Instanz lädt von YouTube meist problemlos, weil sie von der eigenen
 Leitung aus anfragt statt von einer, die dort bekannt ist.

@@ -50,7 +50,11 @@ import { formatBytes, sanitizeFilename, withExtension } from '../../lib/format'
 import {
   composeFile,
   DEFAULT_PORT,
+  NODE_ONLY_REQUIREMENTS,
   NODE_REQUIREMENTS,
+  nodeOnlySteps,
+  nodeOnlyUnixScript,
+  nodeOnlyWindowsScript,
   nodeSteps,
   nodeUnixScript,
   nodeWindowsScript,
@@ -147,8 +151,10 @@ export function DownloaderPanel() {
   // space; now it is the only one that actually gets a service running, and a
   // route nobody opens is a route nobody takes.
   const [dockerOpen, setDockerOpen] = useState(true)
-  /** Node needs no virtual machine, so it is the default of the two. */
-  const [localWay, setLocalWay] = useState<'node' | 'docker'>('node')
+  // Ordered by what each one asks of the machine, least first. Git is a
+  // developer's tool, and needing it is an accident of how the program is
+  // shipped rather than a real requirement — GitHub serves an archive too.
+  const [localWay, setLocalWay] = useState<'zip' | 'git' | 'docker'>('zip')
   /** The guided setup is watching for an instance to come up. */
   const [waiting, setWaiting] = useState(false)
   const waitRef = useRef<AbortController | null>(null)
@@ -166,7 +172,10 @@ export function DownloaderPanel() {
     })
   }
 
-  const localCommand = localWay === 'docker' ? oneLiner() : nodeSteps().join('\n')
+  const localCommand =
+    localWay === 'docker'
+      ? oneLiner()
+      : (localWay === 'zip' ? nodeOnlySteps() : nodeSteps()).join('\n')
   const connected = serviceInfo !== null
   const endpointLabel = service.endpoint.replace(/^https?:\/\//, '').replace(/\/$/, '')
 
@@ -978,7 +987,7 @@ export function DownloaderPanel() {
                       </span>
                       {/* Named for what it asks of you, so nobody opens it by accident. */}
                       <span className="text-[12px] text-muted">
-                        {dockerOpen ? 'Schließen' : 'Mit oder ohne Docker'}
+                        {dockerOpen ? 'Schließen' : 'Drei Wege'}
                       </span>
                     </button>
 
@@ -996,8 +1005,9 @@ export function DownloaderPanel() {
                         >
                           {(
                             [
-                              { id: 'node', label: 'Ohne Docker' },
-                              { id: 'docker', label: 'Mit Docker' },
+                              { id: 'zip', label: 'Nur Node.js' },
+                              { id: 'git', label: 'Node.js + Git' },
+                              { id: 'docker', label: 'Docker' },
                             ] as const
                           ).map((choice) => (
                             <button
@@ -1016,11 +1026,24 @@ export function DownloaderPanel() {
                         </div>
 
                         <p className="mt-[11px] text-[12px] leading-[1.5] text-muted">
-                          {localWay === 'node' ? (
+                          {localWay === 'zip' ? (
+                            <>
+                              Braucht {NODE_ONLY_REQUIREMENTS} — ein gewöhnlicher Installer, sonst
+                              nichts. Der Quelltext kommt als Archiv statt über Git; auspacken kann
+                              das jeder Rechner von Haus aus. Kein Terminal-Werkzeug, keine
+                              virtuelle Maschine.{' '}
+                              <span className="text-prose/85">
+                                Die drei <code className="font-mono">.git</code>-Zeilen sind kein
+                                Git: der Dienst liest daraus nur seine eigene Versionsangabe und
+                                startet sonst nicht. Drei Textdateien genügen ihm.
+                              </span>
+                            </>
+                          ) : localWay === 'git' ? (
                             <>
                               Braucht {NODE_REQUIREMENTS} — beides normale Installer, ohne virtuelle
-                              Maschine. Genau das ist der Unterschied zu Docker Desktop, das unter
-                              Windows WSL2 voraussetzt und daran auch scheitern kann.
+                              Maschine. Gegenüber dem Archiv nur ein Vorteil: eine neue Fassung holt
+                              später ein <code className="font-mono">git pull</code> statt eines
+                              erneuten Downloads.
                             </>
                           ) : (
                             <>
@@ -1053,9 +1076,9 @@ export function DownloaderPanel() {
                             <Button size="sm" onClick={startAndWait} disabled={searching}>
                               {copied
                                 ? 'Kopiert — einfügen und ausführen'
-                                : localWay === 'node'
-                                  ? 'Befehle kopieren'
-                                  : 'Befehl kopieren'}
+                                : localWay === 'docker'
+                                  ? 'Befehl kopieren'
+                                  : 'Befehle kopieren'}
                               <ArrowRight />
                             </Button>
                             <Button size="sm" variant="quiet" onClick={searchLocal} disabled={searching}>
@@ -1069,7 +1092,7 @@ export function DownloaderPanel() {
                         </code>
 
                         <p className="mt-[9px] text-[12px] leading-[1.5] text-muted">
-                          {localWay === 'node' ? (
+                          {localWay !== 'docker' ? (
                             <>
                               Unter Windows nehmen Sie besser das fertige Skript unten: PowerShell
                               schreibt eine Datei mit <code className="font-mono">&gt;</code> in einer
@@ -1103,15 +1126,17 @@ export function DownloaderPanel() {
                               entsteht im Browser, nichts wird nachgeladen.
                             </p>
                             <div className="flex flex-wrap gap-[7px]">
-                              {localWay === 'node' ? (
+                              {localWay !== 'docker' ? (
                                 <>
                                   <Button
                                     size="sm"
                                     variant="quiet"
                                     onClick={() =>
                                       saveBytes(
-                                        new TextEncoder().encode(nodeWindowsScript()),
-                                        'cobalt-ohne-docker.ps1',
+                                        new TextEncoder().encode(
+                                          localWay === 'zip' ? nodeOnlyWindowsScript() : nodeWindowsScript(),
+                                        ),
+                                        localWay === 'zip' ? 'cobalt-nur-node.ps1' : 'cobalt-ohne-docker.ps1',
                                         'text/plain',
                                       )
                                     }
@@ -1123,8 +1148,10 @@ export function DownloaderPanel() {
                                     variant="quiet"
                                     onClick={() =>
                                       saveBytes(
-                                        new TextEncoder().encode(nodeUnixScript()),
-                                        'cobalt-ohne-docker.sh',
+                                        new TextEncoder().encode(
+                                          localWay === 'zip' ? nodeOnlyUnixScript() : nodeUnixScript(),
+                                        ),
+                                        localWay === 'zip' ? 'cobalt-nur-node.sh' : 'cobalt-ohne-docker.sh',
                                         'text/x-shellscript',
                                       )
                                     }

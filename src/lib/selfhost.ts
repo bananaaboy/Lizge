@@ -201,7 +201,7 @@ export function oneLiner(port = DEFAULT_PORT): string {
  *
  * Slightly more to type, far less to go wrong.
  */
-export const NODE_REQUIREMENTS = 'Node.js 18 oder neuer und Git'
+export const NODE_REQUIREMENTS = 'Node.js 18.17 oder neuer und Git'
 
 /** The steps, for showing rather than running. */
 export function nodeSteps(port = DEFAULT_PORT): string[] {
@@ -289,4 +289,185 @@ Write-Host "Startet auf http://localhost:${port}/ - dieses Fenster offen lassen.
 Write-Host "In Lizge passiert der Rest von selbst."
 pnpm start
 `
+}
+
+/* -------------------------------------------------------------------------- */
+/* Without Docker and without Git                                              */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * The same service again, for a machine that has neither Docker nor Git.
+ *
+ * Git is a developer's tool, and needing it to run a program is an accident of
+ * how the program is distributed. GitHub serves every repository as an archive
+ * too, and unpacking one needs nothing that is not already there: `tar`
+ * everywhere, `Expand-Archive` in PowerShell. Node is then the only install.
+ *
+ * One catch, found by running it rather than by reading about it: the service
+ * refuses to start outside a git checkout. It walks up from the working
+ * directory looking for `.git` and dies with "no git repository root found" —
+ * not because it uses git, but because it reads its own version, branch and
+ * remote out of three files in there. Writing those three by hand satisfies it,
+ * and needs no git at all.
+ *
+ * The cost of an archive is updating: no history to pull, so a newer version
+ * means fetching it again. For a service that sits in the background and works,
+ * that is the right trade.
+ */
+export const NODE_ONLY_REQUIREMENTS = 'nur Node.js 18.17 oder neuer'
+
+const ARCHIVE_TAR = 'https://github.com/imputnet/cobalt/archive/refs/heads/main.tar.gz'
+const ARCHIVE_ZIP = 'https://github.com/imputnet/cobalt/archive/refs/heads/main.zip'
+/** What the archive unpacks into — GitHub names it after the branch. */
+const ARCHIVE_DIR = 'cobalt-main'
+/** The placeholder commit in the stub; the service only echoes it back. */
+const STUB_COMMIT = '0'.repeat(40)
+
+/** The steps without Git, for showing rather than running. */
+export function nodeOnlySteps(port = DEFAULT_PORT): string[] {
+  return [
+    'curl -L ' + ARCHIVE_TAR + ' | tar xz',
+    'cd ' + ARCHIVE_DIR,
+    'mkdir -p .git/logs',
+    "printf 'ref: refs/heads/main\\n' > .git/HEAD",
+    "printf '" + STUB_COMMIT + ' ' + STUB_COMMIT + " archiv <a@b> 0 +0000\\tarchive\\n' > .git/logs/HEAD",
+    'printf \'[remote "origin"]\\n\\turl = https://github.com/imputnet/cobalt\\n\' > .git/config',
+    'cd api',
+    'corepack enable pnpm',
+    'pnpm install',
+    'echo API_URL=http://localhost:' + port + '/ > .env',
+    'pnpm start',
+  ]
+}
+
+export function nodeOnlyUnixScript(port = DEFAULT_PORT): string {
+  return [
+    '#!/usr/bin/env bash',
+    '# cobalt ohne Docker und ohne Git starten. Erzeugt von Lizge.',
+    '# Vor dem Ausführen lesen. Das Skript lädt den Quelltext als Archiv, packt',
+    '# ihn in einen Ordner, installiert die Abhängigkeiten und startet den Dienst.',
+    'set -euo pipefail',
+    '',
+    'DIR="${1:-$HOME/cobalt}"',
+    '',
+    'if ! command -v node >/dev/null 2>&1; then',
+    '  echo "Node.js fehlt. Installieren: https://nodejs.org/" >&2',
+    '  exit 1',
+    'fi',
+    '',
+    'mkdir -p "$DIR"',
+    'cd "$DIR"',
+    '',
+    '# Kein git nötig: GitHub liefert jeden Stand auch als Archiv, und tar ist',
+    '# überall vorhanden.',
+    'echo "Quelltext wird geholt…"',
+    'curl -fsSL "' + ARCHIVE_TAR + '" | tar xz',
+    '',
+    'cd "' + ARCHIVE_DIR + '"',
+    '',
+    '# Der Dienst startet nur innerhalb eines git-Ordners — nicht weil er git',
+    '# benutzt, sondern weil er daraus seine Versionsangabe liest. Drei Dateien',
+    '# genügen ihm, und dafür braucht es kein git.',
+    'mkdir -p .git/logs',
+    "printf 'ref: refs/heads/main\\n' > .git/HEAD",
+    "printf '" + STUB_COMMIT + ' ' + STUB_COMMIT + " archiv <a@b> 0 +0000\\tarchive\\n' > .git/logs/HEAD",
+    'printf \'[remote "origin"]\\n\\turl = https://github.com/imputnet/cobalt\\n\' > .git/config',
+    '',
+    'cd api',
+    '',
+    '# corepack gehört zu Node und holt die festgelegte pnpm-Fassung. Die Abfrage',
+    '# vorher abschalten, sonst wartet das Skript auf eine Eingabe.',
+    'export COREPACK_ENABLE_DOWNLOAD_PROMPT=0',
+    'corepack enable pnpm 2>/dev/null || npm install -g pnpm',
+    'pnpm install',
+    '',
+    "cat > .env <<'ENVFILE'",
+    'API_URL=http://localhost:' + port + '/',
+    'API_PORT=' + port,
+    'ENVFILE',
+    '',
+    'echo',
+    'echo "Startet auf http://localhost:' + port + '/ — dieses Fenster offen lassen."',
+    'echo "In Lizge passiert der Rest von selbst."',
+    'pnpm start',
+    '',
+  ].join('\n')
+}
+
+export function nodeOnlyWindowsScript(port = DEFAULT_PORT): string {
+  // Every file below is written with a literal here-string (@'…'@) rather than
+  // a quoted value. PowerShell does not expand escapes inside single quotes, so
+  // a `n in one would land in the file as two characters — and the whole point
+  // of these three files is that the service can parse them.
+  return [
+    '# cobalt ohne Docker und ohne Git starten. Erzeugt von Lizge.',
+    '# Vor dem Ausfuehren lesen. Das Skript laedt den Quelltext als Archiv, packt',
+    '# ihn in einen Ordner, installiert die Abhaengigkeiten und startet den Dienst.',
+    '#',
+    '# Falls PowerShell das Ausfuehren verweigert, einmalig in derselben Sitzung:',
+    '#   Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass',
+    '$ErrorActionPreference = "Stop"',
+    '',
+    '$Dir = if ($args[0]) { $args[0] } else { Join-Path $HOME "cobalt" }',
+    '',
+    'if (-not (Get-Command node -ErrorAction SilentlyContinue)) {',
+    '  Write-Error "Node.js fehlt. Installieren: https://nodejs.org/"',
+    '  exit 1',
+    '}',
+    '',
+    'New-Item -ItemType Directory -Force -Path $Dir | Out-Null',
+    'Set-Location $Dir',
+    '',
+    '# Kein git noetig: GitHub liefert jeden Stand auch als Archiv, und',
+    '# Expand-Archive gehoert zu PowerShell.',
+    'Write-Host "Quelltext wird geholt..."',
+    '$Zip = Join-Path $Dir "cobalt.zip"',
+    'Invoke-WebRequest -Uri "' + ARCHIVE_ZIP + '" -OutFile $Zip',
+    'Expand-Archive -Path $Zip -DestinationPath $Dir -Force',
+    'Remove-Item $Zip',
+    '',
+    '$Root = Join-Path $Dir "' + ARCHIVE_DIR + '"',
+    'Set-Location $Root',
+    '',
+    '# Der Dienst startet nur innerhalb eines git-Ordners - nicht weil er git',
+    '# benutzt, sondern weil er daraus seine Versionsangabe liest. Drei Dateien',
+    '# genuegen ihm, und dafuer braucht es kein git.',
+    'New-Item -ItemType Directory -Force -Path ".git\\logs" | Out-Null',
+    '',
+    "@'",
+    'ref: refs/heads/main',
+    "'@ | Set-Content -Path \".git\\HEAD\" -Encoding ascii",
+    '',
+    "@'",
+    // Only the second field is read back, so a space where git writes a tab
+    // changes nothing and saves an escape that PowerShell would not expand.
+    STUB_COMMIT + ' ' + STUB_COMMIT + ' archiv <a@b> 0 +0000 archive',
+    "'@ | Set-Content -Path \".git\\logs\\HEAD\" -Encoding ascii",
+    '',
+    "@'",
+    '[remote "origin"]',
+    '\turl = https://github.com/imputnet/cobalt',
+    "'@ | Set-Content -Path \".git\\config\" -Encoding ascii",
+    '',
+    'Set-Location (Join-Path $Root "api")',
+    '',
+    '# corepack gehoert zu Node und holt die festgelegte pnpm-Fassung. Die Abfrage',
+    '# vorher abschalten, sonst wartet das Skript auf eine Eingabe.',
+    '$env:COREPACK_ENABLE_DOWNLOAD_PROMPT = "0"',
+    'try { corepack enable pnpm } catch { npm install -g pnpm }',
+    'pnpm install',
+    '',
+    '# Set-Content statt ">", weil PowerShell sonst UTF-16 schreibt und der',
+    '# Dienst die Datei nicht lesen kann.',
+    '@"',
+    'API_URL=http://localhost:' + port + '/',
+    'API_PORT=' + port,
+    '"@ | Set-Content -Path ".env" -Encoding UTF8',
+    '',
+    'Write-Host ""',
+    'Write-Host "Startet auf http://localhost:' + port + '/ - dieses Fenster offen lassen."',
+    'Write-Host "In Lizge passiert der Rest von selbst."',
+    'pnpm start',
+    '',
+  ].join('\n')
 }
