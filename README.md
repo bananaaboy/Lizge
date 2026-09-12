@@ -13,8 +13,18 @@ ausschließlich der Rechner des Besuchers.
 | **Chopper** | Chops an Transienten oder im Tempo-Raster, 16 Pads, Sample-Pack |
 | **Harmonie** | Tonart mit Camelot-Code, Akkordverlauf, Melodie als MIDI |
 
+Das Harmonie-Panel hat zwei Ansichten: „Einfach“ zeigt Tempo, Tonart und
+Camelot-Code und sonst nichts, „Detail“ zusätzlich Akkorde, Tonklassen, die
+Melodie und alle Einstellungen. Einfach überspringt die Tonhöhenverfolgung, den
+teuren Teil, weil sie dort ohnehin nicht gezeigt wird.
+
 Dazu: helles und dunkles Erscheinungsbild, Stapelverarbeitung mit ZIP-Ausgabe,
 Installation als PWA und vollständiger Offline-Betrieb.
+
+Überall, wo etwas bearbeitet wurde, lässt es sich anhören — und wo es ein Vorher
+gibt, im direkten Umschalten dagegen. Der Umschalter hält die Abspielposition,
+denn anders lässt sich ein Pegeleingriff oder eine Spurentrennung nicht
+beurteilen.
 
 ## Schnellstart
 
@@ -180,7 +190,15 @@ Fehlt die Isolation trotzdem, lädt `capabilities.ts` den einfädigen Core. Die
 Anwendung funktioniert vollständig, nur langsamer. Die Kachel „Dieser Browser“
 im Studio zeigt, welcher Weg gerade aktiv ist.
 
-### 4. MEMFS aufräumen
+### 4. Eingaben kopieren, bevor FFmpeg sie bekommt
+
+`writeFile` legt den ArrayBuffer des Aufrufers in die Transfer-Liste. Nach dem
+Schreiben ist der Puffer also *detached* — die Datei in der Sitzung wäre eine
+leere Hülle und ließe sich danach weder erneut umwandeln noch dekodieren noch
+abspielen. `runFfmpeg()` übergibt deshalb eine Kopie. Das kostet einmal Speicher
+und erspart einen Fehler, der erst beim zweiten Durchlauf auffällt.
+
+### 5. MEMFS aufräumen
 
 Jeder Lauf schreibt seine Eingaben in ein In-Memory-Dateisystem und liest die
 Ausgaben zurück. `runFfmpeg()` löscht beides im `finally`-Zweig — sonst wächst

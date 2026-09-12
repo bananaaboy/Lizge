@@ -196,7 +196,11 @@ export async function runFfmpeg({ input, output, args, signal }: RunOptions): Pr
   const written = Object.keys(input)
   try {
     for (const [name, bytes] of Object.entries(input)) {
-      await ffmpeg.writeFile(name, bytes)
+      // `writeFile` puts the caller's ArrayBuffer in the transfer list, which
+      // detaches it — the session asset would be an empty husk afterwards and
+      // could never be converted, decoded or re-used again. The copy is the
+      // price of keeping the input intact.
+      await ffmpeg.writeFile(name, bytes.slice())
     }
 
     const code = await ffmpeg.exec(args)

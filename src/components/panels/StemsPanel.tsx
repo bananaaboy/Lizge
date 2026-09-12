@@ -19,8 +19,8 @@ import { createZip } from '../../lib/zip'
 import { useDecodedAudio } from '../../hooks/useDecodedAudio'
 import { useActiveAsset, useSession } from '../../state/store'
 import { AssetList } from '../AssetList'
+import { AudioPreview } from '../AudioPreview'
 import { FileDrop } from '../FileDrop'
-import { Waveform } from '../Waveform'
 import {
   ArrowRight,
   Badge,
@@ -267,7 +267,7 @@ export function StemsPanel() {
 
             <div className="mt-[18px] flex flex-col gap-[11px]">
               {STEM_IDS.map((id) => (
-                <div key={id} className="rounded-card bg-raised p-[21px]">
+                <div key={id} className="rounded-card bg-raised p-[18px]">
                   <div className="mb-[11px] flex flex-wrap items-center justify-between gap-3">
                     <span className="text-subheading text-ink">{STEM_LABELS[id]}</span>
                     <div className="flex gap-[7px]">
@@ -279,12 +279,23 @@ export function StemsPanel() {
                       </Button>
                     </div>
                   </div>
-                  <Waveform audio={stems[id]} height={56} />
+                  {/* Gegen das Original umschaltbar: ob eine Trennung etwas
+                      taugt, hört man nur im direkten Vergleich. */}
+                  <AudioPreview
+                    sources={
+                      audio
+                        ? [
+                            { id: `${id}-stem`, label: STEM_LABELS[id], audio: stems[id] },
+                            { id: `${id}-source`, label: 'Original', audio },
+                          ]
+                        : [{ id: `${id}-stem`, label: STEM_LABELS[id], audio: stems[id] }]
+                    }
+                  />
                 </div>
               ))}
 
               {instrumental ? (
-                <div className="rounded-card bg-raised p-[21px]">
+                <div className="rounded-card bg-raised p-[18px]">
                   <div className="mb-[11px] flex flex-wrap items-center justify-between gap-3">
                     <div className="flex flex-col gap-0.5">
                       <span className="text-subheading text-ink">Instrumental</span>
@@ -301,7 +312,16 @@ export function StemsPanel() {
                       </Button>
                     </div>
                   </div>
-                  <Waveform audio={instrumental} height={56} />
+                  <AudioPreview
+                    sources={
+                      audio
+                        ? [
+                            { id: 'instrumental', label: 'Instrumental', audio: instrumental },
+                            { id: 'instrumental-source', label: 'Original', audio },
+                          ]
+                        : [{ id: 'instrumental', label: 'Instrumental', audio: instrumental }]
+                    }
+                  />
                 </div>
               ) : null}
             </div>

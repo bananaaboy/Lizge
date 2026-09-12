@@ -17,6 +17,7 @@ import { withExtension } from '../../lib/format'
 import { useDecodedAudio } from '../../hooks/useDecodedAudio'
 import { useActiveAsset, useSession } from '../../state/store'
 import { AssetList } from '../AssetList'
+import { AudioPreview } from '../AudioPreview'
 import { FileDrop } from '../FileDrop'
 import { Waveform } from '../Waveform'
 import {
@@ -94,6 +95,7 @@ export function NormalizePanel() {
   const [after, setAfter] = useState<LoudnessReport | null>(null)
   const [plan, setPlan] = useState<GainPlan | null>(null)
   const [result, setResult] = useState<Uint8Array | null>(null)
+  const [processed, setProcessed] = useState<import('../../lib/wav').AudioData | null>(null)
   const [error, setError] = useState<string | null>(null)
   const abortRef = useRef<AbortController | null>(null)
 
@@ -101,6 +103,7 @@ export function NormalizePanel() {
     setAfter(null)
     setPlan(null)
     setResult(null)
+    setProcessed(null)
     setError(null)
   }
 
@@ -158,6 +161,7 @@ export function NormalizePanel() {
       setBefore(outcome.before)
       setAfter(outcome.after)
       setPlan(outcome.plan)
+      setProcessed(outcome.audio)
       // 24-bit keeps the gain move clean without doubling the file size.
       setResult(encodeWav(outcome.audio, 24))
       log(
@@ -353,6 +357,22 @@ export function NormalizePanel() {
               ) : null}
               {plan.limiterEngaged ? <Badge>Limiter hat eingegriffen</Badge> : null}
             </div>
+
+            {processed && audio ? (
+              <div className="mt-[21px] rounded-card bg-raised p-[18px]">
+                <p className="mb-[11px] text-[11px] font-semibold uppercase tracking-[0.08em] text-ink">
+                  Anhören
+                </p>
+                {/* Umschalten hält die Abspielposition — anders lässt sich ein
+                    Pegeleingriff nicht beurteilen. */}
+                <AudioPreview
+                  sources={[
+                    { id: 'after', label: 'Nachher', audio: processed },
+                    { id: 'before', label: 'Vorher', audio },
+                  ]}
+                />
+              </div>
+            ) : null}
 
             {result ? (
               <div className="mt-[21px] flex flex-wrap gap-[11px]">
