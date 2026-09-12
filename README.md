@@ -238,43 +238,36 @@ Adresse nach außen gibt. Wird sie eingeschaltet, steht der Hinweis dauerhaft im
 Panel: was übertragen wird, an wen, und dass die Nutzung auf eigenes Risiko
 erfolgt.
 
-### Warum es keinen Weg ohne alles gibt
+### Warum es keinen Weg ohne Server gibt
 
-Nahe lag ein Weg, der gar nichts verlangt: Manche Leute betreiben so einen
-Dienst öffentlich, eine Adresse einsetzen würde genügen. Nachgeprüft hat sich
-das aber erledigt:
+Die Frage stellt sich zwangsläufig: Geht YouTube nicht auch ohne, dass man
+irgendetwas einrichtet oder installiert? Nachgeprüft lautet die Antwort nein,
+und zwar aus drei unabhängigen Gründen:
 
-* `instances.cobalt.best` und `instances.hyper.lol`, die beiden bekannten
-  Verzeichnisse, haben **keine DNS-Einträge mehr**. Die Listen sind abgeschaltet,
-  nachdem automatisierte Abrufe die Betreiber leergesaugt hatten.
-* Der offizielle Dienst `api.cobalt.tools` läuft zwar und erlaubt Anfragen aus
-  dem Browser, führt YouTube aber **nicht mehr** in seiner Dienstliste und
-  verlangt zusätzlich eine Bot-Prüfung, die eine Seite wie diese nicht lösen
-  kann.
+* **Der Browser selbst kommt nicht heran.** `*.googlevideo.com`, wo die
+  Videodaten liegen, gibt CORS nur für `youtube.com` frei. Selbst mit der
+  fertigen Stream-Adresse in der Hand darf eine fremde Seite die Bytes nicht
+  lesen. Damit scheidet jede reine Browser-Lösung aus, egal wie clever.
+* **Die Verzeichnisse offener Instanzen sind weg.** `instances.cobalt.best` und
+  `instances.hyper.lol` haben keine DNS-Einträge mehr, abgeschaltet, nachdem
+  automatisierte Abrufe die Betreiber leergesaugt hatten.
+* **Der offizielle Dienst führt YouTube nicht mehr.** `api.cobalt.tools`
+  antwortet (11.7.1, CORS offen), listet YouTube aber nicht unter seinen
+  Diensten und verlangt zusätzlich eine Bot-Prüfung.
 
-Eine brauchbare Adresse bekommt man deshalb praktisch nur persönlich. Das
-Eingabefeld dafür bleibt, ein Verzeichnis wird nicht verlinkt — eine Adresse
-mitzuliefern kommt ohnehin nicht in Frage, weil das jeden Besucher auf eine
-Maschine zeigen würde, die weder er noch dieses Projekt kontrolliert.
+Auch Cloud-Hosting hilft nicht: YouTube sperrt die IP-Bereiche von
+Rechenzentren, woran die frühere öffentliche Instanz gestorben ist. Ein
+Ein-Klick-Deployment wäre einfach und würde trotzdem nichts laden.
 
-Damit bleibt: Ein Browser darf von YouTube nicht laden, also muss ein Server
-holen, und den betreibt entweder man selbst oder jemand, den man kennt. Der
-verlässliche Weg für alle anderen ist deshalb der nächste.
+Es bleibt also: Holen muss ein Server, und den betreibt entweder jemand, den
+man kennt, oder man selbst. Beides steht im Panel, das Eingabefeld für eine
+fremde Adresse zuerst.
 
-### Wenn es verlässlich sein soll: ein Programm, dann die Datei
+### Der Weg zurück: Datei hinein, egal woher
 
-Die Einrichtung eines Servers ist für die meisten Menschen kein gangbarer Weg,
-und sie sollten auch keinen einrichten müssen. Deshalb steht an erster Stelle
-der Weg, der ohne Terminal, ohne Docker und ohne Konto auskommt: ein normales
-Programm mit normalem Installer lädt das Video, und die fertige Datei kommt
-zurück nach Lizge.
-
-Vorgeschlagen wird [Parabolic](https://github.com/NickvisionApps/Parabolic)
-(MIT, Windows/macOS/Linux) — der Link zeigt je nach System auf den passenden
-Installer oder auf Flathub. Es gehört nicht zu diesem Projekt und wird auch
-nicht nachgeladen; hinterlegt ist nur, wo es zu finden ist.
-
-Der Rückweg ist absichtlich kurz gehalten, denn daran scheitert es sonst:
+Woher die Datei auch kommt — aus irgendeinem Programm, von einem anderen
+Rechner, aus einer Nachricht —, der Rückweg ist absichtlich kurz, denn daran
+scheitert es sonst:
 
 * **Ziehen.** Eine Datei irgendwo ins Fenster fallen lassen genügt; ein
   Drop-Ziel, das man treffen muss, ist eine Abgabe auf jede einzelne Nutzung.
@@ -286,12 +279,6 @@ Der Rückweg ist absichtlich kurz gehalten, denn daran scheitert es sonst:
   Rumpf nach der Navigation nicht mehr lesen kann, nimmt der Service Worker die
   Dateien heraus, legt sie kurz ab und leitet weiter — die App sammelt sie ein
   und räumt das Regal wieder leer.
-
-Warum nicht einfach in der Cloud hosten? Weil es dort nicht funktioniert:
-YouTube sperrt die IP-Bereiche von Rechenzentren, und genau daran ist die
-frühere öffentliche Instanz gestorben. Ein Dienst auf dem eigenen Anschluss
-lädt, einer bei einem Hoster wird geprüft und abgewiesen. Die Einfachheit eines
-Ein-Klick-Deployments hilft also nichts, wenn das Ergebnis nicht lädt.
 
 ### Eine Instanz für den eigenen Rechner
 
