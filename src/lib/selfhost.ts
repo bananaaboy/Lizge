@@ -14,10 +14,26 @@
 
 import type { Platform } from './platform'
 
+/**
+ * Reads a stored value, falling back to the key this app used under its old
+ * name. Renaming the product should not quietly throw away what someone saved.
+ */
+function readStored(key: string, previous: string): string | null {
+  try {
+    const current = localStorage.getItem(key)
+    if (current !== null) return current
+    const legacy = localStorage.getItem(previous)
+    if (legacy !== null) localStorage.setItem(key, legacy)
+    return legacy
+  } catch {
+    return null
+  }
+}
+
 export const COBALT_IMAGE = 'ghcr.io/imputnet/cobalt:11'
 export const DEFAULT_PORT = 9000
 
-const STORAGE_KEY = 'lizge:instances'
+const STORAGE_KEY = 'sondra:instances'
 const MAX_REMEMBERED = 6
 
 /**
@@ -29,7 +45,7 @@ const MAX_REMEMBERED = 6
  */
 export function rememberedInstances(): string[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const raw = readStored(STORAGE_KEY, 'lizge:instances')
     const parsed: unknown = raw ? JSON.parse(raw) : []
     return Array.isArray(parsed) ? parsed.filter((entry): entry is string => typeof entry === 'string') : []
   } catch {
@@ -79,7 +95,7 @@ export function localCandidates(port = DEFAULT_PORT): string[] {
  */
 export function composeFile(port = DEFAULT_PORT): string {
   return `# cobalt, für den eigenen Rechner.
-# Erzeugt von Lizge. Vor dem Ausführen lesen — das gilt für jede Datei,
+# Erzeugt von Sondra. Vor dem Ausführen lesen — das gilt für jede Datei,
 # die eine Webseite Ihnen gibt.
 #
 # Starten:  docker compose up -d
@@ -106,7 +122,7 @@ services:
       API_PORT: "${port}"
 
       # CORS_WILDCARD steht per Voreinstellung auf 1 und erlaubt damit
-      # Anfragen von jeder Seite — genau das braucht Lizge hier.
+      # Anfragen von jeder Seite — genau das braucht Sondra hier.
       # Auf einem öffentlichen Server würden Sie das einschränken.
 
       # Optional: Dienste abschalten, die Sie nicht brauchen.
@@ -120,7 +136,7 @@ services:
 /** A shell script that writes the compose file and starts it. */
 export function unixScript(port = DEFAULT_PORT): string {
   return `#!/usr/bin/env bash
-# cobalt lokal starten. Erzeugt von Lizge.
+# cobalt lokal starten. Erzeugt von Sondra.
 # Vor dem Ausführen lesen. Das Skript legt einen Ordner an, schreibt eine
 # docker-compose.yml hinein und startet den Container — sonst nichts.
 set -euo pipefail
@@ -143,14 +159,14 @@ docker compose up -d
 
 echo
 echo "Läuft auf http://localhost:${port}/"
-echo "In Lizge auf „Suchen“ klicken — die Adresse wird dann selbst gefunden."
+echo "In Sondra auf „Suchen“ klicken — die Adresse wird dann selbst gefunden."
 echo "Anhalten: cd \$DIR && docker compose down"
 `
 }
 
 /** The same for PowerShell. */
 export function windowsScript(port = DEFAULT_PORT): string {
-  return `# cobalt lokal starten. Erzeugt von Lizge.
+  return `# cobalt lokal starten. Erzeugt von Sondra.
 # Vor dem Ausfuehren lesen. Das Skript legt einen Ordner an, schreibt eine
 # docker-compose.yml hinein und startet den Container - sonst nichts.
 $ErrorActionPreference = "Stop"
@@ -174,7 +190,7 @@ docker compose up -d
 
 Write-Host ""
 Write-Host "Laeuft auf http://localhost:${port}/"
-Write-Host "In Lizge auf 'Suchen' klicken - die Adresse wird dann selbst gefunden."
+Write-Host "In Sondra auf 'Suchen' klicken - die Adresse wird dann selbst gefunden."
 Write-Host "Anhalten: cd $Dir; docker compose down"
 `
 }
@@ -219,7 +235,7 @@ export function nodeSteps(port = DEFAULT_PORT): string[] {
 
 export function nodeUnixScript(port = DEFAULT_PORT): string {
   return `#!/usr/bin/env bash
-# cobalt ohne Docker starten. Erzeugt von Lizge.
+# cobalt ohne Docker starten. Erzeugt von Sondra.
 # Vor dem Ausführen lesen. Das Skript holt den Quelltext, installiert die
 # Abhängigkeiten in einen Ordner und startet den Dienst — sonst nichts.
 set -euo pipefail
@@ -249,13 +265,13 @@ ENVFILE
 
 echo
 echo "Startet auf http://localhost:${port}/ — dieses Fenster offen lassen."
-echo "In Lizge passiert der Rest von selbst."
+echo "In Sondra passiert der Rest von selbst."
 pnpm start
 `
 }
 
 export function nodeWindowsScript(port = DEFAULT_PORT): string {
-  return `# cobalt ohne Docker starten. Erzeugt von Lizge.
+  return `# cobalt ohne Docker starten. Erzeugt von Sondra.
 # Vor dem Ausfuehren lesen. Das Skript holt den Quelltext, installiert die
 # Abhaengigkeiten in einen Ordner und startet den Dienst - sonst nichts.
 #
@@ -288,7 +304,7 @@ API_PORT=${port}
 
 Write-Host ""
 Write-Host "Startet auf http://localhost:${port}/ - dieses Fenster offen lassen."
-Write-Host "In Lizge passiert der Rest von selbst."
+Write-Host "In Sondra passiert der Rest von selbst."
 pnpm start
 `
 }
@@ -345,7 +361,7 @@ export function nodeOnlySteps(port = DEFAULT_PORT): string[] {
 export function nodeOnlyUnixScript(port = DEFAULT_PORT): string {
   return [
     '#!/usr/bin/env bash',
-    '# cobalt ohne Docker und ohne Git starten. Erzeugt von Lizge.',
+    '# cobalt ohne Docker und ohne Git starten. Erzeugt von Sondra.',
     '# Vor dem Ausführen lesen. Das Skript lädt den Quelltext als Archiv, packt',
     '# ihn in einen Ordner, installiert die Abhängigkeiten und startet den Dienst.',
     'set -euo pipefail',
@@ -390,7 +406,7 @@ export function nodeOnlyUnixScript(port = DEFAULT_PORT): string {
     '',
     'echo',
     'echo "Startet auf http://localhost:' + port + '/ — dieses Fenster offen lassen."',
-    'echo "In Lizge passiert der Rest von selbst."',
+    'echo "In Sondra passiert der Rest von selbst."',
     'pnpm start',
     '',
   ].join('\n')
@@ -402,7 +418,7 @@ export function nodeOnlyWindowsScript(port = DEFAULT_PORT): string {
   // a `n in one would land in the file as two characters — and the whole point
   // of these three files is that the service can parse them.
   return [
-    '# cobalt ohne Docker und ohne Git starten. Erzeugt von Lizge.',
+    '# cobalt ohne Docker und ohne Git starten. Erzeugt von Sondra.',
     '# Vor dem Ausfuehren lesen. Das Skript laedt den Quelltext als Archiv, packt',
     '# ihn in einen Ordner, installiert die Abhaengigkeiten und startet den Dienst.',
     '#',
@@ -468,7 +484,7 @@ export function nodeOnlyWindowsScript(port = DEFAULT_PORT): string {
     '',
     'Write-Host ""',
     'Write-Host "Startet auf http://localhost:' + port + '/ - dieses Fenster offen lassen."',
-    'Write-Host "In Lizge passiert der Rest von selbst."',
+    'Write-Host "In Sondra passiert der Rest von selbst."',
     'pnpm start',
     '',
   ].join('\n')

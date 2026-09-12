@@ -17,7 +17,7 @@
  * straight through.
  */
 
-const CACHE = 'lizge-v1'
+const CACHE = 'sondra-v1'
 
 /**
  * Files handed over by another app's share sheet.
@@ -27,7 +27,7 @@ const CACHE = 'lizge-v1'
  * and redirects to the app, which collects them and empties the shelf again.
  * Kept apart from the asset cache so neither one clears the other.
  */
-const SHARE_CACHE = 'lizge-share'
+const SHARE_CACHE = 'sondra-share'
 
 /**
  * The shell, by name. Hashed asset filenames are not knowable from here, so the

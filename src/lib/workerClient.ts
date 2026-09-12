@@ -94,7 +94,7 @@ let harmonyWorker: Worker | null = null
 function getLoudnessWorker(): Worker {
   loudnessWorker ??= new Worker(new URL('../workers/loudness.worker.ts', import.meta.url), {
     type: 'module',
-    name: 'lizge-loudness',
+    name: 'sondra-loudness',
   })
   return loudnessWorker
 }
@@ -102,7 +102,7 @@ function getLoudnessWorker(): Worker {
 function getStemsWorker(): Worker {
   stemsWorker ??= new Worker(new URL('../workers/stems.worker.ts', import.meta.url), {
     type: 'module',
-    name: 'lizge-stems',
+    name: 'sondra-stems',
   })
   return stemsWorker
 }
@@ -110,7 +110,7 @@ function getStemsWorker(): Worker {
 function getSamplerWorker(): Worker {
   samplerWorker ??= new Worker(new URL('../workers/sampler.worker.ts', import.meta.url), {
     type: 'module',
-    name: 'lizge-sampler',
+    name: 'sondra-sampler',
   })
   return samplerWorker
 }
@@ -118,7 +118,7 @@ function getSamplerWorker(): Worker {
 function getHarmonyWorker(): Worker {
   harmonyWorker ??= new Worker(new URL('../workers/harmony.worker.ts', import.meta.url), {
     type: 'module',
-    name: 'lizge-harmony',
+    name: 'sondra-harmony',
   })
   return harmonyWorker
 }

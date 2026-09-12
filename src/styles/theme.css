@@ -246,11 +246,11 @@ select option {
 }
 
 /* Wavesurfer paints into a shadow root; keep its box from adding chrome. */
-.lizge-wave ::part(cursor) {
+.sondra-wave ::part(cursor) {
   border-radius: 999px;
 }
 
-@keyframes lizge-pulse {
+@keyframes sondra-pulse {
   0%,
   100% {
     opacity: 1;
@@ -261,21 +261,21 @@ select option {
 }
 
 @utility pulse-dot {
-  animation: lizge-pulse 1.6s ease-in-out infinite;
+  animation: sondra-pulse 1.6s ease-in-out infinite;
 }
 
 /* The indeterminate bar: used when the server sends no content length. */
-@keyframes lizge-drift {
+@keyframes sondra-drift {
   0% { transform: translateX(-100%); }
   100% { transform: translateX(300%); }
 }
 
-.lizge-drift {
-  animation: lizge-drift 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+.sondra-drift {
+  animation: sondra-drift 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .lizge-drift {
+  .sondra-drift {
     animation: none;
     width: 100%;
   }

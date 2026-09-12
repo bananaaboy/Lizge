@@ -1,4 +1,4 @@
-# Lizge
+# Sondra
 
 Ein Medienstudio, das öffentlich im Internet steht und trotzdem nichts hochlädt.
 Der Server liefert HTML, JavaScript und WebAssembly aus — danach rechnet
@@ -57,7 +57,7 @@ Drei Dinge machen die Behauptung überprüfbar:
 ## Projektstruktur
 
 ```
-Lizge/
+Sondra/
 ├── index.html                     Einstieg; registriert den Isolations-Service-Worker
 ├── vite.config.ts                 Build, COOP/COEP im Entwicklungsserver
 ├── vercel.json                    Header für Vercel
@@ -286,6 +286,21 @@ Was sich geändert hat, ist nicht das Kürzen von Texten, sondern wo sie stehen:
 
 Bei 400 Pixeln Breite läuft nichts seitlich über, und der Dialog passt hinein.
 
+### „Jetzt prüfen": der Fehler im Klartext
+
+Der Wächter arbeitet leise, was richtig ist, solange er irgendwann Erfolg hat.
+Hat er nie welchen, sagt das Schweigen nichts, und mehr als „es verbindet nicht"
+lässt sich dann nicht berichten. Neben dem Zustand steht deshalb **Jetzt
+prüfen**: probiert jede lokale Adresse einmal und schreibt hin, was
+zurückkam — welche Adresse, welche Antwort, und von wo diese Seite selbst
+ausgeliefert wird. Das Letzte entscheidet, ob der Fehler beim Dienst liegt oder
+beim Browser, und lässt sich als Text weitergeben.
+
+Dabei kam gleich ein irreführender Fall heraus: `host.docker.internal` wurde mit
+„muss über HTTPS erreichbar sein" abgewiesen — eine wahre Aussage über eine
+Regel, die hier nicht gilt, also die nutzloseste Sorte Fehlermeldung. Docker
+Desktop leitet den Namen auf den Host zurück, er zählt jetzt als lokal.
+
 ### Woran man sieht, ob es verbunden ist
 
 Die Antwort steht jetzt in der Leiste „Dieser Browser", unter **Dienst**, neben
@@ -319,14 +334,14 @@ Bleibt es still, meldet sich die Seite nach rund 25 Sekunden — Schweigen, das
 sich nicht erklärt, ist schlimmer als eine Vermutung. Was sie dann sagt, hängt
 davon ab, woher sie selbst kommt:
 
-* **Lizge lokal geöffnet.** Dann ist die naheliegende Erklärung die richtige:
+* **Sondra lokal geöffnet.** Dann ist die naheliegende Erklärung die richtige:
   läuft der Dienst wirklich, und steht in seinem Fenster `port: 9000`?
-* **Lizge aus dem Netz geöffnet.** Dann ist sie es meistens nicht. Browser
+* **Sondra aus dem Netz geöffnet.** Dann ist sie es meistens nicht. Browser
   lassen eine Seite aus dem Netz nicht ohne Weiteres auf Adressen im eigenen
   Rechner zugreifen, und von der Seite aus sieht diese Sperre exakt so aus wie
   „da läuft nichts". Genau weil hier die naheliegende Diagnose die falsche ist,
   wird sie benannt: Zugriff aufs lokale Netzwerk erlauben, wenn der Browser
-  fragt, sonst Lizge selbst lokal öffnen.
+  fragt, sonst Sondra selbst lokal öffnen.
 
 Diese Unterscheidung steht auch schon vorab unter der Frage nach Node und Git,
 damit sie nicht erst nach einer halben Minute Suchen auftaucht.
@@ -364,7 +379,7 @@ scheitert es sonst:
 
 * **Ziehen.** Eine Datei irgendwo ins Fenster fallen lassen genügt; ein
   Drop-Ziel, das man treffen muss, ist eine Abgabe auf jede einzelne Nutzung.
-* **Öffnen mit.** Ist Lizge als App installiert, trägt es sich über
+* **Öffnen mit.** Ist Sondra als App installiert, trägt es sich über
   `file_handlers` beim Betriebssystem als Öffner für Audio- und Videodateien
   ein. Aus dem Dateimanager heraus landet die Datei direkt in der Sitzung.
 * **Teilen.** Auf dem Handy nimmt ein `share_target` die Datei aus dem
@@ -417,7 +432,7 @@ einfachen Anführungszeichen keine Escapes aus, weshalb die drei Dateien dort
 
 Geprüft wurde das nicht auf dem Papier: Das erzeugte Skript wurde unverändert
 ausgeführt, holt das Archiv, legt den Stub an, installiert mit dem festgelegten
-pnpm 9.6.0 und startet cobalt 11.7.1 — und Lizge hat sich anschließend damit
+pnpm 9.6.0 und startet cobalt 11.7.1 — und Sondra hat sich anschließend damit
 verbunden. Die eigene Instanz führt dabei **21 Dienste einschließlich YouTube**
 und verlangt keine Bot-Prüfung, im Gegensatz zum offiziellen Endpunkt.
 
@@ -461,7 +476,7 @@ Ab dem zweiten Besuch braucht die Anwendung kein Netz mehr. Fremde Ursprünge
 werden nie zwischengespeichert; der Verkehr des Extraktions-Dienstes läuft
 unverändert durch.
 
-Über das Manifest lässt sich Lizge installieren. Der Knopf erscheint nur, wenn
+Über das Manifest lässt sich Sondra installieren. Der Knopf erscheint nur, wenn
 der Browser ihn anbietet.
 
 ## Die Rechenverfahren
@@ -556,7 +571,7 @@ Beides rechnet lokal, ohne Modell und ohne Download.
 
 ## Eigenes Trennmodell verwenden
 
-Lizge liefert keine Modellgewichte mit; ein Demucs-Export wiegt Hunderte
+Sondra liefert keine Modellgewichte mit; ein Demucs-Export wiegt Hunderte
 Megabyte, die sonst jeder Besuch mitlädt. Im Panel „Spuren“ lässt sich eine
 `.onnx`-Datei wählen. Der Läufer liest Rang und Form der Ein- und Ausgabe aus
 den Session-Metadaten und wählt danach:
@@ -574,7 +589,7 @@ dynamisch importiert — wer die Funktion nie benutzt, lädt sie nie.
 - **Portale mit CORS-Sperre** (YouTube und ähnliche) lassen sich nur über den
   ausdrücklich einzuschaltenden Extraktions-Dienst laden — und dann nicht mehr
   lokal. Ohne eigene Instanz funktioniert die Funktion nicht.
-- **AES-verschlüsselte HLS-Streams** werden abgelehnt. Lizge lädt keine
+- **AES-verschlüsselte HLS-Streams** werden abgelehnt. Sondra lädt keine
   Schlüssel und umgeht keinen Kopierschutz.
 - **Die eingebaute Spurentrennung erreicht kein Demucs.** Sie ist gut genug für
   Karaoke, Remix-Vorarbeit und das Herauslösen von Schlagzeug.

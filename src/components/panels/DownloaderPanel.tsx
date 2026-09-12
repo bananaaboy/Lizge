@@ -87,12 +87,12 @@ import {
 
 type Mode = 'direct' | 'hls' | 'service'
 
-const SERVICE_STORAGE_KEY = 'lizge:service'
+const SERVICE_STORAGE_KEY = 'sondra:service'
 
 /** Only the endpoint and the quality choices persist — never the API key. */
 function readServiceSettings(): ServiceSettings {
   try {
-    const raw = localStorage.getItem(SERVICE_STORAGE_KEY)
+    const raw = readStored(SERVICE_STORAGE_KEY, 'lizge:service')
     if (raw) return { ...DEFAULT_SERVICE, ...(JSON.parse(raw) as Partial<ServiceSettings>) }
   } catch {
     /* blocked storage, or somebody hand-edited it */
@@ -116,6 +116,22 @@ function isPortalUrl(value: string): boolean {
     return PORTAL_HOSTS.test(new URL(value.trim()).hostname)
   } catch {
     return false
+  }
+}
+
+/**
+ * Reads a stored value, falling back to the key this app used under its old
+ * name. Renaming the product should not quietly throw away what someone saved.
+ */
+function readStored(key: string, previous: string): string | null {
+  try {
+    const current = localStorage.getItem(key)
+    if (current !== null) return current
+    const legacy = localStorage.getItem(previous)
+    if (legacy !== null) localStorage.setItem(key, legacy)
+    return legacy
+  } catch {
+    return null
   }
 }
 
@@ -168,6 +184,8 @@ export function DownloaderPanel() {
   const [hasGit, setHasGit] = useState(false)
   /** Setup lives in a dialog, so the page itself stays short. */
   const [setupDialog, setSetupDialog] = useState(false)
+  /** The last hand-run check, kept verbatim so it can be read or pasted. */
+  const [probe, setProbe] = useState<string | null>(null)
   /** How many fruitless sweeps the watcher has made, to know when to speak up. */
   const [sweeps, setSweeps] = useState(0)
   /** The guided setup is watching for an instance to come up. */
@@ -529,7 +547,7 @@ export function DownloaderPanel() {
       } else {
         setError(
           `Auf diesem Rechner läuft nichts auf Port ${DEFAULT_PORT}. Mit „Befehl kopieren“ ` +
-            'starten Sie einen Dienst; Lizge verbindet sich dann von selbst.',
+            'starten Sie einen Dienst; Sondra verbindet sich dann von selbst.',
         )
       }
     } finally {
@@ -623,6 +641,44 @@ export function DownloaderPanel() {
     // `adopt` and `log` are stable for the life of the panel.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [serviceEnabled, connected, waiting])
+
+  /**
+   * Tries every local address once and reports exactly what came back.
+   *
+   * The watcher runs quietly, which is right until it never succeeds — then the
+   * silence tells you nothing, and "it does not connect" is all anyone can say.
+   * This says which address was tried, what the browser answered, and where this
+   * page itself is served from, because that last one decides whether the
+   * failure is the service's fault or the browser's.
+   */
+  const runProbe = async () => {
+    setProbe('Wird geprüft…')
+    const lines: string[] = [
+      `Diese Seite: ${window.location.origin}`,
+      `Sicherer Kontext: ${window.isSecureContext ? 'ja' : 'nein'}`,
+    ]
+
+    for (const candidate of localCandidates()) {
+      try {
+        const info = await probeService(candidate, null, AbortSignal.timeout(4000))
+        lines.push(`${candidate} → cobalt ${info.version}, ${info.services.length} Dienste`)
+        adopt(candidate, info)
+        setProbe(lines.join('\n'))
+        return
+      } catch (failure) {
+        lines.push(`${candidate} → ${failure instanceof Error ? failure.message : String(failure)}`)
+      }
+    }
+
+    if (!pageIsLocal()) {
+      lines.push(
+        '',
+        'Diese Seite kommt nicht von diesem Rechner. Browser sperren solche Zugriffe auf ' +
+          'localhost, und die Sperre sieht von hier aus genauso aus wie ein nicht laufender Dienst.',
+      )
+    }
+    setProbe(lines.join('\n'))
+  }
 
   /**
    * Stops using the service entirely.
@@ -904,7 +960,7 @@ export function DownloaderPanel() {
                     'Wartet auf den Dienst — läuft er, wird er hier von selbst auftauchen.'
                   ) : (
                     <>
-                      Noch kein Dienst. Lizge schaut alle paar Sekunden auf{' '}
+                      Noch kein Dienst. Sondra schaut alle paar Sekunden auf{' '}
                       <span className="font-mono text-[12px]">localhost:{DEFAULT_PORT}</span> nach und
                       verbindet sich von selbst, sobald dort einer antwortet.
                     </>
@@ -930,7 +986,7 @@ export function DownloaderPanel() {
                       Wenn der Dienst läuft, liegt es vermutlich nicht an ihm: Diese Seite kommt aus
                       dem Netz, der Dienst läuft auf Ihrem Rechner, und Browser lassen das nicht ohne
                       Weiteres zu. Fragt Ihrer nach Zugriff aufs lokale Netzwerk, erlauben Sie es.
-                      Sonst öffnen Sie Lizge lokal — dann liegen Seite und Dienst auf derselben
+                      Sonst öffnen Sie Sondra lokal — dann liegen Seite und Dienst auf derselben
                       Maschine und die Sperre entfällt.
                     </>
                   )}
@@ -941,17 +997,40 @@ export function DownloaderPanel() {
                 <Button size="sm" variant="quiet" onClick={() => setSetupDialog(true)}>
                   {connected ? 'Dienst ändern' : 'Dienst einrichten'}
                 </Button>
+                {!connected ? (
+                  <Button size="sm" variant="quiet" onClick={runProbe}>
+                    Jetzt prüfen
+                  </Button>
+                ) : null}
                 {connected ? (
                   <span className="text-[12px] text-muted">
                     Portal-Links im Feld oben gehen jetzt.
                   </span>
                 ) : null}
               </div>
+
+              {probe ? (
+                <div className="rounded-card bg-raised p-[21px]">
+                  <div className="flex items-baseline justify-between gap-[11px]">
+                    <p className="text-[12px] font-semibold text-ink">Ergebnis der Prüfung</p>
+                    <button
+                      type="button"
+                      onClick={() => setProbe(null)}
+                      className="rounded-nav text-[12px] text-muted hover:text-ink"
+                    >
+                      Ausblenden
+                    </button>
+                  </div>
+                  <pre className="mt-[7px] overflow-x-auto font-mono text-[11px] leading-[1.6] whitespace-pre-wrap text-prose">
+                    {probe}
+                  </pre>
+                </div>
+              ) : null}
             </div>
           ) : null}
 
           <Dialog open={setupDialog} onClose={() => setSetupDialog(false)} title="Dienst einrichten">
-            <div className="flex flex-col gap-[14px]">
+            <div className="flex flex-col gap-[21px]">
                 {connected ? (
                   <>
                     <div className="flex flex-wrap items-center gap-[7px]">
@@ -1029,7 +1108,7 @@ export function DownloaderPanel() {
                      run a service. Either someone you know, or you. There is no
                      third option — see the note in the first card for why. */
                   <div className="flex flex-col gap-[11px]">
-                    <div className="rounded-card bg-raised p-[14px] ring-1 ring-inset ring-ink/20">
+                    <div className="rounded-card bg-raised p-[21px] ring-1 ring-inset ring-ink/20">
                       <p className="text-[13px] font-semibold text-ink">Eine fremde Instanz benutzen</p>
                       <p className="mt-[3px] text-[12px] leading-[1.5] text-muted">
                         Wenn Sie eine Adresse haben — von jemandem, der so einen Dienst betreibt —
@@ -1097,7 +1176,7 @@ export function DownloaderPanel() {
                       </p>
                       </details>
                     </div>
-                    <div className="rounded-card bg-raised p-[14px]">
+                    <div className="rounded-card bg-raised p-[21px]">
                       <p className="mb-[11px] text-[13px] font-semibold text-ink">
                         Eigenen Dienst betreiben
                       </p>
@@ -1140,7 +1219,7 @@ export function DownloaderPanel() {
                                the ones for this machine and no others, so the list
                                can be pasted start to finish without anyone having
                                to work out which half applies to them. */
-                            <div className="mt-[14px] rounded-nav bg-panel-soft p-[11px]">
+                            <div className="mt-[16px] rounded-nav bg-panel-soft p-[16px]">
                               <p className="mb-[9px] text-[12px] font-semibold text-ink">
                                 Was ist auf diesem Rechner schon da?
                               </p>
@@ -1175,7 +1254,7 @@ export function DownloaderPanel() {
                                   Wichtig, wenn der Dienst läuft und trotzdem nichts passiert: Diese
                                   Seite kommt aus dem Netz, der Dienst läuft auf Ihrem Rechner — und
                                   Browser lassen das nicht ohne Weiteres zu. Fragt Ihrer nach Zugriff
-                                  aufs lokale Netzwerk, erlauben Sie es. Sonst öffnen Sie Lizge lokal,
+                                  aufs lokale Netzwerk, erlauben Sie es. Sonst öffnen Sie Sondra lokal,
                                   dann liegen beide auf derselben Maschine.
                                 </p>
                               ) : null}
@@ -1219,7 +1298,7 @@ export function DownloaderPanel() {
                           {waiting ? (
                             <div className="mt-[11px] flex flex-wrap items-center gap-[11px]">
                               <p className="min-w-0 flex-1 text-[12px] leading-[1.5] text-prose/85">
-                                Ist kopiert. Jetzt ins Terminal einfügen und ausführen — Lizge schaut
+                                Ist kopiert. Jetzt ins Terminal einfügen und ausführen — Sondra schaut
                                 weiter nach und verbindet sich selbst, sobald der Dienst antwortet.
                               </p>
                               <Button size="sm" variant="quiet" onClick={stopWaiting}>
@@ -1408,7 +1487,7 @@ export function DownloaderPanel() {
                 )}
 
                 {/* Terms last, under the controls they apply to. */}
-                <div className="rounded-card bg-raised p-[14px] text-[12px] leading-[1.5] ring-1 ring-inset ring-ink/30">
+                <div className="rounded-card bg-raised p-[21px] text-[12px] leading-[1.5] ring-1 ring-inset ring-ink/30">
                   <p className="mb-[7px] font-semibold text-ink">{SERVICE_DISCLAIMER.title}</p>
                   {SERVICE_DISCLAIMER.paragraphs.map((paragraph) => (
                     <p key={paragraph.slice(0, 24)} className="mb-[7px] text-prose/85">

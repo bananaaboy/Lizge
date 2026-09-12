@@ -1,6 +1,6 @@
 {
-  "name": "Lizge — Medienwerkzeuge, die lokal laufen",
-  "short_name": "Lizge",
+  "name": "Sondra — Medienwerkzeuge, die lokal laufen",
+  "short_name": "Sondra",
   "description": "Konvertieren, Spuren trennen, normalisieren und sampeln — vollständig im Browser, ohne Upload.",
   "start_url": "./",
   "scope": "./",

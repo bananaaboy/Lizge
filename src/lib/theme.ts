@@ -11,10 +11,26 @@
  * you prefer dark every time you open it is tiresome.
  */
 
+/**
+ * Reads a stored value, falling back to the key this app used under its old
+ * name. Renaming the product should not quietly throw away what someone saved.
+ */
+function readStored(key: string, previous: string): string | null {
+  try {
+    const current = localStorage.getItem(key)
+    if (current !== null) return current
+    const legacy = localStorage.getItem(previous)
+    if (legacy !== null) localStorage.setItem(key, legacy)
+    return legacy
+  } catch {
+    return null
+  }
+}
+
 export type ThemeChoice = 'system' | 'light' | 'dark'
 export type ResolvedTheme = 'light' | 'dark'
 
-const STORAGE_KEY = 'lizge:theme'
+const STORAGE_KEY = 'sondra:theme'
 
 /** Background colours per theme, mirroring theme.css, for the browser chrome. */
 const CHROME_COLOR: Record<ResolvedTheme, string> = {
@@ -24,7 +40,7 @@ const CHROME_COLOR: Record<ResolvedTheme, string> = {
 
 export function readThemeChoice(): ThemeChoice {
   try {
-    const stored = localStorage.getItem(STORAGE_KEY)
+    const stored = readStored(STORAGE_KEY, 'lizge:theme')
     if (stored === 'light' || stored === 'dark' || stored === 'system') return stored
   } catch {
     // Private windows and blocked site data throw on access rather than

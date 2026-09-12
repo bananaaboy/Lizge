@@ -340,7 +340,7 @@ export function StemsPanel() {
         <Card tone="cream" className="ring-1 ring-inset ring-line">
           <Eyebrow>Neuronales Modell</Eyebrow>
           <p className="mt-[11px] text-[13px] leading-[1.55] text-prose/85">
-            Lizge liefert keine Modellgewichte mit — ein Demucs-Export wiegt Hunderte Megabyte, die
+            Sondra liefert keine Modellgewichte mit — ein Demucs-Export wiegt Hunderte Megabyte, die
             sonst jeder Besuch herunterlädt. Laden Sie stattdessen Ihr eigenes <code>.onnx</code>, es
             wird lokal ausgeführt.
           </p>

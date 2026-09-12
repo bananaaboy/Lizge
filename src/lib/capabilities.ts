@@ -1,5 +1,5 @@
 /**
- * Everything Lizge does runs on the visitor's machine, so what the visitor's
+ * Everything Sondra does runs on the visitor's machine, so what the visitor's
  * browser supports decides which code path each feature takes. This module is
  * the single place those checks live.
  */

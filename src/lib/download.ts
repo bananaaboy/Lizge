@@ -3,7 +3,7 @@
  *
  * Everything here runs in the visitor's browser, which has a consequence worth
  * being blunt about: the browser enforces the same-origin policy on our behalf.
- * A page served from Lizge's origin may only read a remote file if that remote
+ * A page served from Sondra's origin may only read a remote file if that remote
  * server sends `Access-Control-Allow-Origin`. Server-side downloaders sidestep
  * this by fetching on a backend — which is exactly the thing this app refuses to
  * do, because it would mean the user's URLs and IP address pass through someone
@@ -53,7 +53,7 @@ function describeFetchFailure(error: unknown, url: string): TransferError {
   return new TransferError(
     'cors',
     `${host} erlaubt keinen direkten Zugriff aus dem Browser (fehlender CORS-Header) ` +
-      'oder ist nicht erreichbar. Lizge kann das nicht umgehen, ohne die Anfrage über ' +
+      'oder ist nicht erreichbar. Sondra kann das nicht umgehen, ohne die Anfrage über ' +
       'einen fremden Server zu leiten — und genau das tut diese App nicht.',
   )
 }
@@ -253,7 +253,7 @@ export async function fetchHlsSegments(
   if (playlist.encrypted) {
     throw new TransferError(
       'http',
-      'Dieser Stream ist AES-verschlüsselt. Lizge lädt keine Schlüssel und umgeht keinen Kopierschutz.',
+      'Dieser Stream ist AES-verschlüsselt. Sondra lädt keine Schlüssel und umgeht keinen Kopierschutz.',
     )
   }
 

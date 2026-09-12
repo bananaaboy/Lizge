@@ -20,7 +20,7 @@ const CROSS_ORIGIN_ISOLATION = {
 
 function crossOriginIsolation(): Plugin {
   return {
-    name: 'lizge:cross-origin-isolation',
+    name: 'sondra:cross-origin-isolation',
     configureServer(server) {
       server.middlewares.use((_req, res, next) => {
         Object.entries(CROSS_ORIGIN_ISOLATION).forEach(([k, v]) => res.setHeader(k, v))
@@ -38,7 +38,7 @@ function crossOriginIsolation(): Plugin {
 
 export default defineConfig({
   // Relative base so the static build runs from any path, including
-  // project sub-paths such as https://user.github.io/lizge/.
+  // project sub-paths such as https://user.github.io/sondra/.
   base: './',
   plugins: [react(), tailwindcss(), crossOriginIsolation()],
   resolve: {

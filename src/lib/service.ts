@@ -133,6 +133,16 @@ interface ServiceResponse {
 const MEDIA_HOSTS =
   /(?:^|\.)(?:youtube\.com|youtu\.be|soundcloud\.com|vimeo\.com|tiktok\.com|twitter\.com|x\.com|instagram\.com|reddit\.com|twitch\.tv|bilibili\.com|dailymotion\.com|facebook\.com|spotify\.com)$/i
 
+/**
+ * Hostnames that mean "this machine".
+ *
+ * `host.docker.internal` belongs here too: Docker Desktop routes it back to the
+ * host, so a service reached through it is as local as one on 127.0.0.1. Left
+ * out, it was refused for not being HTTPS — a true statement about a rule that
+ * does not apply, which is the least useful kind of error message.
+ */
+const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]', '::1', 'host.docker.internal'])
+
 function normalizeEndpoint(endpoint: string): string {
   const trimmed = endpoint.trim()
   if (!trimmed) throw new ServiceError('Es ist kein Dienst hinterlegt.')
@@ -147,7 +157,7 @@ function normalizeEndpoint(endpoint: string): string {
       )
     }
 
-    const local = ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)
+    const local = LOCAL_HOSTS.has(url.hostname)
     if (url.protocol !== 'https:' && !local) {
       // A page served over HTTPS cannot talk to an HTTP endpoint at all — the
       // browser blocks it as mixed content before the request is made. Saying
@@ -164,11 +174,11 @@ function normalizeEndpoint(endpoint: string): string {
   }
 }
 
+
 /** True for addresses that live on the machine running the browser. */
 export function isLoopback(endpoint: string): boolean {
   try {
-    const host = new URL(endpoint).hostname
-    return host === 'localhost' || host === '127.0.0.1' || host === '[::1]' || host === '::1'
+    return LOCAL_HOSTS.has(new URL(endpoint).hostname)
   } catch {
     return false
   }
@@ -202,7 +212,7 @@ function describeUnreachable(endpoint: string): ServiceError {
       `${host} war nicht erreichbar. Wenn der Dienst dort läuft, liegt es vermutlich nicht an ihm: ` +
         'Browser lassen eine Seite aus dem Netz nicht ohne Weiteres auf Adressen im eigenen Rechner ' +
         'zugreifen. Fragt der Browser nach Zugriff aufs lokale Netzwerk, erlauben Sie es. Sonst hilft, ' +
-        'Lizge selbst lokal zu öffnen — dann liegen Seite und Dienst auf derselben Maschine.',
+        'Sondra selbst lokal zu öffnen — dann liegen Seite und Dienst auf derselben Maschine.',
       'local-network-blocked',
     )
   }
@@ -481,7 +491,7 @@ export const SERVICE_DISCLAIMER = {
   title: 'Diese Funktion verlässt das lokale Prinzip',
   paragraphs: [
     'Die eingegebene Adresse geht samt Ihrer IP an den hinterlegten Dienst; er holt die Datei und ' +
-      'reicht sie durch. Was sein Betreiber protokolliert, entzieht sich Lizge vollständig — wählen ' +
+      'reicht sie durch. Was sein Betreiber protokolliert, entzieht sich Sondra vollständig — wählen ' +
       'Sie einen Dienst, dem Sie vertrauen, oder betreiben Sie eine eigene Instanz.',
     'Alle übrigen Werkzeuge bleiben lokal: Konvertierung, Spurentrennung, Lautheit und Sampler ' +
       'rechnen weiterhin ausschließlich auf Ihrem Gerät.',

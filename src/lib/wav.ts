@@ -1,7 +1,7 @@
 /**
  * Minimal RIFF/WAVE reader and writer.
  *
- * Everything that leaves a DSP stage in Lizge is planar Float32 channel data;
+ * Everything that leaves a DSP stage in Sondra is planar Float32 channel data;
  * WAV is the lossless hand-off format between stages and to `ffmpeg.wasm`,
  * because it encodes and decodes in microseconds with no extra WASM payload.
  */
