@@ -282,8 +282,24 @@ scheitert es sonst:
 
 ### Eine Instanz für den eigenen Rechner
 
-Dieser Weg bleibt erhalten, liegt in der Oberfläche aber eingeklappt hinter
-„Eigenen Dienst betreiben — Docker nötig", weil er am meisten verlangt.
+Dieser Weg liegt in der Oberfläche eingeklappt hinter „Eigenen Dienst
+betreiben", weil er am meisten verlangt. Dahinter stehen **zwei** Wege, und
+voreingestellt ist der ohne Docker:
+
+* **Ohne Docker**, direkt auf Node.js 18+ mit Git. Beides sind normale
+  Installer ohne virtuelle Maschine. Genau darin liegt der Vorteil: Docker
+  Desktop setzt unter Windows WSL2 voraus, und dieser Stapel hat offene Fehler,
+  an denen man nicht vorbeikommt — etwa
+  `Wsl/Service/…/MountDisk/HCS/ERROR_NOT_SUPPORTED`, wo WSL seine eigene
+  Systemplatte nicht mehr einhängt. Node kennt diese Fehlerklasse gar nicht.
+* **Mit Docker**, der bisherige Einzeiler, für alle, bei denen er läuft.
+
+Beide Wege liefern denselben Dienst auf `localhost:9000`, beide werden vom
+„Befehle kopieren"-Knopf samt Warten unterstützt, und zu beiden gibt es fertige
+Skripte für Windows und macOS/Linux. Unter Windows ist beim Node-Weg das Skript
+die bessere Wahl: PowerShell schreibt eine Datei mit `>` in einer Kodierung, die
+der Dienst nicht liest, das Skript benutzt stattdessen `Set-Content -Encoding
+UTF8`.
 
 Eine Webseite kann keinen Server auf dem Rechner starten, der sie anzeigt — und
 das ist keine Lücke, sondern der Grund, warum man Webseiten überhaupt öffnen

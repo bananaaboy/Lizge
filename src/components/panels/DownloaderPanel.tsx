@@ -50,6 +50,10 @@ import { formatBytes, sanitizeFilename, withExtension } from '../../lib/format'
 import {
   composeFile,
   DEFAULT_PORT,
+  NODE_REQUIREMENTS,
+  nodeSteps,
+  nodeUnixScript,
+  nodeWindowsScript,
   localCandidates,
   oneLiner,
   rememberedInstances,
@@ -141,6 +145,8 @@ export function DownloaderPanel() {
   const [known, setKnown] = useState<string[]>(() => rememberedInstances())
   /** The self-hosting route, folded away — it is the one that asks the most. */
   const [dockerOpen, setDockerOpen] = useState(false)
+  /** Node needs no virtual machine, so it is the default of the two. */
+  const [localWay, setLocalWay] = useState<'node' | 'docker'>('node')
   /** The guided setup is watching for an instance to come up. */
   const [waiting, setWaiting] = useState(false)
   const waitRef = useRef<AbortController | null>(null)
@@ -158,6 +164,7 @@ export function DownloaderPanel() {
     })
   }
 
+  const localCommand = localWay === 'docker' ? oneLiner() : nodeSteps().join('\n')
   const connected = serviceInfo !== null
   const endpointLabel = service.endpoint.replace(/^https?:\/\//, '').replace(/\/$/, '')
 
@@ -515,7 +522,7 @@ export function DownloaderPanel() {
    */
   const startAndWait = async () => {
     try {
-      await navigator.clipboard.writeText(oneLiner())
+      await navigator.clipboard.writeText(localCommand)
       setCopied(true)
       setTimeout(() => setCopied(false), 4000)
     } catch {
@@ -969,134 +976,220 @@ export function DownloaderPanel() {
                       </span>
                       {/* Named for what it asks of you, so nobody opens it by accident. */}
                       <span className="text-[12px] text-muted">
-                        {dockerOpen ? 'Schließen' : 'Docker nötig'}
+                        {dockerOpen ? 'Schließen' : 'Mit oder ohne Docker'}
                       </span>
                     </button>
 
                     {dockerOpen ? (
-                    <div className="rounded-card bg-raised p-[14px]">
-                      <p className="text-[13px] font-semibold text-ink">Auf diesem Rechner starten</p>
-                      <p className="mt-[3px] text-[12px] leading-[1.5] text-muted">
-                        Einmal ein Befehl im Terminal, danach läuft es dauerhaft mit. Eine Instanz auf
-                        Ihrer eigenen Leitung lädt in der Regel problemlos — öffentliche gibt es keine
-                        mehr, die frühere wurde gesperrt.
-                      </p>
-
-                      {waiting ? (
-                        <div className="mt-[11px] flex flex-wrap items-center gap-[11px]">
-                          <p className="min-w-0 flex-1 text-[12px] leading-[1.5] text-prose/85">
-                            Befehl ist kopiert. Jetzt ins Terminal einfügen und Enter drücken — Lizge
-                            schaut weiter nach und verbindet sich selbst, sobald der Dienst antwortet.
-                          </p>
-                          <Button size="sm" variant="quiet" onClick={stopWaiting}>
-                            Abbrechen
-                          </Button>
-                        </div>
-                      ) : (
-                        <div className="mt-[11px] flex flex-wrap items-center gap-[7px]">
-                          <Button size="sm" onClick={startAndWait} disabled={searching}>
-                            {copied ? 'Kopiert — einfügen und Enter' : 'Befehl kopieren'}
-                            <ArrowRight />
-                          </Button>
-                          <Button size="sm" variant="quiet" onClick={searchLocal} disabled={searching}>
-                            {searching ? 'Sucht…' : 'Läuft schon — suchen'}
-                          </Button>
-                        </div>
-                      )}
-
-                      <code className="mt-[9px] block rounded-nav bg-panel-soft px-[11px] py-[9px] font-mono text-[11px] leading-[1.6] whitespace-pre-wrap text-prose">
-                        {oneLiner()}
-                      </code>
-
-                      <p className="mt-[9px] text-[12px] leading-[1.5] text-muted">
-                        Braucht{' '}
-                        <a
-                          className="underline underline-offset-2 hover:text-ink"
-                          href="https://docs.docker.com/get-docker/"
-                          target="_blank"
-                          rel="noreferrer noopener"
+                      <div className="mt-[11px]">
+                        {/* Two ways to the same service. Node leads because it is
+                            the one that cannot fail for reasons outside your
+                            control: Docker Desktop on Windows needs WSL2, which
+                            needs a virtual machine, and that stack has open bugs
+                            no amount of reinstalling gets past. */}
+                        <div
+                          role="radiogroup"
+                          aria-label="Art der Installation"
+                          className="flex flex-wrap gap-[2px] rounded-pill bg-panel-soft p-[3px]"
                         >
-                          Docker
-                        </a>{' '}
-                        — einmal installieren, wie jedes andere Programm. Der Dienst hört danach nur
-                        auf <code className="font-mono">localhost:{DEFAULT_PORT}</code> und ist von
-                        außen nicht erreichbar. Lesen Sie den Befehl, bevor Sie ihn ausführen; das gilt
-                        für alles, was eine Webseite Ihnen zum Ausführen gibt.
-                      </p>
+                          {(
+                            [
+                              { id: 'node', label: 'Ohne Docker' },
+                              { id: 'docker', label: 'Mit Docker' },
+                            ] as const
+                          ).map((choice) => (
+                            <button
+                              key={choice.id}
+                              type="button"
+                              role="radio"
+                              aria-checked={localWay === choice.id}
+                              onClick={() => setLocalWay(choice.id)}
+                              className={`rounded-pill px-[14px] py-[6px] text-[13px] transition-colors ${
+                                localWay === choice.id ? 'bg-ink text-on-ink' : 'text-ink hover:bg-panel-mid'
+                              }`}
+                            >
+                              {choice.label}
+                            </button>
+                          ))}
+                        </div>
 
-                      <button
-                        type="button"
-                        onClick={() => setSetupOpen((value) => !value)}
-                        aria-expanded={setupOpen}
-                        className="mt-[9px] rounded-nav text-[12px] text-muted underline underline-offset-2 hover:text-ink"
-                      >
-                        {setupOpen ? 'Weniger' : 'Lieber fertige Dateien statt eines Befehls?'}
-                      </button>
+                        <p className="mt-[11px] text-[12px] leading-[1.5] text-muted">
+                          {localWay === 'node' ? (
+                            <>
+                              Braucht {NODE_REQUIREMENTS} — beides normale Installer, ohne virtuelle
+                              Maschine. Genau das ist der Unterschied zu Docker Desktop, das unter
+                              Windows WSL2 voraussetzt und daran auch scheitern kann.
+                            </>
+                          ) : (
+                            <>
+                              Ein Befehl, danach läuft es dauerhaft mit. Braucht{' '}
+                              <a
+                                className="underline underline-offset-2 hover:text-ink"
+                                href="https://docs.docker.com/get-docker/"
+                                target="_blank"
+                                rel="noreferrer noopener"
+                              >
+                                Docker
+                              </a>
+                              , unter Windows also auch WSL2 und eine virtuelle Maschine.
+                            </>
+                          )}
+                        </p>
 
-                      {setupOpen ? (
-                        <div className="mt-[9px] flex flex-col gap-[9px] text-[12px] leading-[1.5] text-prose/85">
-                          <p className="text-muted">
-                            Dasselbe als Datei: die Konfiguration zum Aufbewahren, oder ein Skript, das
-                            den Ordner anlegt und den Dienst startet. Alles hier entsteht im Browser,
-                            nichts wird nachgeladen.
-                          </p>
-                          <div className="flex flex-wrap gap-[7px]">
-                            <Button
-                              size="sm"
-                              variant="quiet"
-                              onClick={() =>
-                                saveBytes(
-                                  new TextEncoder().encode(composeFile()),
-                                  'docker-compose.yml',
-                                  'text/yaml',
-                                )
-                              }
-                            >
-                              docker-compose.yml
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="quiet"
-                              onClick={() =>
-                                saveBytes(
-                                  new TextEncoder().encode(unixScript()),
-                                  'cobalt-starten.sh',
-                                  'text/x-shellscript',
-                                )
-                              }
-                            >
-                              Skript für macOS/Linux
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="quiet"
-                              onClick={() =>
-                                saveBytes(
-                                  new TextEncoder().encode(windowsScript()),
-                                  'cobalt-starten.ps1',
-                                  'text/plain',
-                                )
-                              }
-                            >
-                              Skript für Windows
+                        {waiting ? (
+                          <div className="mt-[11px] flex flex-wrap items-center gap-[11px]">
+                            <p className="min-w-0 flex-1 text-[12px] leading-[1.5] text-prose/85">
+                              Ist kopiert. Jetzt ins Terminal einfügen und ausführen — Lizge schaut
+                              weiter nach und verbindet sich selbst, sobald der Dienst antwortet.
+                            </p>
+                            <Button size="sm" variant="quiet" onClick={stopWaiting}>
+                              Abbrechen
                             </Button>
                           </div>
-                          <p className="text-muted">
-                            Auf einem eigenen Server statt auf dem Laptop geht es genauso; die
-                            Originalanleitung steht unter{' '}
-                            <a
-                              className="underline underline-offset-2 hover:text-ink"
-                              href="https://github.com/imputnet/cobalt/blob/main/docs/run-an-instance.md"
-                              target="_blank"
-                              rel="noreferrer noopener"
-                            >
-                              cobalt/docs/run-an-instance.md
-                            </a>
-                            .
-                          </p>
-                        </div>
-                      ) : null}
-                    </div>
+                        ) : (
+                          <div className="mt-[11px] flex flex-wrap items-center gap-[7px]">
+                            <Button size="sm" onClick={startAndWait} disabled={searching}>
+                              {copied
+                                ? 'Kopiert — einfügen und ausführen'
+                                : localWay === 'node'
+                                  ? 'Befehle kopieren'
+                                  : 'Befehl kopieren'}
+                              <ArrowRight />
+                            </Button>
+                            <Button size="sm" variant="quiet" onClick={searchLocal} disabled={searching}>
+                              {searching ? 'Sucht…' : 'Läuft schon — suchen'}
+                            </Button>
+                          </div>
+                        )}
+
+                        <code className="mt-[9px] block rounded-nav bg-panel-soft px-[11px] py-[9px] font-mono text-[11px] leading-[1.6] whitespace-pre-wrap text-prose">
+                          {localCommand}
+                        </code>
+
+                        <p className="mt-[9px] text-[12px] leading-[1.5] text-muted">
+                          {localWay === 'node' ? (
+                            <>
+                              Unter Windows nehmen Sie besser das fertige Skript unten: PowerShell
+                              schreibt eine Datei mit <code className="font-mono">&gt;</code> in einer
+                              Kodierung, die der Dienst nicht liest. Das Fenster muss offen bleiben,
+                              solange der Dienst läuft.
+                            </>
+                          ) : (
+                            <>
+                              Der Dienst hört danach nur auf{' '}
+                              <code className="font-mono">localhost:{DEFAULT_PORT}</code> und ist von
+                              außen nicht erreichbar.
+                            </>
+                          )}{' '}
+                          Lesen Sie, was Sie ausführen, bevor Sie es tun — das gilt für alles, was
+                          eine Webseite Ihnen dafür in die Hand gibt.
+                        </p>
+
+                        <button
+                          type="button"
+                          onClick={() => setSetupOpen((value) => !value)}
+                          aria-expanded={setupOpen}
+                          className="mt-[9px] rounded-nav text-[12px] text-muted underline underline-offset-2 hover:text-ink"
+                        >
+                          {setupOpen ? 'Weniger' : 'Lieber fertige Dateien statt Befehlen?'}
+                        </button>
+
+                        {setupOpen ? (
+                          <div className="mt-[9px] flex flex-col gap-[9px] text-[12px] leading-[1.5] text-prose/85">
+                            <p className="text-muted">
+                              Ein Skript, das den Ordner anlegt und den Dienst startet. Alles hier
+                              entsteht im Browser, nichts wird nachgeladen.
+                            </p>
+                            <div className="flex flex-wrap gap-[7px]">
+                              {localWay === 'node' ? (
+                                <>
+                                  <Button
+                                    size="sm"
+                                    variant="quiet"
+                                    onClick={() =>
+                                      saveBytes(
+                                        new TextEncoder().encode(nodeWindowsScript()),
+                                        'cobalt-ohne-docker.ps1',
+                                        'text/plain',
+                                      )
+                                    }
+                                  >
+                                    Skript für Windows
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="quiet"
+                                    onClick={() =>
+                                      saveBytes(
+                                        new TextEncoder().encode(nodeUnixScript()),
+                                        'cobalt-ohne-docker.sh',
+                                        'text/x-shellscript',
+                                      )
+                                    }
+                                  >
+                                    Skript für macOS/Linux
+                                  </Button>
+                                </>
+                              ) : (
+                                <>
+                                  <Button
+                                    size="sm"
+                                    variant="quiet"
+                                    onClick={() =>
+                                      saveBytes(
+                                        new TextEncoder().encode(composeFile()),
+                                        'docker-compose.yml',
+                                        'text/yaml',
+                                      )
+                                    }
+                                  >
+                                    docker-compose.yml
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="quiet"
+                                    onClick={() =>
+                                      saveBytes(
+                                        new TextEncoder().encode(unixScript()),
+                                        'cobalt-starten.sh',
+                                        'text/x-shellscript',
+                                      )
+                                    }
+                                  >
+                                    Skript für macOS/Linux
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="quiet"
+                                    onClick={() =>
+                                      saveBytes(
+                                        new TextEncoder().encode(windowsScript()),
+                                        'cobalt-starten.ps1',
+                                        'text/plain',
+                                      )
+                                    }
+                                  >
+                                    Skript für Windows
+                                  </Button>
+                                </>
+                              )}
+                            </div>
+                            <p className="text-muted">
+                              Auf einem eigenen Server statt auf dem Laptop geht es genauso; die
+                              Originalanleitung steht unter{' '}
+                              <a
+                                className="underline underline-offset-2 hover:text-ink"
+                                href="https://github.com/imputnet/cobalt/blob/main/docs/run-an-instance.md"
+                                target="_blank"
+                                rel="noreferrer noopener"
+                              >
+                                cobalt/docs/run-an-instance.md
+                              </a>
+                              .
+                            </p>
+                          </div>
+                        ) : null}
+                      </div>
                     ) : null}
                   </div>
                 </div>
