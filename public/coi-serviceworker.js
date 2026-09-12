@@ -20,6 +20,16 @@
 const CACHE = 'lizge-v1'
 
 /**
+ * Files handed over by another app's share sheet.
+ *
+ * A share arrives as a POST, which a page cannot read after the navigation it
+ * triggers — so the worker takes the files out of the request, parks them here,
+ * and redirects to the app, which collects them and empties the shelf again.
+ * Kept apart from the asset cache so neither one clears the other.
+ */
+const SHARE_CACHE = 'lizge-share'
+
+/**
  * The shell, by name. Hashed asset filenames are not knowable from here, so the
  * page reports those itself once the worker is in control (see the message
  * handler below). Without this, a visitor who loads the page once and then goes
@@ -65,7 +75,8 @@ self.addEventListener('activate', (event) => {
     (async () => {
       // Drop caches from older versions of the app.
       const names = await caches.keys()
-      await Promise.all(names.filter((name) => name !== CACHE).map((name) => caches.delete(name)))
+      const keep = new Set([CACHE, SHARE_CACHE])
+      await Promise.all(names.filter((name) => !keep.has(name)).map((name) => caches.delete(name)))
       await self.clients.claim()
     })(),
   )
@@ -84,6 +95,39 @@ function isolate(response) {
   })
 }
 
+/**
+ * Takes the files out of a share and parks them for the app to collect.
+ *
+ * The redirect is what turns a POST into something the app can handle: the
+ * browser follows it with a plain GET, the app starts normally, and the query
+ * string tells it how many files are waiting.
+ */
+async function receiveShare(request) {
+  const form = await request.formData()
+  const files = form.getAll('media').filter((entry) => entry instanceof File)
+  const cache = await caches.open(SHARE_CACHE)
+
+  // Whatever an earlier share left behind is stale by now.
+  for (const key of await cache.keys()) await cache.delete(key)
+
+  for (const [index, file] of files.entries()) {
+    await cache.put(
+      new Request(`./shared/${index}`),
+      new Response(file, {
+        headers: {
+          'Content-Type': file.type || 'application/octet-stream',
+          // A Response carries no filename, so it travels as a header.
+          'X-Filename': encodeURIComponent(file.name || `geteilt-${index}`),
+        },
+      }),
+    )
+  }
+
+  const target = new URL('./', self.registration.scope)
+  target.searchParams.set('shared', String(files.length))
+  return Response.redirect(target.href, 303)
+}
+
 self.addEventListener('fetch', (event) => {
   const request = event.request
 
@@ -91,6 +135,13 @@ self.addEventListener('fetch', (event) => {
   if (request.cache === 'only-if-cached' && request.mode !== 'same-origin') return
 
   const url = new URL(request.url)
+
+  // A share sheet handing over a file. Answered before anything else, because
+  // the body can only be read once and a redirect cannot be rewritten.
+  if (request.method === 'POST' && url.pathname.endsWith('/share-target')) {
+    event.respondWith(receiveShare(request))
+    return
+  }
   const sameOrigin = url.origin === self.location.origin
   const cacheable = sameOrigin && request.method === 'GET'
 

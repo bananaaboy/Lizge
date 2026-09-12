@@ -27,6 +27,7 @@ import {
   type TransferProgress,
 } from '../../lib/download'
 import { detectCapabilities } from '../../lib/capabilities'
+import { companionFor, COMPANION_NAME, COMPANION_SOURCE, detectPlatform } from '../../lib/companion'
 import {
   DEFAULT_SERVICE,
   findLocalInstance,
@@ -139,6 +140,8 @@ export function DownloaderPanel() {
   const [setupOpen, setSetupOpen] = useState(false)
   const [copied, setCopied] = useState(false)
   const [known, setKnown] = useState<string[]>(() => rememberedInstances())
+  /** The self-hosting route, folded away — it is the one that asks the most. */
+  const [dockerOpen, setDockerOpen] = useState(false)
   /** The guided setup is watching for an instance to come up. */
   const [waiting, setWaiting] = useState(false)
   const waitRef = useRef<AbortController | null>(null)
@@ -156,6 +159,7 @@ export function DownloaderPanel() {
     })
   }
 
+  const companion = companionFor(detectPlatform())
   const connected = serviceInfo !== null
   const endpointLabel = service.endpoint.replace(/^https?:\/\//, '').replace(/\/$/, '')
 
@@ -888,10 +892,55 @@ export function DownloaderPanel() {
                   </div>
                 </>
               ) : (
-                /* Two ways in, the shorter one first. Neither is hidden behind a
-                   link, because a step someone cannot see is a step they cannot
-                   take. */
+                /* Three ways, in the order most people can actually take
+                   them. The first needs no terminal and no server, because for
+                   almost everyone that is the only one that will happen. */
                 <div className="flex flex-col gap-[11px]">
+                  <div className="rounded-card bg-raised p-[14px] ring-1 ring-inset ring-ink/20">
+                    <div className="flex flex-wrap items-center gap-[7px]">
+                      <p className="text-[13px] font-semibold text-ink">Mit einem Programm laden</p>
+                      <Badge tone="forest">Einfachster Weg</Badge>
+                    </div>
+                    <p className="mt-[3px] text-[12px] leading-[1.5] text-muted">
+                      YouTube lässt sich aus einem Browser heraus nicht laden — das Portal erlaubt
+                      es einer fremden Seite schlicht nicht. Ein Programm auf dem Rechner darf es.{' '}
+                      {COMPANION_NAME} ist dafür gedacht: installieren wie jedes andere Programm,
+                      Link einfügen, Datei bekommen.
+                    </p>
+
+                    <div className="mt-[11px] flex flex-wrap items-center gap-[7px]">
+                      <Button size="sm" onClick={() => window.open(companion.url, '_blank', 'noopener')}>
+                        {companion.label}
+                        <ArrowRight />
+                      </Button>
+                    </div>
+                    <p className="mt-[7px] text-[12px] leading-[1.5] text-muted">{companion.note}</p>
+
+                    <ol className="mt-[11px] flex flex-col gap-[4px] text-[12px] leading-[1.5] text-prose/85">
+                      <li>1 · Programm installieren und öffnen.</li>
+                      <li>2 · YouTube-Link dort einfügen und laden.</li>
+                      <li>
+                        3 · Die fertige Datei hierher ins Fenster ziehen. Alles Weitere —
+                        Umwandeln, Spuren trennen, Lautheit, Chopper — macht Lizge wieder
+                        vollständig auf Ihrem Gerät.
+                      </li>
+                    </ol>
+
+                    <p className="mt-[9px] text-[12px] leading-[1.5] text-muted">
+                      Ist Lizge als App installiert, geht auch „Öffnen mit“ direkt aus dem
+                      Dateimanager, und auf dem Handy das Teilen-Menü.{' '}
+                      <a
+                        className="underline underline-offset-2 hover:text-ink"
+                        href={COMPANION_SOURCE}
+                        target="_blank"
+                        rel="noreferrer noopener"
+                      >
+                        Quelloffen (MIT)
+                      </a>{' '}
+                      — und es gehört nicht zu diesem Projekt, prüfen Sie es wie jede Software,
+                      die Sie installieren.
+                    </p>
+                  </div>
                   <div className="rounded-card bg-raised p-[14px]">
                     <p className="text-[13px] font-semibold text-ink">Ich habe schon eine Adresse</p>
                     <p className="mt-[3px] text-[12px] leading-[1.5] text-muted">
@@ -942,126 +991,145 @@ export function DownloaderPanel() {
                   </div>
 
                   <div className="rounded-card bg-raised p-[14px]">
-                    <p className="text-[13px] font-semibold text-ink">Auf diesem Rechner starten</p>
-                    <p className="mt-[3px] text-[12px] leading-[1.5] text-muted">
-                      Einmal ein Befehl im Terminal, danach läuft es dauerhaft mit. Eine Instanz auf
-                      Ihrer eigenen Leitung lädt in der Regel problemlos — öffentliche gibt es keine
-                      mehr, die frühere wurde gesperrt.
-                    </p>
-
-                    {waiting ? (
-                      <div className="mt-[11px] flex flex-wrap items-center gap-[11px]">
-                        <p className="min-w-0 flex-1 text-[12px] leading-[1.5] text-prose/85">
-                          Befehl ist kopiert. Jetzt ins Terminal einfügen und Enter drücken — Lizge
-                          schaut weiter nach und verbindet sich selbst, sobald der Dienst antwortet.
-                        </p>
-                        <Button size="sm" variant="quiet" onClick={stopWaiting}>
-                          Abbrechen
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="mt-[11px] flex flex-wrap items-center gap-[7px]">
-                        <Button size="sm" onClick={startAndWait} disabled={searching}>
-                          {copied ? 'Kopiert — einfügen und Enter' : 'Befehl kopieren'}
-                          <ArrowRight />
-                        </Button>
-                        <Button size="sm" variant="quiet" onClick={searchLocal} disabled={searching}>
-                          {searching ? 'Sucht…' : 'Läuft schon — suchen'}
-                        </Button>
-                      </div>
-                    )}
-
-                    <code className="mt-[9px] block rounded-nav bg-panel-soft px-[11px] py-[9px] font-mono text-[11px] leading-[1.6] whitespace-pre-wrap text-prose">
-                      {oneLiner()}
-                    </code>
-
-                    <p className="mt-[9px] text-[12px] leading-[1.5] text-muted">
-                      Braucht{' '}
-                      <a
-                        className="underline underline-offset-2 hover:text-ink"
-                        href="https://docs.docker.com/get-docker/"
-                        target="_blank"
-                        rel="noreferrer noopener"
-                      >
-                        Docker
-                      </a>{' '}
-                      — einmal installieren, wie jedes andere Programm. Der Dienst hört danach nur
-                      auf <code className="font-mono">localhost:{DEFAULT_PORT}</code> und ist von
-                      außen nicht erreichbar. Lesen Sie den Befehl, bevor Sie ihn ausführen; das gilt
-                      für alles, was eine Webseite Ihnen zum Ausführen gibt.
-                    </p>
-
                     <button
                       type="button"
-                      onClick={() => setSetupOpen((value) => !value)}
-                      aria-expanded={setupOpen}
-                      className="mt-[9px] rounded-nav text-[12px] text-muted underline underline-offset-2 hover:text-ink"
+                      onClick={() => setDockerOpen((value) => !value)}
+                      aria-expanded={dockerOpen}
+                      className="flex w-full items-center justify-between gap-3 rounded-nav text-left"
                     >
-                      {setupOpen ? 'Weniger' : 'Lieber fertige Dateien statt eines Befehls?'}
+                      <span className="text-[13px] font-semibold text-ink">
+                        Eigenen Dienst betreiben
+                      </span>
+                      {/* Named for what it asks of you, so nobody opens it by accident. */}
+                      <span className="text-[12px] text-muted">
+                        {dockerOpen ? 'Schließen' : 'Docker nötig'}
+                      </span>
                     </button>
 
-                    {setupOpen ? (
-                      <div className="mt-[9px] flex flex-col gap-[9px] text-[12px] leading-[1.5] text-prose/85">
-                        <p className="text-muted">
-                          Dasselbe als Datei: die Konfiguration zum Aufbewahren, oder ein Skript, das
-                          den Ordner anlegt und den Dienst startet. Alles hier entsteht im Browser,
-                          nichts wird nachgeladen.
-                        </p>
-                        <div className="flex flex-wrap gap-[7px]">
-                          <Button
-                            size="sm"
-                            variant="quiet"
-                            onClick={() =>
-                              saveBytes(
-                                new TextEncoder().encode(composeFile()),
-                                'docker-compose.yml',
-                                'text/yaml',
-                              )
-                            }
-                          >
-                            docker-compose.yml
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="quiet"
-                            onClick={() =>
-                              saveBytes(
-                                new TextEncoder().encode(unixScript()),
-                                'cobalt-starten.sh',
-                                'text/x-shellscript',
-                              )
-                            }
-                          >
-                            Skript für macOS/Linux
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="quiet"
-                            onClick={() =>
-                              saveBytes(
-                                new TextEncoder().encode(windowsScript()),
-                                'cobalt-starten.ps1',
-                                'text/plain',
-                              )
-                            }
-                          >
-                            Skript für Windows
+                    {dockerOpen ? (
+                    <div className="rounded-card bg-raised p-[14px]">
+                      <p className="text-[13px] font-semibold text-ink">Auf diesem Rechner starten</p>
+                      <p className="mt-[3px] text-[12px] leading-[1.5] text-muted">
+                        Einmal ein Befehl im Terminal, danach läuft es dauerhaft mit. Eine Instanz auf
+                        Ihrer eigenen Leitung lädt in der Regel problemlos — öffentliche gibt es keine
+                        mehr, die frühere wurde gesperrt.
+                      </p>
+
+                      {waiting ? (
+                        <div className="mt-[11px] flex flex-wrap items-center gap-[11px]">
+                          <p className="min-w-0 flex-1 text-[12px] leading-[1.5] text-prose/85">
+                            Befehl ist kopiert. Jetzt ins Terminal einfügen und Enter drücken — Lizge
+                            schaut weiter nach und verbindet sich selbst, sobald der Dienst antwortet.
+                          </p>
+                          <Button size="sm" variant="quiet" onClick={stopWaiting}>
+                            Abbrechen
                           </Button>
                         </div>
-                        <p className="text-muted">
-                          Auf einem eigenen Server statt auf dem Laptop geht es genauso; die
-                          Originalanleitung steht unter{' '}
-                          <a
-                            className="underline underline-offset-2 hover:text-ink"
-                            href="https://github.com/imputnet/cobalt/blob/main/docs/run-an-instance.md"
-                            target="_blank"
-                            rel="noreferrer noopener"
-                          >
-                            cobalt/docs/run-an-instance.md
-                          </a>
-                          .
-                        </p>
-                      </div>
+                      ) : (
+                        <div className="mt-[11px] flex flex-wrap items-center gap-[7px]">
+                          <Button size="sm" onClick={startAndWait} disabled={searching}>
+                            {copied ? 'Kopiert — einfügen und Enter' : 'Befehl kopieren'}
+                            <ArrowRight />
+                          </Button>
+                          <Button size="sm" variant="quiet" onClick={searchLocal} disabled={searching}>
+                            {searching ? 'Sucht…' : 'Läuft schon — suchen'}
+                          </Button>
+                        </div>
+                      )}
+
+                      <code className="mt-[9px] block rounded-nav bg-panel-soft px-[11px] py-[9px] font-mono text-[11px] leading-[1.6] whitespace-pre-wrap text-prose">
+                        {oneLiner()}
+                      </code>
+
+                      <p className="mt-[9px] text-[12px] leading-[1.5] text-muted">
+                        Braucht{' '}
+                        <a
+                          className="underline underline-offset-2 hover:text-ink"
+                          href="https://docs.docker.com/get-docker/"
+                          target="_blank"
+                          rel="noreferrer noopener"
+                        >
+                          Docker
+                        </a>{' '}
+                        — einmal installieren, wie jedes andere Programm. Der Dienst hört danach nur
+                        auf <code className="font-mono">localhost:{DEFAULT_PORT}</code> und ist von
+                        außen nicht erreichbar. Lesen Sie den Befehl, bevor Sie ihn ausführen; das gilt
+                        für alles, was eine Webseite Ihnen zum Ausführen gibt.
+                      </p>
+
+                      <button
+                        type="button"
+                        onClick={() => setSetupOpen((value) => !value)}
+                        aria-expanded={setupOpen}
+                        className="mt-[9px] rounded-nav text-[12px] text-muted underline underline-offset-2 hover:text-ink"
+                      >
+                        {setupOpen ? 'Weniger' : 'Lieber fertige Dateien statt eines Befehls?'}
+                      </button>
+
+                      {setupOpen ? (
+                        <div className="mt-[9px] flex flex-col gap-[9px] text-[12px] leading-[1.5] text-prose/85">
+                          <p className="text-muted">
+                            Dasselbe als Datei: die Konfiguration zum Aufbewahren, oder ein Skript, das
+                            den Ordner anlegt und den Dienst startet. Alles hier entsteht im Browser,
+                            nichts wird nachgeladen.
+                          </p>
+                          <div className="flex flex-wrap gap-[7px]">
+                            <Button
+                              size="sm"
+                              variant="quiet"
+                              onClick={() =>
+                                saveBytes(
+                                  new TextEncoder().encode(composeFile()),
+                                  'docker-compose.yml',
+                                  'text/yaml',
+                                )
+                              }
+                            >
+                              docker-compose.yml
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="quiet"
+                              onClick={() =>
+                                saveBytes(
+                                  new TextEncoder().encode(unixScript()),
+                                  'cobalt-starten.sh',
+                                  'text/x-shellscript',
+                                )
+                              }
+                            >
+                              Skript für macOS/Linux
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="quiet"
+                              onClick={() =>
+                                saveBytes(
+                                  new TextEncoder().encode(windowsScript()),
+                                  'cobalt-starten.ps1',
+                                  'text/plain',
+                                )
+                              }
+                            >
+                              Skript für Windows
+                            </Button>
+                          </div>
+                          <p className="text-muted">
+                            Auf einem eigenen Server statt auf dem Laptop geht es genauso; die
+                            Originalanleitung steht unter{' '}
+                            <a
+                              className="underline underline-offset-2 hover:text-ink"
+                              href="https://github.com/imputnet/cobalt/blob/main/docs/run-an-instance.md"
+                              target="_blank"
+                              rel="noreferrer noopener"
+                            >
+                              cobalt/docs/run-an-instance.md
+                            </a>
+                            .
+                          </p>
+                        </div>
+                      ) : null}
+                    </div>
                     ) : null}
                   </div>
                 </div>
