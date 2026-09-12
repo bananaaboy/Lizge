@@ -185,3 +185,108 @@ export function oneLiner(port = DEFAULT_PORT): string {
     `-e API_URL="http://localhost:${port}/" ${COBALT_IMAGE}`
   )
 }
+
+/* -------------------------------------------------------------------------- */
+/* Without Docker                                                              */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * The same service, run directly on Node.
+ *
+ * Docker Desktop on Windows drags in WSL2, which drags in a virtual machine,
+ * and that stack has failure modes a person cannot fix — an open WSL bug refuses
+ * to attach its own system disk with "the request is not supported", and no
+ * amount of reinstalling helps. None of it is needed here: cobalt's API is a
+ * Node program, and Node is a plain installer with no virtualisation behind it.
+ *
+ * Slightly more to type, far less to go wrong.
+ */
+export const NODE_REQUIREMENTS = 'Node.js 18 oder neuer und Git'
+
+/** The steps, for showing rather than running. */
+export function nodeSteps(port = DEFAULT_PORT): string[] {
+  return [
+    'git clone --depth 1 https://github.com/imputnet/cobalt',
+    'cd cobalt/api',
+    'corepack enable pnpm',
+    'pnpm install',
+    `echo API_URL=http://localhost:${port}/ > .env`,
+    'pnpm start',
+  ]
+}
+
+export function nodeUnixScript(port = DEFAULT_PORT): string {
+  return `#!/usr/bin/env bash
+# cobalt ohne Docker starten. Erzeugt von Lizge.
+# Vor dem Ausführen lesen. Das Skript holt den Quelltext, installiert die
+# Abhängigkeiten in einen Ordner und startet den Dienst — sonst nichts.
+set -euo pipefail
+
+DIR="\${1:-\$HOME/cobalt}"
+
+for tool in git node; do
+  if ! command -v "\$tool" >/dev/null 2>&1; then
+    echo "\$tool fehlt. Node.js: https://nodejs.org/  Git: https://git-scm.com/" >&2
+    exit 1
+  fi
+done
+
+if [ ! -d "\$DIR" ]; then
+  git clone --depth 1 https://github.com/imputnet/cobalt "\$DIR"
+fi
+cd "\$DIR/api"
+
+# corepack gehört zu Node und holt pnpm in der passenden Fassung.
+corepack enable pnpm
+pnpm install
+
+cat > .env <<'ENVFILE'
+API_URL=http://localhost:${port}/
+API_PORT=${port}
+ENVFILE
+
+echo
+echo "Startet auf http://localhost:${port}/ — dieses Fenster offen lassen."
+echo "In Lizge passiert der Rest von selbst."
+pnpm start
+`
+}
+
+export function nodeWindowsScript(port = DEFAULT_PORT): string {
+  return `# cobalt ohne Docker starten. Erzeugt von Lizge.
+# Vor dem Ausfuehren lesen. Das Skript holt den Quelltext, installiert die
+# Abhaengigkeiten in einen Ordner und startet den Dienst - sonst nichts.
+#
+# Falls PowerShell das Ausfuehren verweigert, einmalig in derselben Sitzung:
+#   Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+$ErrorActionPreference = "Stop"
+
+$Dir = if ($args[0]) { $args[0] } else { Join-Path $HOME "cobalt" }
+
+foreach ($tool in @("git", "node")) {
+  if (-not (Get-Command $tool -ErrorAction SilentlyContinue)) {
+    Write-Error "$tool fehlt. Node.js: https://nodejs.org/  Git: https://git-scm.com/"
+    exit 1
+  }
+}
+
+if (-not (Test-Path $Dir)) {
+  git clone --depth 1 https://github.com/imputnet/cobalt $Dir
+}
+Set-Location (Join-Path $Dir "api")
+
+# corepack gehoert zu Node und holt pnpm in der passenden Fassung.
+corepack enable pnpm
+pnpm install
+
+@"
+API_URL=http://localhost:${port}/
+API_PORT=${port}
+"@ | Set-Content -Path ".env" -Encoding UTF8
+
+Write-Host ""
+Write-Host "Startet auf http://localhost:${port}/ - dieses Fenster offen lassen."
+Write-Host "In Lizge passiert der Rest von selbst."
+pnpm start
+`
+}
