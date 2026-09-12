@@ -1,10 +1,16 @@
 /**
- * Files dropped anywhere on the page, or pasted from the clipboard.
+ * Files arriving from outside the page: dropped, pasted, opened by the
+ * operating system, or shared from another app.
  *
  * A drop target you have to aim at is a small tax on every single use. Since
  * the whole window has no other use for a drop, it accepts one — and the
  * clipboard path covers the case where a file came from a screenshot tool or a
  * chat window.
+ *
+ * The other two matter because the one thing this app cannot do itself is fetch
+ * from YouTube. Somebody else's program has to do that, so the trip back has to
+ * be short: once Lizge is installed, a downloaded file can be opened with it
+ * straight from the file manager, or pushed into it from a phone's share sheet.
  */
 
 import { useCallback, useEffect, useState } from 'react'
@@ -13,6 +19,14 @@ import { formatBytes } from '../lib/format'
 import { kindFromMime, useSession } from '../state/store'
 
 const MEDIA_PATTERN = /^(audio|video)\//
+
+/** The slice of the File Handling API this app uses. */
+interface LaunchParams {
+  files?: { getFile: () => Promise<File> }[]
+}
+interface LaunchQueue {
+  setConsumer: (consumer: (params: LaunchParams) => void) => void
+}
 
 export function useGlobalIngest(): { dragging: boolean } {
   const addAsset = useSession((state) => state.addAsset)
@@ -92,6 +106,50 @@ export function useGlobalIngest(): { dragging: boolean } {
       window.removeEventListener('drop', onDrop)
       window.removeEventListener('paste', onPaste)
     }
+  }, [ingest])
+
+  // "Open with Lizge" from the file manager. Chromium-only and desktop-only,
+  // so its absence is the normal case rather than a problem.
+  useEffect(() => {
+    const queue = (window as Window & { launchQueue?: LaunchQueue }).launchQueue
+    if (!queue) return
+    queue.setConsumer((params) => {
+      const handles = params.files ?? []
+      if (handles.length === 0) return
+      void (async () => {
+        const files = await Promise.all(handles.map((handle) => handle.getFile()))
+        await ingest(files, 'aus dem Betriebssystem geöffnet')
+      })()
+    })
+  }, [ingest])
+
+  // Files a share sheet handed to the service worker, which parked them and
+  // sent the browser here with a count in the query string.
+  useEffect(() => {
+    const waiting = Number(new URLSearchParams(window.location.search).get('shared') ?? 0)
+    if (!Number.isFinite(waiting) || waiting <= 0) return
+
+    void (async () => {
+      const files: File[] = []
+      try {
+        const cache = await caches.open('lizge-share')
+        for (let index = 0; index < waiting; index += 1) {
+          const key = `./shared/${index}`
+          const response = await cache.match(key)
+          if (!response) continue
+          const name = decodeURIComponent(response.headers.get('X-Filename') ?? `geteilt-${index}`)
+          const blob = await response.blob()
+          files.push(new File([blob], name, { type: blob.type }))
+          await cache.delete(key)
+        }
+      } catch {
+        // Storage can be refused; there is simply nothing to collect then.
+      }
+
+      if (files.length > 0) await ingest(files, 'aus einer anderen App geteilt')
+      // Drop the marker so a reload does not look for files that are gone.
+      window.history.replaceState(null, '', window.location.pathname)
+    })()
   }, [ingest])
 
   return { dragging }

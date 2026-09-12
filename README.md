@@ -238,7 +238,42 @@ Adresse nach außen gibt. Wird sie eingeschaltet, steht der Hinweis dauerhaft im
 Panel: was übertragen wird, an wen, und dass die Nutzung auf eigenes Risiko
 erfolgt.
 
+### Der Weg für alle anderen: ein Programm, dann die Datei
+
+Die Einrichtung eines Servers ist für die meisten Menschen kein gangbarer Weg,
+und sie sollten auch keinen einrichten müssen. Deshalb steht an erster Stelle
+der Weg, der ohne Terminal, ohne Docker und ohne Konto auskommt: ein normales
+Programm mit normalem Installer lädt das Video, und die fertige Datei kommt
+zurück nach Lizge.
+
+Vorgeschlagen wird [Parabolic](https://github.com/NickvisionApps/Parabolic)
+(MIT, Windows/macOS/Linux) — der Link zeigt je nach System auf den passenden
+Installer oder auf Flathub. Es gehört nicht zu diesem Projekt und wird auch
+nicht nachgeladen; hinterlegt ist nur, wo es zu finden ist.
+
+Der Rückweg ist absichtlich kurz gehalten, denn daran scheitert es sonst:
+
+* **Ziehen.** Eine Datei irgendwo ins Fenster fallen lassen genügt; ein
+  Drop-Ziel, das man treffen muss, ist eine Abgabe auf jede einzelne Nutzung.
+* **Öffnen mit.** Ist Lizge als App installiert, trägt es sich über
+  `file_handlers` beim Betriebssystem als Öffner für Audio- und Videodateien
+  ein. Aus dem Dateimanager heraus landet die Datei direkt in der Sitzung.
+* **Teilen.** Auf dem Handy nimmt ein `share_target` die Datei aus dem
+  Teilen-Menü entgegen. Weil ein Teilen als POST ankommt und eine Seite den
+  Rumpf nach der Navigation nicht mehr lesen kann, nimmt der Service Worker die
+  Dateien heraus, legt sie kurz ab und leitet weiter — die App sammelt sie ein
+  und räumt das Regal wieder leer.
+
+Warum nicht einfach in der Cloud hosten? Weil es dort nicht funktioniert:
+YouTube sperrt die IP-Bereiche von Rechenzentren, und genau daran ist die
+frühere öffentliche Instanz gestorben. Ein Dienst auf dem eigenen Anschluss
+lädt, einer bei einem Hoster wird geprüft und abgewiesen. Die Einfachheit eines
+Ein-Klick-Deployments hilft also nichts, wenn das Ergebnis nicht lädt.
+
 ### Eine Instanz für den eigenen Rechner
+
+Dieser Weg bleibt erhalten, liegt in der Oberfläche aber eingeklappt hinter
+„Eigenen Dienst betreiben — Docker nötig", weil er am meisten verlangt.
 
 Eine Webseite kann keinen Server auf dem Rechner starten, der sie anzeigt — und
 das ist keine Lücke, sondern der Grund, warum man Webseiten überhaupt öffnen
