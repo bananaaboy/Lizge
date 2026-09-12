@@ -265,6 +265,22 @@ Seite startet also sofort und auch ohne Netz.
 
 ### Woran man sieht, ob es verbunden ist
 
+Die Antwort steht jetzt in der Leiste „Dieser Browser", unter **Dienst**, neben
+Isolation, Kernen und FFmpeg: `aus`, `wird gesucht` oder `verbunden` samt
+Adresse und ob YouTube dabei ist. Die Leiste liegt unter jedem Tab, also
+beantwortet sie die Frage überall und ohne Umweg.
+
+Vorher stand sie nur im Downloader, hinter dem eingeschalteten Regler, halb
+unten in einer Karte — das ist keine Antwort, das ist eine Schnitzeljagd. Die
+Verbindung lag dazu in der Zustandsverwaltung genau dieses Panels, was einen
+zweiten Fehler nach sich zog: Beim Wechsel auf einen anderen Tab wurde das Panel
+abgeräumt, die Verbindung ging verloren und die Leiste meldete trotzdem weiter
+„verbunden". Beide lesen jetzt denselben Zustand (`lib/serviceState.ts`), und
+der überlebt den Tabwechsel.
+
+„Trennen" schaltet die Funktion mit ab. Sonst fände der Wächter dieselbe Instanz
+vier Sekunden später wieder, und das meint niemand, der auf „Trennen" drückt.
+
 Der frühere Ablauf schaute einmal nach, wenn der Schalter umgelegt wurde, und
 gab dann auf — genau verkehrt herum. Der übliche Fall ist: einschalten,
 weggehen, den Dienst starten, zurückkommen. Die Seite hatte da längst

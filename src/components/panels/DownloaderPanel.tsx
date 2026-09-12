@@ -66,6 +66,7 @@ import {
   windowsScript,
 } from '../../lib/selfhost'
 import { detectPlatform } from '../../lib/platform'
+import { serviceConnection, setServiceConnection } from '../../lib/serviceState'
 import { holdScreenAwake } from '../../lib/wakeLock'
 import { kindFromMime, useSession } from '../../state/store'
 import { AssetList } from '../AssetList'
@@ -138,11 +139,21 @@ export function DownloaderPanel() {
 
   // Off on every load. Opting into sending an address to a third party is a
   // decision worth making deliberately, not one to inherit from last week.
-  const [serviceEnabled, setServiceEnabled] = useState(false)
-  const [service, setService] = useState<ServiceSettings>(() => readServiceSettings())
+  //
+  // Switching tabs is not a new load, though. This panel unmounts when another
+  // one is shown, and starting from scratch on the way back threw away a live
+  // connection while the status strip went on reporting it — the two disagreed,
+  // and the panel was the one that was wrong. Both now read the same state.
+  const [serviceEnabled, setServiceEnabled] = useState(() => serviceConnection().enabled)
+  const [service, setService] = useState<ServiceSettings>(() => {
+    const stored = readServiceSettings()
+    // A live connection's address wins over the remembered one.
+    const live = serviceConnection().endpoint
+    return live ? { ...stored, endpoint: live } : stored
+  })
   const [apiKey, setApiKey] = useState('')
   const [items, setItems] = useState<ServiceItem[] | null>(null)
-  const [serviceInfo, setServiceInfo] = useState<ServiceInfo | null>(null)
+  const [serviceInfo, setServiceInfo] = useState<ServiceInfo | null>(() => serviceConnection().info)
   const [checking, setChecking] = useState(false)
   const [searching, setSearching] = useState(false)
   const [setupOpen, setSetupOpen] = useState(false)
@@ -476,6 +487,7 @@ export function DownloaderPanel() {
     setKnown(rememberInstance(endpoint))
     setSetupOpen(false)
     setError(null)
+    setServiceConnection({ endpoint, info, searching: false })
   }
 
   /**
@@ -584,6 +596,7 @@ export function DownloaderPanel() {
   useEffect(() => {
     if (!serviceEnabled || connected || waiting) return
     setSweeps(0)
+    setServiceConnection({ searching: true })
     const controller = new AbortController()
     let stopped = false
 
@@ -606,16 +619,27 @@ export function DownloaderPanel() {
     return () => {
       stopped = true
       controller.abort()
+      setServiceConnection({ searching: false })
     }
     // `adopt` and `log` are stable for the life of the panel.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [serviceEnabled, connected, waiting])
 
+  /**
+   * Stops using the service entirely.
+   *
+   * It has to switch the feature off too, not just drop the connection: the
+   * watcher would otherwise find the very same instance again four seconds
+   * later, which is not what anyone means by "disconnect".
+   */
   const disconnect = () => {
     stopWaiting()
+    setServiceEnabled(false)
     setServiceInfo(null)
     setItems(null)
     setError(null)
+    setModeOverride(null)
+    setServiceConnection({ endpoint: null, info: null, searching: false, enabled: false })
     log('dienst', 'Verbindung zum Dienst getrennt')
   }
 
@@ -847,11 +871,13 @@ export function DownloaderPanel() {
                   : 'Externe Downloader ausgeschaltet',
                 value ? 'warn' : 'info',
               )
+              setServiceConnection({ enabled: value })
               if (value) {
                 void autoConnect()
               } else {
                 stopWaiting()
                 setServiceInfo(null)
+                setServiceConnection({ endpoint: null, info: null, searching: false })
               }
             }}
           />
