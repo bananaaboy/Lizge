@@ -47,6 +47,26 @@ export interface FfmpegStatus {
   threads: number
 }
 
+/**
+ * How far the core has got.
+ *
+ * The binary is thirty-odd megabytes, which on a slow line is a long time to
+ * look at nothing. Reporting real bytes rather than a spinner is the difference
+ * between "it is working" and "it has hung", so the wasm is fetched here with a
+ * streaming read and handed to the worker as a blob — one download, honest
+ * numbers.
+ */
+export interface FfmpegBoot {
+  state: 'idle' | 'loading' | 'ready' | 'error'
+  receivedBytes: number
+  /** Null when the server sent no length, which makes the bar indeterminate. */
+  totalBytes: number | null
+  message: string
+  error: string | null
+}
+
+type BootHandler = (boot: FfmpegBoot) => void
+
 type LogHandler = (line: string) => void
 type ProgressHandler = (fraction: number) => void
 type StatusHandler = (status: FfmpegStatus) => void
@@ -54,6 +74,72 @@ type StatusHandler = (status: FfmpegStatus) => void
 const logHandlers = new Set<LogHandler>()
 const progressHandlers = new Set<ProgressHandler>()
 const statusHandlers = new Set<StatusHandler>()
+const bootHandlers = new Set<BootHandler>()
+
+let boot: FfmpegBoot = {
+  state: 'idle',
+  receivedBytes: 0,
+  totalBytes: null,
+  message: 'Noch nicht geladen',
+  error: null,
+}
+
+/** Subscribe to load progress. Fires immediately with the current state. */
+export function onFfmpegBoot(handler: BootHandler): () => void {
+  bootHandlers.add(handler)
+  handler(boot)
+  return () => {
+    bootHandlers.delete(handler)
+  }
+}
+
+export function ffmpegBoot(): FfmpegBoot {
+  return boot
+}
+
+function setBoot(patch: Partial<FfmpegBoot>): void {
+  boot = { ...boot, ...patch }
+  bootHandlers.forEach((handler) => handler(boot))
+}
+
+/**
+ * Fetches a URL while reporting how much has arrived, and hands back a blob URL.
+ *
+ * Falls back to the plain URL where the body cannot be streamed; the core still
+ * loads, the bar just cannot say how far along it is.
+ */
+async function fetchWithProgress(url: string): Promise<string> {
+  const response = await fetch(url, { credentials: 'omit' })
+  if (!response.ok) throw new Error(`${url} antwortete mit ${response.status}`)
+
+  // `content-length` counts the bytes on the wire, while the reader hands over
+  // decoded ones. Where the server compressed the binary those are different
+  // numbers — around three to one for this wasm — and a bar built on the wrong
+  // one fills up at a third of the way and then lies. So the length is only
+  // trusted when nothing was encoded, and it is dropped again if the decoded
+  // stream overtakes it anyway, which catches hosts that hide the header.
+  const declared = Number(response.headers.get('content-length'))
+  const encoded = (response.headers.get('content-encoding') ?? '').trim() !== ''
+  let totalBytes = !encoded && Number.isFinite(declared) && declared > 0 ? declared : null
+
+  const reader = response.body?.getReader()
+  if (!reader) return url
+
+  setBoot({ totalBytes, receivedBytes: 0 })
+
+  const chunks: Uint8Array[] = []
+  let received = 0
+  for (;;) {
+    const { done, value } = await reader.read()
+    if (done) break
+    chunks.push(value)
+    received += value.byteLength
+    if (totalBytes !== null && received > totalBytes) totalBytes = null
+    setBoot({ receivedBytes: received, totalBytes })
+  }
+
+  return URL.createObjectURL(new Blob(chunks as BlobPart[], { type: 'application/wasm' }))
+}
 
 export function onFfmpegLog(handler: LogHandler): () => void {
   logHandlers.add(handler)
@@ -107,6 +193,14 @@ export async function loadFfmpeg(): Promise<FFmpeg> {
     const multiThreaded = caps.ffmpegMultiThread
     const ffmpeg = new FFmpeg()
 
+    setBoot({
+      state: 'loading',
+      receivedBytes: 0,
+      totalBytes: null,
+      error: null,
+      message: multiThreaded ? 'FFmpeg wird geholt (mehrfädig)' : 'FFmpeg wird geholt',
+    })
+
     ffmpeg.on('log', ({ message }) => {
       logHandlers.forEach((handler) => handler(message))
     })
@@ -116,6 +210,12 @@ export async function loadFfmpeg(): Promise<FFmpeg> {
       progressHandlers.forEach((handler) => handler(fraction))
     })
 
+    // The binary comes down here rather than inside `load()`, so its arrival can
+    // be measured. The glue and the pthread worker are small enough to leave to
+    // the library.
+    const wasmURL = await fetchWithProgress(absolute(multiThreaded ? coreMtWasmUrl : coreWasmUrl))
+    setBoot({ message: 'FFmpeg wird gestartet' })
+
     await ffmpeg.load({
       // `classWorkerURL` is deliberately omitted. The library falls back to
       // `new URL('./worker.js', import.meta.url)`, which the bundler rewrites
@@ -123,10 +223,14 @@ export async function loadFfmpeg(): Promise<FFmpeg> {
       // would ship that file with its relative imports unresolved, and the
       // worker would die on its first import.
       coreURL: absolute(multiThreaded ? coreMtUrl : coreUrl),
-      wasmURL: absolute(multiThreaded ? coreMtWasmUrl : coreWasmUrl),
+      wasmURL,
       // Only the MT core spawns pthread workers of its own.
       ...(multiThreaded ? { workerURL: absolute(coreMtWorkerUrl) } : {}),
     })
+
+    // The worker has the binary by now. Revoking on a delay rather than at once,
+    // because an eager revoke has bitten this codebase before with downloads.
+    if (wasmURL.startsWith('blob:')) setTimeout(() => URL.revokeObjectURL(wasmURL), 60_000)
 
     instance = ffmpeg
     setStatus({
@@ -134,6 +238,7 @@ export async function loadFfmpeg(): Promise<FFmpeg> {
       multiThreaded,
       threads: multiThreaded ? suggestedThreads(caps) : 1,
     })
+    setBoot({ state: 'ready', message: 'FFmpeg bereit', error: null })
     return ffmpeg
   })()
 
@@ -143,6 +248,11 @@ export async function loadFfmpeg(): Promise<FFmpeg> {
     loading = null
     instance = null
     setStatus({ ...status, loaded: false })
+    setBoot({
+      state: 'error',
+      message: 'FFmpeg konnte nicht geladen werden',
+      error: error instanceof Error ? error.message : String(error),
+    })
     throw error
   }
 }
@@ -156,6 +266,7 @@ export async function unloadFfmpeg(): Promise<void> {
     instance = null
     loading = null
     setStatus({ loaded: false, multiThreaded: false, threads: 1 })
+    setBoot({ state: 'idle', message: 'Noch nicht geladen', receivedBytes: 0, totalBytes: null })
   }
 }
 
