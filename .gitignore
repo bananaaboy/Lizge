@@ -7,3 +7,6 @@ dist-ssr
 .env
 .env.*
 !.env.example
+
+# TypeScript incremental build state
+*.tsbuildinfo

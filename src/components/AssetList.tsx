@@ -2,9 +2,44 @@
  * The session library: everything currently held in memory.
  */
 
+import { useEffect } from 'react'
+
+import { saveBytes } from '../lib/download'
 import { formatBytes, formatDuration } from '../lib/format'
-import { useSession } from '../state/store'
+import { useDecodedAudio } from '../hooks/useDecodedAudio'
+import { useActiveAsset, useSession } from '../state/store'
+import { AudioPreview } from './AudioPreview'
 import { Badge } from './ui/primitives'
+
+/**
+ * A player for whichever file is selected.
+ *
+ * This sits in the library, which every panel shows, so playback of the source
+ * is available in every tab rather than only in the ones that happen to produce
+ * a result. Decoding happens once and is cached on the asset, so opening a
+ * second panel does not pay for it again.
+ */
+function SelectedPlayer() {
+  const asset = useActiveAsset()
+  const { audio, decode, status } = useDecodedAudio(asset)
+
+  useEffect(() => {
+    if (asset && !audio && status === 'idle') void decode()
+  }, [asset, audio, status, decode])
+
+  if (!asset) return null
+
+  if (!audio) {
+    return (
+      <p className="text-[12px] text-muted">
+        {status === 'decoding' ? 'Wird für die Wiedergabe dekodiert…' : null}
+        {status === 'error' ? 'Diese Datei lässt sich nicht abspielen.' : null}
+      </p>
+    )
+  }
+
+  return <AudioPreview sources={[{ id: asset.id, label: asset.name, audio }]} waveHeight={40} />
+}
 
 export function AssetList() {
   const assets = useSession((state) => state.assets)
@@ -34,6 +69,8 @@ export function AssetList() {
         </button>
       </div>
 
+      <SelectedPlayer />
+
       <ul className="flex flex-col gap-[7px]">
         {assets.map((asset) => {
           const active = asset.id === activeId
@@ -57,6 +94,26 @@ export function AssetList() {
                   </span>
                 </button>
                 {asset.origin === 'derived' ? <Badge>abgeleitet</Badge> : null}
+                {/* Anything in the session can be saved from anywhere, which is
+                    what makes the downloader a downloader rather than a way to
+                    get files into other tools. */}
+                <button
+                  type="button"
+                  aria-label={`${asset.name} speichern`}
+                  title="Auf die Festplatte speichern"
+                  onClick={() => saveBytes(asset.bytes, asset.name, asset.mime)}
+                  className="rounded-nav p-1 text-muted transition-colors hover:text-ink"
+                >
+                  <svg viewBox="0 0 16 16" className="h-4 w-4" fill="none" aria-hidden>
+                    <path
+                      d="M8 2.5v7.5M5 7.5L8 10.5l3-3M3 12.5h10"
+                      stroke="currentColor"
+                      strokeWidth="1.4"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </button>
                 <button
                   type="button"
                   aria-label={`${asset.name} entfernen`}

@@ -44,6 +44,7 @@ export function AudioPreview({ sources, waveHeight = 56, className = '' }: Audio
   const startedAtRef = useRef(0)
   const offsetRef = useRef(0)
   const frameRef = useRef(0)
+  const lastPaintRef = useRef(0)
 
   const active = sources.find((entry) => entry.id === activeId) ?? sources[0]
   const duration = active ? (active.audio.channels[0]?.length ?? 0) / active.audio.sampleRate : 0
@@ -80,11 +81,23 @@ export function AudioPreview({ sources, waveHeight = 56, className = '' }: Audio
     cancelAnimationFrame(frameRef.current)
   }, [])
 
+  /**
+   * Advances the playhead.
+   *
+   * Deliberately not once per frame: every update re-renders this component and
+   * the waveform under it, and sixty of those a second is enough to make the
+   * whole page stutter. Twenty is smooth to look at and costs a third as much.
+   */
   const tick = useCallback(() => {
+    frameRef.current = requestAnimationFrame(tick)
+
+    const now = performance.now()
+    if (now - lastPaintRef.current < 50) return
+    lastPaintRef.current = now
+
     const context = getAudioContext()
     const elapsed = context.currentTime - startedAtRef.current + offsetRef.current
     setPosition(Math.min(duration, Math.max(0, elapsed)))
-    frameRef.current = requestAnimationFrame(tick)
   }, [duration])
 
   const play = useCallback(
@@ -115,6 +128,7 @@ export function AudioPreview({ sources, waveHeight = 56, className = '' }: Audio
       }
 
       cancelAnimationFrame(frameRef.current)
+      lastPaintRef.current = 0
       frameRef.current = requestAnimationFrame(tick)
     },
     [active, bufferFor, duration, stopSource, tick],
@@ -164,7 +178,7 @@ export function AudioPreview({ sources, waveHeight = 56, className = '' }: Audio
           className="cursor-pointer rounded-nav bg-panel-soft px-[9px] py-[7px]"
           title="Klicken zum Springen"
         >
-          <Waveform audio={active.audio} height={waveHeight} position={playing ? position : position || null} />
+          <Waveform audio={active.audio} height={waveHeight} position={position || null} />
         </div>
       ) : null}
 
