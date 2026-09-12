@@ -252,6 +252,46 @@ export async function findLocalInstance(
 }
 
 /**
+ * Keeps looking until an instance appears on this machine.
+ *
+ * Setting one up means leaving the page, running a command, and coming back —
+ * and the coming back is where people give up, because nothing tells them it
+ * worked. So rather than asking for another button press afterwards, this waits
+ * and notices by itself. A sweep is cheap: a closed port on localhost refuses
+ * the connection immediately, so most attempts cost nothing at all.
+ *
+ * Bounded, because a promise that never settles is a leak with better manners.
+ */
+export async function watchForInstance(
+  candidates: string[],
+  options: { signal?: AbortSignal; intervalMs?: number; timeoutMs?: number } = {},
+): Promise<{ endpoint: string; info: ServiceInfo } | null> {
+  const { signal, intervalMs = 2000, timeoutMs = 300_000 } = options
+  const deadline = Date.now() + timeoutMs
+
+  while (!signal?.aborted && Date.now() < deadline) {
+    const found = await findLocalInstance(candidates, signal)
+    if (found) return found
+    await pause(intervalMs, signal)
+  }
+  return null
+}
+
+/** Resolves after `ms`, or as soon as the caller gives up — never rejects. */
+function pause(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve) => {
+    if (signal?.aborted) return resolve()
+    const timer = setTimeout(done, ms)
+    function done() {
+      clearTimeout(timer)
+      signal?.removeEventListener('abort', done)
+      resolve()
+    }
+    signal?.addEventListener('abort', done, { once: true })
+  })
+}
+
+/**
  * Asks the service what it can offer for `mediaUrl`.
  *
  * `apiKey` is passed through but never stored — a credential in localStorage

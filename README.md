@@ -244,14 +244,30 @@ Eine Webseite kann keinen Server auf dem Rechner starten, der sie anzeigt — un
 das ist keine Lücke, sondern der Grund, warum man Webseiten überhaupt öffnen
 kann. Die Anwendung geht deshalb so weit, wie eine Seite ehrlich gehen kann:
 
-* Sie erzeugt die fertige `docker-compose.yml`, ein Startskript für macOS und
-  Linux, eines für Windows und einen einzelnen `docker run`-Befehl. Alles wird
-  im Browser geschrieben, nichts nachgeladen, und es ist lesbarer Text — den man
-  vor dem Ausführen auch lesen sollte, bei allem, was eine Webseite einem gibt.
+* Wird der Schalter umgelegt, sieht die Seite zuerst **von selbst** auf diesem
+  Rechner nach. Läuft dort schon etwas, ist die Einrichtung damit vorbei — ohne
+  einen einzigen Klick. Gesucht wird ausschließlich lokal: eine gemerkte fremde
+  Adresse wird eingetragen, aber nicht ungefragt angesprochen, denn genau
+  darüber soll der Schalter ja entscheiden.
+* Ist nichts da, stehen zwei Wege nebeneinander, der kürzere zuerst: eine
+  vorhandene Adresse eintragen, oder einen Dienst auf diesem Rechner starten.
+  Keiner davon ist hinter einem Link versteckt — ein Schritt, den man nicht
+  sieht, ist ein Schritt, den man nicht geht.
+* „Befehl kopieren“ legt den `docker run`-Befehl in die Zwischenablage und
+  **wartet danach**. Der Schritt, an dem es sonst scheitert, ist nicht der
+  Befehl, sondern die Rückkehr zur Seite: Man weiß nicht, was man drücken soll.
+  Also muss nichts gedrückt werden — die Seite schaut alle zwei Sekunden nach
+  und verbindet sich selbst, sobald der Dienst antwortet.
+* Darunter liegen weiterhin die fertige `docker-compose.yml`, ein Startskript
+  für macOS und Linux und eines für Windows. Alles wird im Browser geschrieben,
+  nichts nachgeladen, und es ist lesbarer Text — den man vor dem Ausführen auch
+  lesen sollte, bei allem, was eine Webseite einem gibt.
 * Die Konfiguration bindet an `127.0.0.1`, nicht an `0.0.0.0`: eine Instanz auf
   einem Laptop hat im WLAN eines Cafés nichts zu suchen.
-* Läuft etwas, findet der Knopf „Suchen“ es selbst — er probiert die üblichen
-  lokalen Adressen mit kurzem Zeitlimit und trägt die passende ein.
+* Der Zustand steht immer in einer Zeile über allem anderen: verbunden mit wem,
+  oder dass noch kein Dienst da ist und YouTube-Links deshalb nicht gehen.
+  Einstellungen wie Auflösung und Zugangsschlüssel erscheinen erst, wenn es
+  etwas gibt, auf das sie sich beziehen.
 
 Eine eigene Instanz lädt von YouTube meist problemlos, weil sie von der eigenen
 Leitung aus anfragt statt von einer, die dort bekannt ist.
