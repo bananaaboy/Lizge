@@ -5,6 +5,7 @@
 import { useEffect, useState } from 'react'
 
 import { detectCapabilities, hasWebGpuAdapter, suggestedThreads } from '../lib/capabilities'
+import { onServiceConnection, serviceConnection, type ServiceConnection } from '../lib/serviceState'
 import { loadFfmpeg, onFfmpegStatus, type FfmpegStatus } from '../lib/ffmpegClient'
 import type { ResolvedTheme } from '../lib/theme'
 import { useSession, type PanelId } from '../state/store'
@@ -59,6 +60,7 @@ function PanelTabs() {
 /** What this particular browser can and cannot do, stated plainly. */
 function CapabilityStrip() {
   const [webgpu, setWebgpu] = useState<boolean | null>(null)
+  const [service, setService] = useState<ServiceConnection>(serviceConnection)
   const [ffmpeg, setFfmpeg] = useState<FfmpegStatus>({ loaded: false, multiThreaded: false, threads: 1 })
   const caps = detectCapabilities()
 
@@ -68,6 +70,9 @@ function CapabilityStrip() {
 
   // The core can be loaded from any panel, so the strip listens rather than polls.
   useEffect(() => onFfmpegStatus(setFfmpeg), [])
+  // Same for the extraction service: answered here, on every tab, rather than
+  // only inside the panel that happens to own the connection.
+  useEffect(() => onServiceConnection(setService), [])
 
   const entries = [
     {
@@ -89,6 +94,17 @@ function CapabilityStrip() {
       note: caps.fileSystemAccess ? 'Downloads gehen direkt auf die Platte' : 'Downloads laufen über den Speicher',
     },
     {
+      label: 'Dienst',
+      value: service.info ? 'verbunden' : service.searching ? 'wird gesucht' : 'aus',
+      note: service.info
+        ? `${(service.endpoint ?? '').replace(/^https?:\/\//, '').replace(/\/$/, '')} · ${
+            service.info.services.includes('youtube') ? 'YouTube geht' : 'ohne YouTube'
+          }`
+        : service.searching
+          ? 'wartet auf eine Instanz auf diesem Rechner'
+          : 'nur für YouTube und Portale nötig',
+    },
+    {
       label: 'FFmpeg',
       value: ffmpeg.loaded ? 'geladen' : 'nicht geladen',
       note: ffmpeg.loaded
@@ -107,7 +123,7 @@ function CapabilityStrip() {
           </Button>
         ) : null}
       </div>
-      <dl className="mt-[21px] grid gap-[21px] sm:grid-cols-3 lg:grid-cols-5">
+      <dl className="mt-[21px] grid gap-[21px] sm:grid-cols-3 lg:grid-cols-6">
         {entries.map((entry) => (
           <div key={entry.label} className="flex flex-col gap-[4px]">
             <dt className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink/70">
