@@ -1,3 +1,4 @@
+import { BootGate } from './components/BootGate'
 import { Dashboard } from './components/Dashboard'
 import { DropOverlay, Footer, Header, SessionBar } from './components/AppShell'
 import { useGlobalIngest } from './hooks/useGlobalIngest'
@@ -10,14 +11,16 @@ export default function App() {
   const install = useInstallPrompt()
 
   return (
-    <div className="flex min-h-dvh flex-col bg-canvas">
-      <Header themeChoice={choice} onThemeChange={setChoice} install={install} />
-      <SessionBar />
-      <main className="flex-1">
-        <Dashboard theme={resolved} />
-      </main>
-      <Footer />
-      <DropOverlay visible={dragging} />
-    </div>
+    <BootGate>
+      <div className="flex min-h-dvh flex-col bg-canvas">
+        <Header themeChoice={choice} onThemeChange={setChoice} install={install} />
+        <SessionBar />
+        <main className="flex-1">
+          <Dashboard theme={resolved} />
+        </main>
+        <Footer />
+        <DropOverlay visible={dragging} />
+      </div>
+    </BootGate>
   )
 }

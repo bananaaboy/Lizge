@@ -238,6 +238,31 @@ Adresse nach außen gibt. Wird sie eingeschaltet, steht der Hinweis dauerhaft im
 Panel: was übertragen wird, an wen, und dass die Nutzung auf eigenes Risiko
 erfolgt.
 
+### FFmpeg lädt beim Öffnen, nicht beim ersten Klick
+
+Der Kern ist rund 31 MB. Ihn erst beim ersten Umwandeln zu holen hieß, dass die
+erste echte Handlung einer Sitzung eine halbe Minute ohne Erklärung stand — was
+sich wie eine kaputte Seite liest, nicht wie eine beschäftigte. Er wird deshalb
+beim Öffnen geholt, sichtbar, und die Werkzeuge erscheinen, sobald er da ist.
+
+Zwei Dinge halten das Warten ehrlich:
+
+* **Echte Bytes statt eines Kreisels.** Die `.wasm` wird hier mit einem
+  Stream-Reader geholt und dem Worker als Blob übergeben — ein Download, echte
+  Zahlen. `content-length` zählt allerdings die Bytes auf der Leitung, der
+  Reader die entpackten; bei komprimierter Auslieferung sind das für diese Datei
+  rund drei zu eins. Die Länge wird deshalb nur ohne `content-encoding`
+  geglaubt und verworfen, sobald der entpackte Strom sie überholt. Dann läuft
+  der Balken unbestimmt weiter, statt bei einem Drittel vollzulaufen und zu
+  lügen.
+* **Ein Fehlschlag ist keine verschlossene Tür.** Spurentrennung, Lautheit,
+  Chopper und Harmonie rühren FFmpeg nie an. Scheitert das Laden, steht der
+  Grund da und daneben ein Weg vorbei, statt einer Sackgasse. Überspringen geht
+  auch währenddessen.
+
+Beim zweiten Besuch liegt der Kern im Zwischenspeicher des Service Workers, die
+Seite startet also sofort und auch ohne Netz.
+
 ### Warum es keinen Weg ohne Server gibt
 
 Die Frage stellt sich zwangsläufig: Geht YouTube nicht auch ohne, dass man

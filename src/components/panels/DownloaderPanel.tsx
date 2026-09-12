@@ -143,8 +143,10 @@ export function DownloaderPanel() {
   const [setupOpen, setSetupOpen] = useState(false)
   const [copied, setCopied] = useState(false)
   const [known, setKnown] = useState<string[]>(() => rememberedInstances())
-  /** The self-hosting route, folded away — it is the one that asks the most. */
-  const [dockerOpen, setDockerOpen] = useState(false)
+  // Open from the start. It was folded when three routes competed for the
+  // space; now it is the only one that actually gets a service running, and a
+  // route nobody opens is a route nobody takes.
+  const [dockerOpen, setDockerOpen] = useState(true)
   /** Node needs no virtual machine, so it is the default of the two. */
   const [localWay, setLocalWay] = useState<'node' | 'docker'>('node')
   /** The guided setup is watching for an instance to come up. */

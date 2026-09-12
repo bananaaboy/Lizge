@@ -76,7 +76,7 @@ const makeId = () =>
 export const useSession = create<SessionState>((set, get) => ({
   assets: [],
   activeAssetId: null,
-  panel: 'converter',
+  panel: 'downloader',
   logs: [],
 
   convert: DEFAULT_CONVERT,
