@@ -164,7 +164,31 @@ function normalizeEndpoint(endpoint: string): string {
   }
 }
 
-/** Turns a fetch rejection into something the user can act on. */
+/** True for addresses that live on the machine running the browser. */
+export function isLoopback(endpoint: string): boolean {
+  try {
+    const host = new URL(endpoint).hostname
+    return host === 'localhost' || host === '127.0.0.1' || host === '[::1]' || host === '::1'
+  } catch {
+    return false
+  }
+}
+
+/** True when this page itself is being served from that same machine. */
+export function pageIsLocal(): boolean {
+  return isLoopback(window.location.origin)
+}
+
+/**
+ * Turns a fetch rejection into something the user can act on.
+ *
+ * The awkward case is a hosted page reaching for a service on the visitor's own
+ * machine. Browsers treat that as a public site poking at a private network and
+ * block it, preflight and all — the service answering perfectly makes no
+ * difference, and from inside the page the failure looks exactly like "nothing
+ * is running there". Since that is the one case where the obvious diagnosis is
+ * the wrong one, it gets named rather than guessed at.
+ */
 function describeUnreachable(endpoint: string): ServiceError {
   let host = endpoint
   try {
@@ -172,6 +196,17 @@ function describeUnreachable(endpoint: string): ServiceError {
   } catch {
     /* keep the raw string */
   }
+
+  if (isLoopback(endpoint) && !pageIsLocal()) {
+    return new ServiceError(
+      `${host} war nicht erreichbar. Wenn der Dienst dort läuft, liegt es vermutlich nicht an ihm: ` +
+        'Browser lassen eine Seite aus dem Netz nicht ohne Weiteres auf Adressen im eigenen Rechner ' +
+        'zugreifen. Fragt der Browser nach Zugriff aufs lokale Netzwerk, erlauben Sie es. Sonst hilft, ' +
+        'Lizge selbst lokal zu öffnen — dann liegen Seite und Dienst auf derselben Maschine.',
+      'local-network-blocked',
+    )
+  }
+
   return new ServiceError(
     `${host} antwortet nicht, oder die Instanz erlaubt keine Anfragen von dieser Seite. ` +
       'Prüfen Sie die Adresse und stellen Sie sicher, dass die Instanz CORS für diesen Ursprung ' +

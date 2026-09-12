@@ -263,6 +263,35 @@ Zwei Dinge halten das Warten ehrlich:
 Beim zweiten Besuch liegt der Kern im Zwischenspeicher des Service Workers, die
 Seite startet also sofort und auch ohne Netz.
 
+### Woran man sieht, ob es verbunden ist
+
+Der frühere Ablauf schaute einmal nach, wenn der Schalter umgelegt wurde, und
+gab dann auf — genau verkehrt herum. Der übliche Fall ist: einschalten,
+weggehen, den Dienst starten, zurückkommen. Die Seite hatte da längst
+aufgehört zu suchen, und nichts sagte einem das.
+
+Jetzt wartet die Seite. Solange die Funktion an ist und nichts geantwortet hat,
+schaut sie alle vier Sekunden nach und verbindet sich von selbst; eine
+abgelehnte Verbindung auf localhost kostet nichts. Gemessen: 2,3 Sekunden vom
+Start des Dienstes bis zum verbundenen Zustand, ohne einen Klick. Die Statuszeile
+sagt das auch, statt es zu verschweigen.
+
+Bleibt es still, meldet sich die Seite nach rund 25 Sekunden — Schweigen, das
+sich nicht erklärt, ist schlimmer als eine Vermutung. Was sie dann sagt, hängt
+davon ab, woher sie selbst kommt:
+
+* **Lizge lokal geöffnet.** Dann ist die naheliegende Erklärung die richtige:
+  läuft der Dienst wirklich, und steht in seinem Fenster `port: 9000`?
+* **Lizge aus dem Netz geöffnet.** Dann ist sie es meistens nicht. Browser
+  lassen eine Seite aus dem Netz nicht ohne Weiteres auf Adressen im eigenen
+  Rechner zugreifen, und von der Seite aus sieht diese Sperre exakt so aus wie
+  „da läuft nichts". Genau weil hier die naheliegende Diagnose die falsche ist,
+  wird sie benannt: Zugriff aufs lokale Netzwerk erlauben, wenn der Browser
+  fragt, sonst Lizge selbst lokal öffnen.
+
+Diese Unterscheidung steht auch schon vorab unter der Frage nach Node und Git,
+damit sie nicht erst nach einer halben Minute Suchen auftaucht.
+
 ### Warum es keinen Weg ohne Server gibt
 
 Die Frage stellt sich zwangsläufig: Geht YouTube nicht auch ohne, dass man

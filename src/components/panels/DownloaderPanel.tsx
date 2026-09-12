@@ -34,6 +34,7 @@ import {
   localJobExtension,
   probeService,
   resolveMedia,
+  pageIsLocal,
   SERVICE_DISCLAIMER,
   ServiceError,
   watchForInstance,
@@ -157,6 +158,8 @@ export function DownloaderPanel() {
   // the step they most needed to include.
   const [hasNode, setHasNode] = useState(false)
   const [hasGit, setHasGit] = useState(false)
+  /** How many fruitless sweeps the watcher has made, to know when to speak up. */
+  const [sweeps, setSweeps] = useState(0)
   /** The guided setup is watching for an instance to come up. */
   const [waiting, setWaiting] = useState(false)
   const waitRef = useRef<AbortController | null>(null)
@@ -165,6 +168,7 @@ export function DownloaderPanel() {
 
   // A five-minute poll must not outlive the panel that started it.
   useEffect(() => () => waitRef.current?.abort(), [])
+
 
   const updateService = (patch: Partial<ServiceSettings>) => {
     setService((current) => {
@@ -567,6 +571,46 @@ export function DownloaderPanel() {
     }
   }
 
+  /**
+   * Keeps looking for as long as the feature is on and nothing has answered.
+   *
+   * The old behaviour checked once when the switch went on and then stopped,
+   * which is exactly backwards: the common case is switching it on, going away
+   * to start the service, and coming back to a page that has long since given
+   * up. Now the page is the one that waits. A refused connection on localhost
+   * costs nothing, so doing it every few seconds is cheaper than making someone
+   * wonder whether it worked.
+   */
+  useEffect(() => {
+    if (!serviceEnabled || connected || waiting) return
+    setSweeps(0)
+    const controller = new AbortController()
+    let stopped = false
+
+    const sweep = async () => {
+      while (!stopped && !controller.signal.aborted) {
+        const found = await findLocalInstance(localCandidates(), controller.signal)
+        if (found) {
+          if (!stopped) {
+            adopt(found.endpoint, found.info)
+            log('dienst', `Instanz gefunden: ${found.endpoint} (cobalt ${found.info.version})`)
+          }
+          return
+        }
+        if (!stopped) setSweeps((count) => count + 1)
+        await new Promise((resolve) => setTimeout(resolve, 4000))
+      }
+    }
+    void sweep()
+
+    return () => {
+      stopped = true
+      controller.abort()
+    }
+    // `adopt` and `log` are stable for the life of the panel.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [serviceEnabled, connected, waiting])
+
   const disconnect = () => {
     stopWaiting()
     setServiceInfo(null)
@@ -830,7 +874,11 @@ export function DownloaderPanel() {
                   ) : waiting ? (
                     'Wartet auf den Dienst — läuft er, wird er hier von selbst auftauchen.'
                   ) : (
-                    'Noch kein Dienst. YouTube-Links gehen erst, wenn einer läuft.'
+                    <>
+                      Noch kein Dienst. Lizge schaut alle paar Sekunden auf{' '}
+                      <span className="font-mono text-[12px]">localhost:{DEFAULT_PORT}</span> nach und
+                      verbindet sich von selbst, sobald dort einer antwortet.
+                    </>
                   )}
                 </p>
                 {connected ? (
@@ -839,6 +887,26 @@ export function DownloaderPanel() {
                   </Button>
                 ) : null}
               </div>
+
+              {!connected && sweeps >= 7 ? (
+                <Notice tone="warn" title="Es antwortet nichts auf diesem Rechner">
+                  {pageIsLocal() ? (
+                    <>
+                      Läuft der Dienst wirklich, und auf Port {DEFAULT_PORT}? Im Fenster, in dem Sie
+                      ihn gestartet haben, muss <span className="font-mono">port: {DEFAULT_PORT}</span>{' '}
+                      stehen und es darf nicht geschlossen sein.
+                    </>
+                  ) : (
+                    <>
+                      Wenn der Dienst läuft, liegt es vermutlich nicht an ihm: Diese Seite kommt aus
+                      dem Netz, der Dienst läuft auf Ihrem Rechner, und Browser lassen das nicht ohne
+                      Weiteres zu. Fragt Ihrer nach Zugriff aufs lokale Netzwerk, erlauben Sie es.
+                      Sonst öffnen Sie Lizge lokal — dann liegen Seite und Dienst auf derselben
+                      Maschine und die Sperre entfällt.
+                    </>
+                  )}
+                </Notice>
+              ) : null}
 
               {connected ? (
                 <>
@@ -1064,6 +1132,15 @@ export function DownloaderPanel() {
                               Nicht sicher? Beide aus lassen — dann steht alles da, und ein Schritt,
                               der schon erledigt ist, schadet nicht.
                             </p>
+                            {!pageIsLocal() ? (
+                              <p className="mt-[9px] border-t border-line pt-[9px] text-[12px] leading-[1.5] text-prose/85">
+                                Wichtig, wenn der Dienst läuft und trotzdem nichts passiert: Diese
+                                Seite kommt aus dem Netz, der Dienst läuft auf Ihrem Rechner — und
+                                Browser lassen das nicht ohne Weiteres zu. Fragt Ihrer nach Zugriff
+                                aufs lokale Netzwerk, erlauben Sie es. Sonst öffnen Sie Lizge lokal,
+                                dann liegen beide auf derselben Maschine.
+                              </p>
+                            ) : null}
                           </div>
                         ) : null}
 
@@ -1168,6 +1245,15 @@ export function DownloaderPanel() {
                           Lesen Sie, was Sie ausführen, bevor Sie es tun — das gilt für alles, was
                           eine Webseite Ihnen dafür in die Hand gibt.
                         </p>
+
+                        {localWay === 'node' ? (
+                          <p className="mt-[7px] text-[12px] leading-[1.5] text-muted">
+                            Meldet <code className="font-mono">corepack</code> einen Fehler — etwa{' '}
+                            <code className="font-mono">EPERM</code>, wenn Node über nvm verwaltet
+                            wird —, einfach weitermachen. Die Zeile besorgt nur pnpm; ist es schon
+                            da, läuft der Rest unverändert durch.
+                          </p>
+                        ) : null}
 
                         <button
                           type="button"
