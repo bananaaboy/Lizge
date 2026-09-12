@@ -41,6 +41,7 @@ import { createZip } from '../../lib/zip'
 import { useDecodedAudio } from '../../hooks/useDecodedAudio'
 import { useActiveAsset, useSession } from '../../state/store'
 import { AssetList } from '../AssetList'
+import { AudioPreview } from '../AudioPreview'
 import { FileDrop } from '../FileDrop'
 import {
   ArrowRight,
@@ -121,6 +122,8 @@ export function SamplerPanel({ theme }: { theme: ResolvedTheme }) {
 
   const [rendering, setRendering] = useState(false)
   const [progress, setProgress] = useState<number | null>(null)
+  /** The selected pad rendered exactly as it would export. */
+  const [rendered, setRendered] = useState<{ id: string; audio: AudioData } | null>(null)
 
   useEffect(() => {
     if (asset && !audio && status === 'idle') void decode()
@@ -396,8 +399,11 @@ export function SamplerPanel({ theme }: { theme: ResolvedTheme }) {
   const selected = useMemo(() => slices.find((slice) => slice.id === activeSlice) ?? null, [activeSlice, slices])
   const selectedIndex = selected ? slices.indexOf(selected) : -1
 
-  const updateSlice = (id: string, patch: Partial<Slice>) =>
+  const updateSlice = (id: string, patch: Partial<Slice>) => {
     setSlices((current) => current.map((slice) => (slice.id === id ? { ...slice, ...patch } : slice)))
+    // Any edit invalidates a rendered preview of that pad.
+    if (rendered?.id === id) setRendered(null)
+  }
 
   const applyToAll = () => {
     if (!selected) return
@@ -786,6 +792,34 @@ export function SamplerPanel({ theme }: { theme: ResolvedTheme }) {
                 checked={selected.reverse}
                 onChange={(value) => updateSlice(selected.id, { reverse: value })}
               />
+
+              {/* The pads play at varispeed and without fades, because that has
+                  to be instant. The export goes through the phase vocoder and
+                  the blends, so it can sound different — this is that version. */}
+              {rendered?.id === selected.id ? (
+                <AudioPreview
+                  sources={[{ id: rendered.id, label: 'Wie exportiert', audio: rendered.audio }]}
+                  waveHeight={40}
+                />
+              ) : (
+                <Button
+                  size="sm"
+                  variant="quiet"
+                  disabled={rendering}
+                  onClick={async () => {
+                    setRendering(true)
+                    try {
+                      const piece = await buildSlice(selected)
+                      if (piece) setRendered({ id: selected.id, audio: piece })
+                    } finally {
+                      setRendering(false)
+                      setProgress(null)
+                    }
+                  }}
+                >
+                  {rendering ? 'Rendert…' : 'So anhören, wie es exportiert wird'}
+                </Button>
+              )}
             </div>
           ) : (
             <p className="mt-[11px] text-[13px] leading-[1.5] text-muted">

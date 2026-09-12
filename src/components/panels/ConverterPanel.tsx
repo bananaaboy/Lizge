@@ -23,9 +23,11 @@ import { formatBytes, withExtension } from '../../lib/format'
 import { holdScreenAwake } from '../../lib/wakeLock'
 import { createZip } from '../../lib/zip'
 import { formatTimecode } from '../../lib/format'
+import { decodeWithBrowser } from '../../lib/audio'
 import { useDecodedAudio } from '../../hooks/useDecodedAudio'
 import { kindFromMime, useActiveAsset, useSession } from '../../state/store'
 import { AssetList } from '../AssetList'
+import { AudioPreview } from '../AudioPreview'
 import { FileDrop } from '../FileDrop'
 import {
   ArrowRight,
@@ -86,6 +88,8 @@ export function ConverterPanel() {
   const [batch, setBatch] = useState(false)
   const [queue, setQueue] = useState<QueueItem[] | null>(null)
   const [archive, setArchive] = useState<Uint8Array<ArrayBuffer> | null>(null)
+  // Decoded lazily from the result, so a video conversion does not pay for it.
+  const [preview, setPreview] = useState<import('../../lib/wav').AudioData | null>(null)
 
   const format = useMemo(() => findFormat(settings.formatId), [settings.formatId])
 
@@ -112,6 +116,7 @@ export function ConverterPanel() {
     setProgress(0)
     setError(null)
     setOutcome(null)
+    setPreview(null)
 
     const started = performance.now()
     try {
@@ -137,6 +142,26 @@ export function ConverterPanel() {
         elapsedMs: performance.now() - started,
       })
       log('konverter', `${format.label} erzeugt — ${formatBytes(bytes.byteLength)}`)
+
+      // Decode the output so it can be heard. A GIF has nothing to play; some
+      // containers the browser writes it cannot read back, and that is worth
+      // saying in the log rather than leaving the player mysteriously absent.
+      setPreview(null)
+      if (format.kind !== 'image') {
+        try {
+          setPreview(await decodeWithBrowser(bytes.slice().buffer as ArrayBuffer))
+          // Decode the source as well, so the result can be compared against it
+          // rather than only listened to. Cached on the asset, so this is paid
+          // at most once.
+          if (!audio) void decode()
+        } catch (failure) {
+          log(
+            'konverter',
+            `Vorschau nicht möglich: ${failure instanceof Error ? failure.message : String(failure)}`,
+            'warn',
+          )
+        }
+      }
     } catch (failure) {
       if (failure instanceof DOMException && failure.name === 'AbortError') {
         log('konverter', 'Abgebrochen', 'warn')
@@ -576,6 +601,24 @@ export function ConverterPanel() {
               />
               <Stat label="Dauer" value={`${(outcome.elapsedMs / 1000).toFixed(1)} s`} />
             </div>
+            {preview ? (
+              <div className="mt-[18px] rounded-card bg-raised p-[18px]">
+                <p className="mb-[11px] text-[11px] font-semibold uppercase tracking-[0.08em] text-ink">
+                  Anhören
+                </p>
+                <AudioPreview
+                  sources={
+                    audio
+                      ? [
+                          { id: 'result', label: format.label, audio: preview },
+                          { id: 'source', label: 'Quelle', audio },
+                        ]
+                      : [{ id: 'result', label: format.label, audio: preview }]
+                  }
+                />
+              </div>
+            ) : null}
+
             <div className="mt-[18px] flex flex-wrap gap-[11px]">
               <Button onClick={() => saveBytes(outcome.bytes, outcome.name, outcome.mime)}>
                 Speichern
