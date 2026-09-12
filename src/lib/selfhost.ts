@@ -12,6 +12,8 @@
  * them — which you should, with any script a website hands you.
  */
 
+import type { Platform } from './platform'
+
 export const COBALT_IMAGE = 'ghcr.io/imputnet/cobalt:11'
 export const DEFAULT_PORT = 9000
 
@@ -470,4 +472,57 @@ export function nodeOnlyWindowsScript(port = DEFAULT_PORT): string {
     'pnpm start',
     '',
   ].join('\n')
+}
+
+/* -------------------------------------------------------------------------- */
+/* Putting the steps together for one particular machine                       */
+/* -------------------------------------------------------------------------- */
+
+/** Where Node comes from when no package manager is at hand. */
+export const NODE_DOWNLOAD = 'https://nodejs.org/en/download'
+
+/**
+ * A one-line way to install Node, where the system has one that is already
+ * present. Windows has had winget since 2019 and macOS users mostly have
+ * Homebrew; Linux has a dozen package managers and no safe guess, so it gets
+ * the download page instead of a command that might be wrong.
+ */
+export function nodeInstallCommand(platform: Platform): string | null {
+  if (platform === 'windows') return 'winget install -e --id OpenJS.NodeJS.LTS'
+  if (platform === 'macos') return 'brew install node'
+  return null
+}
+
+export interface LocalSetup {
+  /** Node is already installed. When false, getting it comes first. */
+  hasNode: boolean
+  /** Git is already installed. When false, the source comes as an archive. */
+  hasGit: boolean
+  platform: Platform
+  port?: number
+}
+
+/**
+ * The commands for this machine, and only those.
+ *
+ * The point of asking what is already there is that nobody should have to read
+ * past steps that do not apply to them, or work out for themselves which half
+ * of an instruction they need. Two answers, four combinations, and each one
+ * produces a list that can be pasted start to finish.
+ */
+export function localSteps({ hasNode, hasGit, platform, port = DEFAULT_PORT }: LocalSetup): string[] {
+  const steps: string[] = []
+
+  if (!hasNode) {
+    const install = nodeInstallCommand(platform)
+    if (install) steps.push(install)
+  }
+
+  steps.push(...(hasGit ? nodeSteps(port) : nodeOnlySteps(port)))
+  return steps
+}
+
+/** What still has to be done by hand before the commands will work. */
+export function manualPrerequisite({ hasNode, platform }: Pick<LocalSetup, 'hasNode' | 'platform'>): boolean {
+  return !hasNode && nodeInstallCommand(platform) === null
 }

@@ -50,12 +50,11 @@ import { formatBytes, sanitizeFilename, withExtension } from '../../lib/format'
 import {
   composeFile,
   DEFAULT_PORT,
-  NODE_ONLY_REQUIREMENTS,
-  NODE_REQUIREMENTS,
-  nodeOnlySteps,
+  localSteps,
+  manualPrerequisite,
+  NODE_DOWNLOAD,
   nodeOnlyUnixScript,
   nodeOnlyWindowsScript,
-  nodeSteps,
   nodeUnixScript,
   nodeWindowsScript,
   localCandidates,
@@ -65,6 +64,7 @@ import {
   unixScript,
   windowsScript,
 } from '../../lib/selfhost'
+import { detectPlatform } from '../../lib/platform'
 import { holdScreenAwake } from '../../lib/wakeLock'
 import { kindFromMime, useSession } from '../../state/store'
 import { AssetList } from '../AssetList'
@@ -151,10 +151,12 @@ export function DownloaderPanel() {
   // space; now it is the only one that actually gets a service running, and a
   // route nobody opens is a route nobody takes.
   const [dockerOpen, setDockerOpen] = useState(true)
-  // Ordered by what each one asks of the machine, least first. Git is a
-  // developer's tool, and needing it is an accident of how the program is
-  // shipped rather than a real requirement — GitHub serves an archive too.
-  const [localWay, setLocalWay] = useState<'zip' | 'git' | 'docker'>('zip')
+  const [localWay, setLocalWay] = useState<'node' | 'docker'>('node')
+  // What is already on this machine. Both start off, because assuming a
+  // stranger has a developer's toolchain is how instructions end up skipping
+  // the step they most needed to include.
+  const [hasNode, setHasNode] = useState(false)
+  const [hasGit, setHasGit] = useState(false)
   /** The guided setup is watching for an instance to come up. */
   const [waiting, setWaiting] = useState(false)
   const waitRef = useRef<AbortController | null>(null)
@@ -172,10 +174,13 @@ export function DownloaderPanel() {
     })
   }
 
+  const platform = detectPlatform()
   const localCommand =
     localWay === 'docker'
       ? oneLiner()
-      : (localWay === 'zip' ? nodeOnlySteps() : nodeSteps()).join('\n')
+      : localSteps({ hasNode, hasGit, platform }).join('\n')
+  /** Node is missing and this system has no install command worth printing. */
+  const needsNodeByHand = localWay === 'node' && manualPrerequisite({ hasNode, platform })
   const connected = serviceInfo !== null
   const endpointLabel = service.endpoint.replace(/^https?:\/\//, '').replace(/\/$/, '')
 
@@ -1005,9 +1010,8 @@ export function DownloaderPanel() {
                         >
                           {(
                             [
-                              { id: 'zip', label: 'Nur Node.js' },
-                              { id: 'git', label: 'Node.js + Git' },
-                              { id: 'docker', label: 'Docker' },
+                              { id: 'node', label: 'Ohne Docker' },
+                              { id: 'docker', label: 'Mit Docker' },
                             ] as const
                           ).map((choice) => (
                             <button
@@ -1025,25 +1029,61 @@ export function DownloaderPanel() {
                           ))}
                         </div>
 
+                        {localWay === 'node' ? (
+                          /* Asking beats assuming. The commands below are then
+                             the ones for this machine and no others, so the list
+                             can be pasted start to finish without anyone having
+                             to work out which half applies to them. */
+                          <div className="mt-[14px] rounded-nav bg-panel-soft p-[11px]">
+                            <p className="mb-[9px] text-[12px] font-semibold text-ink">
+                              Was ist auf diesem Rechner schon da?
+                            </p>
+                            <div className="flex flex-col gap-[9px]">
+                              <Toggle
+                                label="Node.js"
+                                hint={
+                                  hasNode
+                                    ? undefined
+                                    : 'Aus: die Anleitung fängt mit dem Installieren an.'
+                                }
+                                checked={hasNode}
+                                onChange={setHasNode}
+                              />
+                              <Toggle
+                                label="Git"
+                                hint={
+                                  hasGit
+                                    ? undefined
+                                    : 'Aus: der Quelltext kommt als Archiv, Git wird nicht gebraucht.'
+                                }
+                                checked={hasGit}
+                                onChange={setHasGit}
+                              />
+                            </div>
+                            <p className="mt-[9px] text-[12px] leading-[1.5] text-muted">
+                              Nicht sicher? Beide aus lassen — dann steht alles da, und ein Schritt,
+                              der schon erledigt ist, schadet nicht.
+                            </p>
+                          </div>
+                        ) : null}
+
                         <p className="mt-[11px] text-[12px] leading-[1.5] text-muted">
-                          {localWay === 'zip' ? (
+                          {localWay === 'node' ? (
                             <>
-                              Braucht {NODE_ONLY_REQUIREMENTS} — ein gewöhnlicher Installer, sonst
-                              nichts. Der Quelltext kommt als Archiv statt über Git; auspacken kann
-                              das jeder Rechner von Haus aus. Kein Terminal-Werkzeug, keine
-                              virtuelle Maschine.{' '}
-                              <span className="text-prose/85">
-                                Die drei <code className="font-mono">.git</code>-Zeilen sind kein
-                                Git: der Dienst liest daraus nur seine eigene Versionsangabe und
-                                startet sonst nicht. Drei Textdateien genügen ihm.
-                              </span>
-                            </>
-                          ) : localWay === 'git' ? (
-                            <>
-                              Braucht {NODE_REQUIREMENTS} — beides normale Installer, ohne virtuelle
-                              Maschine. Gegenüber dem Archiv nur ein Vorteil: eine neue Fassung holt
-                              später ein <code className="font-mono">git pull</code> statt eines
-                              erneuten Downloads.
+                              Node.js ist ein gewöhnlicher Installer, ohne virtuelle Maschine — genau
+                              das ist der Unterschied zu Docker Desktop, das unter Windows WSL2
+                              voraussetzt und daran auch scheitern kann.
+                              {!hasGit ? (
+                                <>
+                                  {' '}
+                                  <span className="text-prose/85">
+                                    Ohne Git kommt der Quelltext als Archiv. Die drei{' '}
+                                    <code className="font-mono">.git</code>-Zeilen darin sind kein
+                                    Git: der Dienst liest daraus nur seine eigene Versionsangabe und
+                                    startet sonst nicht. Drei Textdateien genügen ihm.
+                                  </span>
+                                </>
+                              ) : null}
                             </>
                           ) : (
                             <>
@@ -1086,6 +1126,25 @@ export function DownloaderPanel() {
                             </Button>
                           </div>
                         )}
+
+                        {needsNodeByHand ? (
+                          /* No package manager worth guessing at on this system,
+                             so the one step that cannot be a command says so
+                             plainly instead of being silently left out. */
+                          <div className="mt-[9px] flex flex-wrap items-center gap-[11px] rounded-nav bg-panel-soft px-[11px] py-[9px]">
+                            <p className="min-w-0 flex-1 text-[12px] leading-[1.5] text-prose/85">
+                              Zuerst Node.js installieren — über die Paketverwaltung Ihres Systems
+                              oder mit dem LTS-Installer. Danach gelten die Befehle darunter.
+                            </p>
+                            <Button
+                              size="sm"
+                              variant="quiet"
+                              onClick={() => window.open(NODE_DOWNLOAD, '_blank', 'noopener')}
+                            >
+                              Node.js holen
+                            </Button>
+                          </div>
+                        ) : null}
 
                         <code className="mt-[9px] block rounded-nav bg-panel-soft px-[11px] py-[9px] font-mono text-[11px] leading-[1.6] whitespace-pre-wrap text-prose">
                           {localCommand}
@@ -1134,9 +1193,9 @@ export function DownloaderPanel() {
                                     onClick={() =>
                                       saveBytes(
                                         new TextEncoder().encode(
-                                          localWay === 'zip' ? nodeOnlyWindowsScript() : nodeWindowsScript(),
+                                          hasGit ? nodeWindowsScript() : nodeOnlyWindowsScript(),
                                         ),
-                                        localWay === 'zip' ? 'cobalt-nur-node.ps1' : 'cobalt-ohne-docker.ps1',
+                                        hasGit ? 'cobalt-ohne-docker.ps1' : 'cobalt-nur-node.ps1',
                                         'text/plain',
                                       )
                                     }
@@ -1149,9 +1208,9 @@ export function DownloaderPanel() {
                                     onClick={() =>
                                       saveBytes(
                                         new TextEncoder().encode(
-                                          localWay === 'zip' ? nodeOnlyUnixScript() : nodeUnixScript(),
+                                          hasGit ? nodeUnixScript() : nodeOnlyUnixScript(),
                                         ),
-                                        localWay === 'zip' ? 'cobalt-nur-node.sh' : 'cobalt-ohne-docker.sh',
+                                        hasGit ? 'cobalt-ohne-docker.sh' : 'cobalt-nur-node.sh',
                                         'text/x-shellscript',
                                       )
                                     }
