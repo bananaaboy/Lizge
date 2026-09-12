@@ -51,6 +51,8 @@ import {
   DEFAULT_PORT,
   localCandidates,
   oneLiner,
+  rememberedInstances,
+  rememberInstance,
   unixScript,
   windowsScript,
 } from '../../lib/selfhost'
@@ -135,6 +137,9 @@ export function DownloaderPanel() {
   const [searching, setSearching] = useState(false)
   const [setupOpen, setSetupOpen] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [known, setKnown] = useState<string[]>(() => rememberedInstances())
+  /** The last file this panel fetched, so saving it is one click away. */
+  const [fetched, setFetched] = useState<{ name: string; bytes: Uint8Array; mime: string } | null>(null)
 
   const updateService = (patch: Partial<ServiceSettings>) => {
     setService((current) => {
@@ -154,6 +159,7 @@ export function DownloaderPanel() {
     setPlaylist(null)
     setVariantUrl('')
     setItems(null)
+    setFetched(null)
   }
 
   const handleFailure = (failure: unknown, scope: string) => {
@@ -183,16 +189,18 @@ export function DownloaderPanel() {
       }
 
       const media = await fetchMedia(target, setProgress, controller.signal)
+      const mime = media.contentType ?? 'application/octet-stream'
       addAsset({
         name: media.filename,
         bytes: media.bytes,
-        mime: media.contentType ?? 'application/octet-stream',
+        mime,
         sizeBytes: media.bytes.byteLength,
-        kind: kindFromMime(media.contentType ?? '', media.filename),
+        kind: kindFromMime(mime, media.filename),
         audio: null,
         durationSeconds: null,
         origin: 'download',
       })
+      setFetched({ name: media.filename, bytes: media.bytes, mime })
       log('download', `${media.filename} geladen (${formatBytes(media.bytes.byteLength)})`)
     } catch (failure) {
       handleFailure(failure, 'download')
@@ -281,7 +289,7 @@ export function DownloaderPanel() {
         durationSeconds: null,
         origin: 'download',
       })
-      saveBytes(bytes, name, 'video/mp4')
+      setFetched({ name, bytes, mime: 'video/mp4' })
       log('hls', `${name} erzeugt (${formatBytes(bytes.byteLength)})`)
     } catch (failure) {
       handleFailure(failure, 'hls')
@@ -366,6 +374,7 @@ export function DownloaderPanel() {
       durationSeconds: null,
       origin: 'download',
     })
+    setFetched({ name, bytes, mime: job.mimeType })
     log('dienst', `${name} lokal zusammengefügt (${formatBytes(bytes.byteLength)})`)
   }
 
@@ -436,6 +445,7 @@ export function DownloaderPanel() {
       if (found) {
         updateService({ endpoint: found.endpoint })
         setServiceInfo(found.info)
+        setKnown(rememberInstance(found.endpoint))
         setSetupOpen(false)
         log('dienst', `Lokale Instanz gefunden: ${found.endpoint} (cobalt ${found.info.version})`)
       } else {
@@ -472,6 +482,7 @@ export function DownloaderPanel() {
     try {
       const info = await probeService(service.endpoint, apiKey || null, controller.signal)
       setServiceInfo(info)
+      setKnown(rememberInstance(service.endpoint.trim()))
       log('dienst', `Instanz erreichbar: cobalt ${info.version}, ${info.services.length} Dienste`)
     } catch (failure) {
       const message = failure instanceof Error ? failure.message : String(failure)
@@ -647,6 +658,19 @@ export function DownloaderPanel() {
             />
           ) : null}
 
+          {fetched ? (
+            <div className="flex flex-wrap items-center gap-[11px] rounded-card bg-raised px-[18px] py-[14px]">
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-body text-ink">{fetched.name}</p>
+                <p className="numeric text-[12px] text-muted">{formatBytes(fetched.bytes.byteLength)} · in der Sitzung</p>
+              </div>
+              <Button size="sm" onClick={() => saveBytes(fetched.bytes, fetched.name, fetched.mime)}>
+                Speichern
+                <ArrowRight />
+              </Button>
+            </div>
+          ) : null}
+
           {error ? (
             <Notice tone="error" title="Nicht abrufbar">
               {error}
@@ -709,6 +733,23 @@ export function DownloaderPanel() {
                     </Button>
                   </div>
                 </Field>
+
+                {known.length > 0 && !serviceInfo ? (
+                  <div className="flex flex-wrap items-center gap-[7px] sm:col-span-2">
+                    <span className="text-[12px] text-muted">Zuletzt benutzt</span>
+                    {known.map((entry) => (
+                      <button
+                        key={entry}
+                        type="button"
+                        onClick={() => updateService({ endpoint: entry })}
+                        title={entry}
+                        className="max-w-[220px] truncate rounded-pill bg-panel-soft px-[11px] py-[5px] text-[12px] text-ink hover:bg-panel-mid"
+                      >
+                        {entry.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
 
                 {serviceInfo ? (
                   <div className="flex flex-wrap items-center gap-[7px] sm:col-span-2">

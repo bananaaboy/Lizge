@@ -15,6 +15,49 @@
 export const COBALT_IMAGE = 'ghcr.io/imputnet/cobalt:11'
 export const DEFAULT_PORT = 9000
 
+const STORAGE_KEY = 'lizge:instances'
+const MAX_REMEMBERED = 6
+
+/**
+ * Addresses that have worked before.
+ *
+ * Setting an instance up is a one-off; picking it again should not be. Only
+ * endpoints that actually answered are remembered, and only the address — never
+ * a key, never anything about what was fetched through it.
+ */
+export function rememberedInstances(): string[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    const parsed: unknown = raw ? JSON.parse(raw) : []
+    return Array.isArray(parsed) ? parsed.filter((entry): entry is string => typeof entry === 'string') : []
+  } catch {
+    return []
+  }
+}
+
+export function rememberInstance(endpoint: string): string[] {
+  const clean = endpoint.trim()
+  if (!clean) return rememberedInstances()
+  // Most recent first, no duplicates.
+  const next = [clean, ...rememberedInstances().filter((entry) => entry !== clean)].slice(0, MAX_REMEMBERED)
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
+  } catch {
+    /* storage blocked; the list simply will not survive a reload */
+  }
+  return next
+}
+
+export function forgetInstance(endpoint: string): string[] {
+  const next = rememberedInstances().filter((entry) => entry !== endpoint)
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
+  } catch {
+    /* nothing to do */
+  }
+  return next
+}
+
 /** Addresses a local instance is likely to be reachable at. */
 export function localCandidates(port = DEFAULT_PORT): string[] {
   return [

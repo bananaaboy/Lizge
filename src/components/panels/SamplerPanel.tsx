@@ -101,6 +101,8 @@ export function SamplerPanel({ theme }: { theme: ResolvedTheme }) {
   const reversedRef = useRef<AudioBuffer | null>(null)
   /** Live voices per pad, for choking and for gate release. */
   const voicesRef = useRef(new Map<number, AudioBufferSourceNode[]>())
+  /** Set below; the wavesurfer effect is created before `triggerPad` exists. */
+  const triggerRef = useRef<((sliceId: string) => void) | null>(null)
 
   const [slices, setSlices] = useState<Slice[]>([])
   const [activeSlice, setActiveSlice] = useState<string | null>(null)
@@ -119,6 +121,8 @@ export function SamplerPanel({ theme }: { theme: ResolvedTheme }) {
   const [division, setDivision] = useState(1)
   const [sliceCount, setSliceCount] = useState(16)
   const [zoom, setZoom] = useState(0)
+  /** Wavesurfer rejects most calls until it has decoded the audio. */
+  const [waveReady, setWaveReady] = useState(false)
 
   const [rendering, setRendering] = useState(false)
   const [progress, setProgress] = useState<number | null>(null)
@@ -168,6 +172,8 @@ export function SamplerPanel({ theme }: { theme: ResolvedTheme }) {
 
     waveRef.current = wave
     regionsRef.current = regions
+    setWaveReady(false)
+    wave.on('ready', () => setWaveReady(true))
 
     const context = getAudioContext()
     bufferRef.current = toAudioBuffer(audio, context)
@@ -206,6 +212,9 @@ export function SamplerPanel({ theme }: { theme: ResolvedTheme }) {
     regions.on('region-clicked', (region: Region, event: MouseEvent) => {
       event.stopPropagation()
       setActiveSlice(region.id)
+      // Selecting without playing makes the waveform feel dead; a click on a
+      // slice should sound, the same as hitting its pad.
+      triggerRef.current?.(region.id)
     })
 
     return () => {
@@ -216,6 +225,7 @@ export function SamplerPanel({ theme }: { theme: ResolvedTheme }) {
       reversedRef.current = null
       setSlices([])
       setActiveSlice(null)
+      setWaveReady(false)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [audio])
@@ -239,8 +249,14 @@ export function SamplerPanel({ theme }: { theme: ResolvedTheme }) {
   }, [theme])
 
   useEffect(() => {
-    waveRef.current?.zoom(zoom)
-  }, [zoom])
+    if (!waveReady) return
+    try {
+      waveRef.current?.zoom(zoom)
+    } catch {
+      // Wavesurfer throws "No audio loaded" if it is not ready yet, which the
+      // guard above should prevent — but a destroyed instance can race here.
+    }
+  }, [zoom, waveReady])
 
   /* --- playback ----------------------------------------------------------- */
   const stopPad = useCallback((index: number) => {
@@ -266,11 +282,16 @@ export function SamplerPanel({ theme }: { theme: ResolvedTheme }) {
       const slice = slices[index]
       const buffer = bufferRef.current
       if (!slice || !buffer) return
-      void resumeAudioContext()
-
-      if (choke) stopPad(index)
 
       const context = getAudioContext()
+      if (context.state === 'suspended') {
+        // A click is a user gesture, so this is allowed — but it resolves
+        // asynchronously, and starting a node before it does produces silence.
+        void resumeAudioContext().then(() => triggerRef.current?.(slice.id))
+        return
+      }
+
+      if (choke) stopPad(index)
       const source = context.createBufferSource()
       // Reverse plays from a pre-built mirrored buffer, so the offsets flip too.
       const reversed = slice.reverse && reversedRef.current
@@ -290,10 +311,11 @@ export function SamplerPanel({ theme }: { theme: ResolvedTheme }) {
       gain.gain.value = dbToGain(slice.gainDb)
       source.connect(gain).connect(context.destination)
 
+      // The third argument bounds the note in buffer seconds. Scheduling a
+      // separate stop() against `currentTime` looks equivalent but is not: on a
+      // context that has not resumed yet the clock is frozen at zero, so the
+      // stop time can already be in the past by the time sound starts.
       source.start(0, start, slice.mode === 'loop' ? undefined : length)
-      if (slice.mode === 'oneshot') {
-        source.stop(context.currentTime + length / source.playbackRate.value + 0.05)
-      }
 
       const voices = voicesRef.current.get(index) ?? []
       voices.push(source)
@@ -311,6 +333,14 @@ export function SamplerPanel({ theme }: { theme: ResolvedTheme }) {
     },
     [choke, slices, stopPad],
   )
+
+  // Kept in a ref so the wavesurfer effect and the resume path can reach it.
+  useEffect(() => {
+    triggerRef.current = (sliceId: string) => {
+      const index = slices.findIndex((slice) => slice.id === sliceId)
+      if (index >= 0) triggerPad(index)
+    }
+  }, [slices, triggerPad])
 
   /* --- keyboard ----------------------------------------------------------- */
   useEffect(() => {
@@ -639,6 +669,7 @@ export function SamplerPanel({ theme }: { theme: ResolvedTheme }) {
                     max={400}
                     step={10}
                     value={zoom}
+                    disabled={!waveReady}
                     onChange={(event) => setZoom(Number(event.target.value))}
                     className="w-[120px]"
                     aria-label="Zoom"
