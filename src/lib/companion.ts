@@ -16,16 +16,6 @@
  * not have to reason about operating systems.
  */
 
-/**
- * Where to find people who run this service openly.
- *
- * Only the directory, never a specific address. Shipping one would point every
- * visitor at a machine nobody here controls, and pointing a crowd at a donated
- * server is exactly what emptied the earlier lists — the current one is opt-in
- * for that reason. So the choice, and the trust it implies, stays with the user.
- */
-export const INSTANCE_DIRECTORY = 'https://instances.cobalt.best/'
-
 export type Platform = 'windows' | 'macos' | 'linux' | 'unknown'
 
 export interface Companion {

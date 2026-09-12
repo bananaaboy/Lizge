@@ -238,24 +238,28 @@ Adresse nach außen gibt. Wird sie eingeschaltet, steht der Hinweis dauerhaft im
 Panel: was übertragen wird, an wen, und dass die Nutzung auf eigenes Risiko
 erfolgt.
 
-### Ohne alles: eine offene Instanz
+### Warum es keinen Weg ohne alles gibt
 
-Der Weg, der am wenigsten verlangt, steht zuoberst: Manche Leute betreiben so
-einen Dienst öffentlich. Eine Adresse einsetzen genügt dann — kein Programm,
-kein Terminal, kein Konto. Die Oberfläche verlinkt das Verzeichnis unter
-[instances.cobalt.best](https://instances.cobalt.best/) und sagt, worauf zu
-achten ist: als *online* geführt, *ohne* Bot-Prüfung, YouTube in der
-Dienstliste.
+Nahe lag ein Weg, der gar nichts verlangt: Manche Leute betreiben so einen
+Dienst öffentlich, eine Adresse einsetzen würde genügen. Nachgeprüft hat sich
+das aber erledigt:
 
-Hinterlegt ist **nur das Verzeichnis, nie eine konkrete Adresse**. Eine
-mitgelieferte Adresse würde jeden Besucher auf eine Maschine zeigen, die weder
-er noch dieses Projekt kontrolliert — und eine Menschenmenge auf einen
-gespendeten Server zu lenken ist genau das, was die früheren Listen geleert
-hat. Die heutige Liste ist deshalb opt-in. Die Wahl und das Vertrauen, das sie
-voraussetzt, bleiben beim Nutzer.
+* `instances.cobalt.best` und `instances.hyper.lol`, die beiden bekannten
+  Verzeichnisse, haben **keine DNS-Einträge mehr**. Die Listen sind abgeschaltet,
+  nachdem automatisierte Abrufe die Betreiber leergesaugt hatten.
+* Der offizielle Dienst `api.cobalt.tools` läuft zwar und erlaubt Anfragen aus
+  dem Browser, führt YouTube aber **nicht mehr** in seiner Dienstliste und
+  verlangt zusätzlich eine Bot-Prüfung, die eine Seite wie diese nicht lösen
+  kann.
 
-Ehrlich bleibt dabei im Panel stehen, was das kostet: Der Dienst gehört jemand
-anderem, sieht Link und IP, und kann langsam, überlastet oder morgen weg sein.
+Eine brauchbare Adresse bekommt man deshalb praktisch nur persönlich. Das
+Eingabefeld dafür bleibt, ein Verzeichnis wird nicht verlinkt — eine Adresse
+mitzuliefern kommt ohnehin nicht in Frage, weil das jeden Besucher auf eine
+Maschine zeigen würde, die weder er noch dieses Projekt kontrolliert.
+
+Damit bleibt: Ein Browser darf von YouTube nicht laden, also muss ein Server
+holen, und den betreibt entweder man selbst oder jemand, den man kennt. Der
+verlässliche Weg für alle anderen ist deshalb der nächste.
 
 ### Wenn es verlässlich sein soll: ein Programm, dann die Datei
 
