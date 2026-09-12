@@ -27,7 +27,6 @@ import {
   type TransferProgress,
 } from '../../lib/download'
 import { detectCapabilities } from '../../lib/capabilities'
-import { companionFor, COMPANION_NAME, COMPANION_SOURCE, detectPlatform } from '../../lib/companion'
 import {
   DEFAULT_SERVICE,
   findLocalInstance,
@@ -159,7 +158,6 @@ export function DownloaderPanel() {
     })
   }
 
-  const companion = companionFor(detectPlatform())
   const connected = serviceInfo !== null
   const endpointLabel = service.endpoint.replace(/^https?:\/\//, '').replace(/\/$/, '')
 
@@ -767,7 +765,7 @@ export function DownloaderPanel() {
             hint={
               serviceEnabled
                 ? undefined
-                : 'Aus. Ohne sie gehen eigene Dateien, offene Archive, Podcast-Feeds und HLS-Streams mit CORS-Freigabe.'
+                : 'Aus. Ohne sie gehen eigene Dateien, offene Archive, Podcast-Feeds und HLS-Streams mit CORS-Freigabe — YouTube nicht.'
             }
             
             checked={serviceEnabled}
@@ -892,58 +890,11 @@ export function DownloaderPanel() {
                   </div>
                 </>
               ) : (
-                /* Three ways. The program leads, because the routes that ask
-                   less than it do not currently exist: every public directory
-                   of open instances has gone offline. Saying so beats linking
-                   somewhere that no longer resolves. */
+                /* What is left once the browser is ruled out: somebody has to
+                   run a service. Either someone you know, or you. There is no
+                   third option — see the note in the first card for why. */
                 <div className="flex flex-col gap-[11px]">
                   <div className="rounded-card bg-raised p-[14px] ring-1 ring-inset ring-ink/20">
-                    <div className="flex flex-wrap items-center gap-[7px]">
-                      <p className="text-[13px] font-semibold text-ink">Mit einem Programm laden</p>
-                      <Badge tone="forest">Einfachster Weg</Badge>
-                    </div>
-                    <p className="mt-[3px] text-[12px] leading-[1.5] text-muted">
-                      YouTube lässt sich aus einem Browser heraus nicht laden — das Portal erlaubt
-                      es einer fremden Seite schlicht nicht. Ein Programm auf dem Rechner darf es.{' '}
-                      {COMPANION_NAME} ist dafür gedacht: installieren wie jedes andere Programm,
-                      Link einfügen, Datei bekommen.
-                    </p>
-
-                    <div className="mt-[11px] flex flex-wrap items-center gap-[7px]">
-                      <Button size="sm" onClick={() => window.open(companion.url, '_blank', 'noopener')}>
-                        {companion.label}
-                        <ArrowRight />
-                      </Button>
-                    </div>
-                    <p className="mt-[7px] text-[12px] leading-[1.5] text-muted">{companion.note}</p>
-
-                    <ol className="mt-[11px] flex flex-col gap-[4px] text-[12px] leading-[1.5] text-prose/85">
-                      <li>1 · Programm installieren und öffnen.</li>
-                      <li>2 · YouTube-Link dort einfügen und laden.</li>
-                      <li>
-                        3 · Die fertige Datei hierher ins Fenster ziehen. Alles Weitere —
-                        Umwandeln, Spuren trennen, Lautheit, Chopper — macht Lizge wieder
-                        vollständig auf Ihrem Gerät.
-                      </li>
-                    </ol>
-
-                    <p className="mt-[9px] text-[12px] leading-[1.5] text-muted">
-                      Ist Lizge als App installiert, geht auch „Öffnen mit“ direkt aus dem
-                      Dateimanager, und auf dem Handy das Teilen-Menü.{' '}
-                      <a
-                        className="underline underline-offset-2 hover:text-ink"
-                        href={COMPANION_SOURCE}
-                        target="_blank"
-                        rel="noreferrer noopener"
-                      >
-                        Quelloffen (MIT)
-                      </a>{' '}
-                      — und es gehört nicht zu diesem Projekt, prüfen Sie es wie jede Software,
-                      die Sie installieren.
-                    </p>
-                  </div>
-
-                  <div className="rounded-card bg-raised p-[14px]">
                     <p className="text-[13px] font-semibold text-ink">Eine fremde Instanz benutzen</p>
                     <p className="mt-[3px] text-[12px] leading-[1.5] text-muted">
                       Wenn Sie eine Adresse haben — von jemandem, der so einen Dienst betreibt —
@@ -994,13 +945,16 @@ export function DownloaderPanel() {
 
 
                     <p className="mt-[9px] border-t border-line pt-[9px] text-[12px] leading-[1.5] text-muted">
-                      Öffentliche Verzeichnisse solcher Dienste gibt es derzeit keine mehr — die
-                      bekannten Listen sind abgeschaltet, nachdem automatisierte Abrufe die
-                      Betreiber leergesaugt hatten. Auch der offizielle Dienst führt YouTube nicht
-                      mehr und verlangt eine Bot-Prüfung, die diese Seite nicht lösen kann. Eine
-                      brauchbare Adresse bekommt man deshalb praktisch nur persönlich. Der Dienst
-                      gehört dann jemand anderem, sieht Ihren Link und Ihre IP, und kann langsam
-                      oder morgen weg sein.
+                      Warum es nichts Leichteres gibt: Ein Browser kommt an YouTube nicht heran.
+                      Die Server, auf denen die Videodaten liegen, nehmen Anfragen nur von
+                      youtube.com selbst an — mit oder ohne Link in der Hand. Holen muss also
+                      immer ein Server, und den betreibt entweder jemand, den Sie kennen, oder
+                      Sie selbst. Öffentliche Verzeichnisse solcher Dienste gibt es derzeit keine
+                      mehr; die bekannten Listen sind abgeschaltet, nachdem automatisierte Abrufe
+                      die Betreiber leergesaugt hatten. Der offizielle Dienst führt YouTube nicht
+                      mehr und verlangt eine Bot-Prüfung, die diese Seite nicht lösen kann.
+                      Der Dienst gehört dann jemand anderem, sieht Ihren Link und Ihre IP, und
+                      kann langsam oder morgen weg sein.
                     </p>
                   </div>
                   <div className="rounded-card bg-raised p-[14px]">
