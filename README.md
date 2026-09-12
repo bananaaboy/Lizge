@@ -307,29 +307,38 @@ scheitert es sonst:
 
 ### Eine Instanz für den eigenen Rechner
 
-Dieser Weg steht in der Oberfläche offen unter „Eigenen Dienst betreiben".
-Dahinter liegen **drei** Wege, geordnet danach, was sie vom Rechner verlangen,
-und voreingestellt ist der mit den wenigsten Voraussetzungen:
+Dieser Weg steht in der Oberfläche offen unter „Eigenen Dienst betreiben",
+mit zwei Möglichkeiten: **Ohne Docker** (Vorgabe) und **Mit Docker**. Docker
+setzt unter Windows WSL2 und damit eine virtuelle Maschine voraus, und dieser
+Stapel hat offene Fehler, an denen man nicht vorbeikommt — etwa
+`Wsl/Service/…/MountDisk/HCS/ERROR_NOT_SUPPORTED`, wo WSL seine eigene
+Systemplatte nicht mehr einhängt. Der Node-Weg kennt diese Fehlerklasse nicht.
 
-* **Nur Node.js** (Vorgabe). Der Quelltext kommt als Archiv von GitHub statt
-  über Git; auspacken kann das jeder Rechner von Haus aus (`tar` überall,
-  `Expand-Archive` in PowerShell). Damit ist Node das Einzige, was installiert
-  werden muss.
-* **Node.js + Git.** Derselbe Dienst, geklont statt geladen. Einziger Vorteil:
-  eine neue Fassung holt später ein `git pull`.
-* **Docker.** Der bisherige Einzeiler, für alle, bei denen er läuft. Unter
-  Windows setzt er WSL2 und damit eine virtuelle Maschine voraus, und dieser
-  Stapel hat offene Fehler, an denen man nicht vorbeikommt — etwa
-  `Wsl/Service/…/MountDisk/HCS/ERROR_NOT_SUPPORTED`, wo WSL seine eigene
-  Systemplatte nicht mehr einhängt. Die beiden Node-Wege kennen diese
-  Fehlerklasse gar nicht.
+Innerhalb von „Ohne Docker" steht eine Frage statt einer Annahme: **Was ist auf
+diesem Rechner schon da?** Zwei Schalter, Node.js und Git, beide anfangs aus.
+Die Befehle darunter sind dann die für diesen Rechner und keine anderen — die
+Liste lässt sich von oben bis unten einfügen, ohne dass jemand herausfinden
+muss, welche Hälfte ihn betrifft.
+
+| Node.js | Git | Was die Anleitung zeigt |
+|---|---|---|
+| fehlt | fehlt | Node installieren, dann Archiv, Stub, Start |
+| da | fehlt | Archiv, Stub, Start |
+| fehlt | da | Node installieren, dann klonen und starten |
+| da | da | klonen und starten |
+
+Für das Installieren von Node gibt es nur dort einen Befehl, wo die Vermutung
+trägt: `winget` unter Windows, `brew` unter macOS. Linux hat ein Dutzend
+Paketverwaltungen und keine sichere Annahme, also steht dort ein Hinweis mit
+Link statt eines Befehls, der falsch sein könnte. Git wird nie installiert —
+fehlt es, kommt der Quelltext als Archiv, und das ist ohnehin der kürzere Weg.
 
 Eine Eigenheit, die sich nur durch Ausführen zeigt: **der Dienst startet nicht
 außerhalb eines git-Ordners.** Er sucht von seinem Arbeitsverzeichnis aufwärts
 nach `.git` und bricht mit `no git repository root found` ab — nicht weil er git
 benutzt, sondern weil er daraus Fassung, Branch und Remote für seine eigene
 Auskunft liest (`packages/version-info`). Drei Textdateien genügen ihm:
-`.git/HEAD`, `.git/logs/HEAD`, `.git/config`. Der Node-only-Weg schreibt genau
+`.git/HEAD`, `.git/logs/HEAD`, `.git/config`. Der Weg ohne Git schreibt genau
 die, und braucht dafür kein git.
 
 Zwei weitere Fallen, ebenfalls beim Ausführen gefunden und in den Skripten
