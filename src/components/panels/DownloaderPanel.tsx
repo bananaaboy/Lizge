@@ -14,7 +14,7 @@
  * hiding them behind a link.
  */
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import {
   fetchHlsSegments,
@@ -36,6 +36,7 @@ import {
   resolveMedia,
   SERVICE_DISCLAIMER,
   ServiceError,
+  watchForInstance,
   type AudioFormat,
   type DownloadMode,
   type LocalJob,
@@ -138,8 +139,14 @@ export function DownloaderPanel() {
   const [setupOpen, setSetupOpen] = useState(false)
   const [copied, setCopied] = useState(false)
   const [known, setKnown] = useState<string[]>(() => rememberedInstances())
+  /** The guided setup is watching for an instance to come up. */
+  const [waiting, setWaiting] = useState(false)
+  const waitRef = useRef<AbortController | null>(null)
   /** The last file this panel fetched, so saving it is one click away. */
   const [fetched, setFetched] = useState<{ name: string; bytes: Uint8Array; mime: string } | null>(null)
+
+  // A five-minute poll must not outlive the panel that started it.
+  useEffect(() => () => waitRef.current?.abort(), [])
 
   const updateService = (patch: Partial<ServiceSettings>) => {
     setService((current) => {
@@ -148,6 +155,9 @@ export function DownloaderPanel() {
       return next
     })
   }
+
+  const connected = serviceInfo !== null
+  const endpointLabel = service.endpoint.replace(/^https?:\/\//, '').replace(/\/$/, '')
 
   const detectedHls = /\.m3u8(\?|$)/i.test(url.trim())
   const detectedPortal = isPortalUrl(url)
@@ -306,16 +316,18 @@ export function DownloaderPanel() {
     setNote('Datei wird geholt')
     const media = await fetchMedia(item.url, setProgress, signal)
     const name = sanitizeFilename(item.filename || media.filename)
+    const mime = media.contentType ?? 'application/octet-stream'
     addAsset({
       name,
       bytes: media.bytes,
-      mime: media.contentType ?? 'application/octet-stream',
+      mime,
       sizeBytes: media.bytes.byteLength,
       kind: kindFromMime(media.contentType ?? '', name),
       audio: null,
       durationSeconds: null,
       origin: 'download',
     })
+    setFetched({ name, bytes: media.bytes, mime })
     log('dienst', `${name} geladen (${formatBytes(media.bytes.byteLength)}) — über einen fremden Server`)
   }
 
@@ -428,12 +440,41 @@ export function DownloaderPanel() {
     }
   }
 
+  /** Takes an instance into use and remembers where it was. */
+  const adopt = (endpoint: string, info: ServiceInfo) => {
+    updateService({ endpoint })
+    setServiceInfo(info)
+    setKnown(rememberInstance(endpoint))
+    setSetupOpen(false)
+    setError(null)
+  }
+
   /**
-   * Looks for an instance on this machine and fills the field in.
+   * Looks on this machine the moment the switch goes on.
    *
-   * This is the closest a web page can get to "set it up for me": it cannot
-   * start anything, but once something is running it can find it.
+   * Only this machine. A remembered remote address is filled in but not probed:
+   * contacting a third party is the very thing this switch is a decision about,
+   * so it waits for a deliberate click. Talking to localhost sends nothing
+   * anywhere and costs nothing when the port is closed, so there is no reason
+   * to make anyone ask for it.
    */
+  const autoConnect = async () => {
+    const controller = new AbortController()
+    setSearching(true)
+    try {
+      const found = await findLocalInstance(localCandidates(), controller.signal)
+      if (found) {
+        adopt(found.endpoint, found.info)
+        log('dienst', `Instanz auf diesem Rechner gefunden: ${found.endpoint}`)
+        return
+      }
+      const remembered = rememberedInstances()[0]
+      if (remembered && !service.endpoint.trim()) updateService({ endpoint: remembered })
+    } finally {
+      setSearching(false)
+    }
+  }
+
   const searchLocal = async () => {
     const controller = new AbortController()
     abortRef.current = controller
@@ -443,16 +484,12 @@ export function DownloaderPanel() {
     try {
       const found = await findLocalInstance(localCandidates(), controller.signal)
       if (found) {
-        updateService({ endpoint: found.endpoint })
-        setServiceInfo(found.info)
-        setKnown(rememberInstance(found.endpoint))
-        setSetupOpen(false)
+        adopt(found.endpoint, found.info)
         log('dienst', `Lokale Instanz gefunden: ${found.endpoint} (cobalt ${found.info.version})`)
       } else {
-        setSetupOpen(true)
         setError(
-          'Auf diesem Rechner läuft keine Instanz auf Port ' +
-            `${DEFAULT_PORT}. Unten steht, wie Sie eine einrichten.`,
+          `Auf diesem Rechner läuft nichts auf Port ${DEFAULT_PORT}. Mit „Befehl kopieren“ ` +
+            'starten Sie einen Dienst; Lizge verbindet sich dann von selbst.',
         )
       }
     } finally {
@@ -461,14 +498,56 @@ export function DownloaderPanel() {
     }
   }
 
-  const copyCommand = async () => {
+  const stopWaiting = () => {
+    waitRef.current?.abort()
+    waitRef.current = null
+    setWaiting(false)
+  }
+
+  /**
+   * Copies the command, then waits for the result of running it.
+   *
+   * The step people fall at is not the command — it is coming back to the page
+   * afterwards and not knowing what to press. So nothing has to be pressed: the
+   * page keeps looking until the instance answers and then connects itself.
+   */
+  const startAndWait = async () => {
     try {
       await navigator.clipboard.writeText(oneLiner())
       setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      setTimeout(() => setCopied(false), 4000)
     } catch {
-      // Clipboard access can be refused; the command is visible either way.
+      // Clipboard access can be refused; the command is on screen either way.
     }
+
+    stopWaiting()
+    const controller = new AbortController()
+    waitRef.current = controller
+    setWaiting(true)
+    setError(null)
+    try {
+      const found = await watchForInstance(localCandidates(), { signal: controller.signal })
+      if (found) {
+        adopt(found.endpoint, found.info)
+        log('dienst', `Instanz gefunden: ${found.endpoint} (cobalt ${found.info.version})`)
+      } else if (!controller.signal.aborted) {
+        setError(
+          `Fünf Minuten lang kam auf Port ${DEFAULT_PORT} keine Antwort. Läuft Docker? ` +
+            '„Läuft schon — suchen“ prüft jederzeit erneut.',
+        )
+      }
+    } finally {
+      if (waitRef.current === controller) waitRef.current = null
+      setWaiting(false)
+    }
+  }
+
+  const disconnect = () => {
+    stopWaiting()
+    setServiceInfo(null)
+    setItems(null)
+    setError(null)
+    log('dienst', 'Verbindung zum Dienst getrennt')
   }
 
   /** Checks the endpoint and says precisely what is wrong with it. */
@@ -481,8 +560,7 @@ export function DownloaderPanel() {
     setError(null)
     try {
       const info = await probeService(service.endpoint, apiKey || null, controller.signal)
-      setServiceInfo(info)
-      setKnown(rememberInstance(service.endpoint.trim()))
+      adopt(service.endpoint.trim(), info)
       log('dienst', `Instanz erreichbar: cobalt ${info.version}, ${info.services.length} Dienste`)
     } catch (failure) {
       const message = failure instanceof Error ? failure.message : String(failure)
@@ -700,59 +778,46 @@ export function DownloaderPanel() {
                   : 'Externe Downloader ausgeschaltet',
                 value ? 'warn' : 'info',
               )
+              if (value) {
+                void autoConnect()
+              } else {
+                stopWaiting()
+                setServiceInfo(null)
+              }
             }}
           />
 
           {serviceEnabled ? (
             <div className="mt-[14px] flex flex-col gap-[14px]">
-              {/* Settings first: this is what someone came here to fill in. */}
-              <div className="grid gap-[14px] sm:grid-cols-2">
-                <Field label="Dienst" className="sm:col-span-2">
-                  <div className="flex flex-wrap items-center gap-[9px]">
-                    <TextInput
-                      type="url"
-                      inputMode="url"
-                      className="min-w-[220px] flex-1"
-                      placeholder="https://meine-instanz.example/"
-                      value={service.endpoint}
-                      onChange={(event) => {
-                        updateService({ endpoint: event.target.value })
-                        setServiceInfo(null)
-                      }}
-                    />
-                    <Button size="sm" variant="quiet" onClick={searchLocal} disabled={searching || checking}>
-                      {searching ? 'Sucht…' : 'Suchen'}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="quiet"
-                      onClick={checkService}
-                      disabled={checking || searching || !service.endpoint.trim()}
-                    >
-                      {checking ? 'Prüft…' : 'Prüfen'}
-                    </Button>
-                  </div>
-                </Field>
-
-                {known.length > 0 && !serviceInfo ? (
-                  <div className="flex flex-wrap items-center gap-[7px] sm:col-span-2">
-                    <span className="text-[12px] text-muted">Zuletzt benutzt</span>
-                    {known.map((entry) => (
-                      <button
-                        key={entry}
-                        type="button"
-                        onClick={() => updateService({ endpoint: entry })}
-                        title={entry}
-                        className="max-w-[220px] truncate rounded-pill bg-panel-soft px-[11px] py-[5px] text-[12px] text-ink hover:bg-panel-mid"
-                      >
-                        {entry.replace(/^https?:\/\//, '').replace(/\/$/, '')}
-                      </button>
-                    ))}
-                  </div>
+              {/* What is true right now, stated before anything else. Someone
+                  who just switched this on wants one answer — does YouTube work
+                  yet — and that is a sentence, not a form. */}
+              <div className="flex flex-wrap items-center gap-[9px] rounded-card bg-raised px-[14px] py-[11px]">
+                <span
+                  aria-hidden
+                  className={`size-[9px] shrink-0 rounded-full ${connected ? 'bg-ink' : 'bg-ink/25'}`}
+                />
+                <p className="min-w-0 flex-1 text-[13px] text-ink">
+                  {connected ? (
+                    <>
+                      Verbunden mit <span className="font-mono text-[12px]">{endpointLabel}</span>
+                    </>
+                  ) : waiting ? (
+                    'Wartet auf den Dienst — läuft er, wird er hier von selbst auftauchen.'
+                  ) : (
+                    'Noch kein Dienst. YouTube-Links gehen erst, wenn einer läuft.'
+                  )}
+                </p>
+                {connected ? (
+                  <Button size="sm" variant="quiet" onClick={disconnect}>
+                    Trennen
+                  </Button>
                 ) : null}
+              </div>
 
-                {serviceInfo ? (
-                  <div className="flex flex-wrap items-center gap-[7px] sm:col-span-2">
+              {connected ? (
+                <>
+                  <div className="flex flex-wrap items-center gap-[7px]">
                     <Badge tone="forest">cobalt {serviceInfo.version}</Badge>
                     {/* Whether the instance actually offers YouTube is the thing
                         people get wrong, so it is stated rather than implied. */}
@@ -766,161 +831,241 @@ export function DownloaderPanel() {
                     </Badge>
                     {serviceInfo.needsTurnstile ? <Badge>verlangt Bot-Prüfung</Badge> : null}
                   </div>
-                ) : null}
 
-                <Field label="Zugangsschlüssel" className="sm:col-span-2">
-                  <TextInput
-                    type="password"
-                    autoComplete="off"
-                    placeholder="optional, wird nicht gespeichert"
-                    value={apiKey}
-                    onChange={(event) => setApiKey(event.target.value)}
-                  />
-                </Field>
+                  <div className="grid gap-[14px] sm:grid-cols-2">
+                    <Field label="Was holen">
+                      <Select
+                        value={service.downloadMode}
+                        onChange={(event) => updateService({ downloadMode: event.target.value as DownloadMode })}
+                      >
+                        <option value="auto">Video mit Ton</option>
+                        <option value="audio">Nur Ton</option>
+                        <option value="mute">Video ohne Ton</option>
+                      </Select>
+                    </Field>
 
-                <Field label="Was holen">
-                  <Select
-                    value={service.downloadMode}
-                    onChange={(event) => updateService({ downloadMode: event.target.value as DownloadMode })}
-                  >
-                    <option value="auto">Video mit Ton</option>
-                    <option value="audio">Nur Ton</option>
-                    <option value="mute">Video ohne Ton</option>
-                  </Select>
-                </Field>
+                    {service.downloadMode === 'audio' ? (
+                      <Field label="Tonformat">
+                        <Select
+                          value={service.audioFormat}
+                          onChange={(event) => updateService({ audioFormat: event.target.value as AudioFormat })}
+                        >
+                          <option value="best">Bestes verfügbares</option>
+                          <option value="opus">Opus</option>
+                          <option value="mp3">MP3</option>
+                          <option value="wav">WAV</option>
+                        </Select>
+                      </Field>
+                    ) : (
+                      <Field label="Auflösung">
+                        <Select
+                          value={service.videoQuality}
+                          onChange={(event) => updateService({ videoQuality: event.target.value as VideoQuality })}
+                        >
+                          <option value="max">Höchste</option>
+                          <option value="2160">2160p</option>
+                          <option value="1440">1440p</option>
+                          <option value="1080">1080p</option>
+                          <option value="720">720p</option>
+                          <option value="480">480p</option>
+                          <option value="360">360p</option>
+                        </Select>
+                      </Field>
+                    )}
 
-                {service.downloadMode === 'audio' ? (
-                  <Field label="Tonformat">
-                    <Select
-                      value={service.audioFormat}
-                      onChange={(event) => updateService({ audioFormat: event.target.value as AudioFormat })}
-                    >
-                      <option value="best">Bestes verfügbares</option>
-                      <option value="opus">Opus</option>
-                      <option value="mp3">MP3</option>
-                      <option value="wav">WAV</option>
-                    </Select>
-                  </Field>
-                ) : (
-                  <Field label="Auflösung">
-                    <Select
-                      value={service.videoQuality}
-                      onChange={(event) => updateService({ videoQuality: event.target.value as VideoQuality })}
-                    >
-                      <option value="max">Höchste</option>
-                      <option value="2160">2160p</option>
-                      <option value="1440">1440p</option>
-                      <option value="1080">1080p</option>
-                      <option value="720">720p</option>
-                      <option value="480">480p</option>
-                      <option value="360">360p</option>
-                    </Select>
-                  </Field>
-                )}
-              </div>
-
-              <div className="rounded-card bg-raised p-[14px]">
-                <button
-                  type="button"
-                  onClick={() => setSetupOpen((value) => !value)}
-                  aria-expanded={setupOpen}
-                  className="flex w-full items-center justify-between gap-3 rounded-nav text-left"
-                >
-                  <span className="text-[13px] font-semibold text-ink">
-                    Eigene Instanz auf diesem Rechner einrichten
-                  </span>
-                  <span className="text-[12px] text-muted">{setupOpen ? 'Schließen' : 'Anzeigen'}</span>
-                </button>
-
-                {setupOpen ? (
-                  <div className="mt-[11px] flex flex-col gap-[11px] text-[12px] leading-[1.5] text-prose/85">
-                    <p>
-                      Eine öffentliche Instanz gibt es nicht mehr — die frühere wurde von YouTube
-                      gesperrt, die verbliebenen verlangen die Erlaubnis ihrer Betreiber. Eine eigene
-                      auf dem eigenen Rechner lädt dagegen in der Regel problemlos, weil sie von
-                      Ihrer Leitung aus anfragt statt von einer bekannten.
+                    {/* Only asked for once something is connected, because an
+                        empty key field on a screen with no service is just
+                        another thing to worry about. */}
+                    <Field label="Zugangsschlüssel" className="sm:col-span-2">
+                      <TextInput
+                        type="password"
+                        autoComplete="off"
+                        placeholder="optional, wird nicht gespeichert"
+                        value={apiKey}
+                        onChange={(event) => setApiKey(event.target.value)}
+                      />
+                    </Field>
+                  </div>
+                </>
+              ) : (
+                /* Two ways in, the shorter one first. Neither is hidden behind a
+                   link, because a step someone cannot see is a step they cannot
+                   take. */
+                <div className="flex flex-col gap-[11px]">
+                  <div className="rounded-card bg-raised p-[14px]">
+                    <p className="text-[13px] font-semibold text-ink">Ich habe schon eine Adresse</p>
+                    <p className="mt-[3px] text-[12px] leading-[1.5] text-muted">
+                      Von einer eigenen Instanz oder einer, die jemand für Sie betreibt.
                     </p>
-                    <p className="text-muted">
-                      Diese Seite kann sie nicht für Sie starten: eine Webseite darf keine Programme
-                      auf Ihrem Rechner ausführen, und das ist gut so. Sie bekommt hier aber alles
-                      Nötige fertig geschrieben, und sobald etwas läuft, findet „Suchen“ es selbst.
-                    </p>
-
-                    <div className="flex flex-wrap gap-[7px]">
+                    <div className="mt-[11px] flex flex-wrap items-center gap-[9px]">
+                      <TextInput
+                        type="url"
+                        inputMode="url"
+                        className="min-w-[200px] flex-1"
+                        placeholder="https://meine-instanz.example/"
+                        value={service.endpoint}
+                        onChange={(event) => {
+                          updateService({ endpoint: event.target.value })
+                          setServiceInfo(null)
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter') void checkService()
+                        }}
+                      />
                       <Button
                         size="sm"
-                        variant="quiet"
-                        onClick={() =>
-                          saveBytes(
-                            new TextEncoder().encode(composeFile()),
-                            'docker-compose.yml',
-                            'text/yaml',
-                          )
-                        }
+                        onClick={checkService}
+                        disabled={checking || waiting || !service.endpoint.trim()}
                       >
-                        docker-compose.yml
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="quiet"
-                        onClick={() =>
-                          saveBytes(
-                            new TextEncoder().encode(unixScript()),
-                            'cobalt-starten.sh',
-                            'text/x-shellscript',
-                          )
-                        }
-                      >
-                        Skript für macOS/Linux
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="quiet"
-                        onClick={() =>
-                          saveBytes(
-                            new TextEncoder().encode(windowsScript()),
-                            'cobalt-starten.ps1',
-                            'text/plain',
-                          )
-                        }
-                      >
-                        Skript für Windows
+                        {checking ? 'Prüft…' : 'Verbinden'}
                       </Button>
                     </div>
+                    {known.length > 0 ? (
+                      <div className="mt-[9px] flex flex-wrap items-center gap-[7px]">
+                        <span className="text-[12px] text-muted">Zuletzt benutzt</span>
+                        {known.map((entry) => (
+                          <button
+                            key={entry}
+                            type="button"
+                            onClick={() => {
+                              updateService({ endpoint: entry })
+                              setServiceInfo(null)
+                            }}
+                            title={entry}
+                            className="max-w-[200px] truncate rounded-pill bg-panel-soft px-[11px] py-[5px] text-[12px] text-ink hover:bg-panel-mid"
+                          >
+                            {entry.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
 
-                    <div>
-                      <p className="mb-[4px] text-[11px] font-semibold uppercase tracking-[0.08em] text-ink">
-                        Oder ein einziger Befehl
-                      </p>
-                      <div className="flex flex-wrap items-center gap-[7px]">
-                        <code className="min-w-0 flex-1 overflow-x-auto rounded-nav bg-panel-soft px-[11px] py-[9px] font-mono text-[11px] whitespace-pre text-prose">
-                          {oneLiner()}
-                        </code>
-                        <Button size="sm" variant="quiet" onClick={copyCommand}>
-                          {copied ? 'Kopiert' : 'Kopieren'}
+                  <div className="rounded-card bg-raised p-[14px]">
+                    <p className="text-[13px] font-semibold text-ink">Auf diesem Rechner starten</p>
+                    <p className="mt-[3px] text-[12px] leading-[1.5] text-muted">
+                      Einmal ein Befehl im Terminal, danach läuft es dauerhaft mit. Eine Instanz auf
+                      Ihrer eigenen Leitung lädt in der Regel problemlos — öffentliche gibt es keine
+                      mehr, die frühere wurde gesperrt.
+                    </p>
+
+                    {waiting ? (
+                      <div className="mt-[11px] flex flex-wrap items-center gap-[11px]">
+                        <p className="min-w-0 flex-1 text-[12px] leading-[1.5] text-prose/85">
+                          Befehl ist kopiert. Jetzt ins Terminal einfügen und Enter drücken — Lizge
+                          schaut weiter nach und verbindet sich selbst, sobald der Dienst antwortet.
+                        </p>
+                        <Button size="sm" variant="quiet" onClick={stopWaiting}>
+                          Abbrechen
                         </Button>
                       </div>
-                    </div>
+                    ) : (
+                      <div className="mt-[11px] flex flex-wrap items-center gap-[7px]">
+                        <Button size="sm" onClick={startAndWait} disabled={searching}>
+                          {copied ? 'Kopiert — einfügen und Enter' : 'Befehl kopieren'}
+                          <ArrowRight />
+                        </Button>
+                        <Button size="sm" variant="quiet" onClick={searchLocal} disabled={searching}>
+                          {searching ? 'Sucht…' : 'Läuft schon — suchen'}
+                        </Button>
+                      </div>
+                    )}
 
-                    <p className="text-muted">
-                      Voraussetzung ist Docker. Danach läuft der Dienst unter{' '}
-                      <code className="font-mono">http://localhost:{DEFAULT_PORT}/</code>, nur auf
-                      diesem Rechner erreichbar. Lesen Sie die Dateien, bevor Sie sie ausführen — das
-                      gilt für alles, was eine Webseite Ihnen zum Ausführen gibt. Die
-                      Originalanleitung steht unter{' '}
+                    <code className="mt-[9px] block rounded-nav bg-panel-soft px-[11px] py-[9px] font-mono text-[11px] leading-[1.6] whitespace-pre-wrap text-prose">
+                      {oneLiner()}
+                    </code>
+
+                    <p className="mt-[9px] text-[12px] leading-[1.5] text-muted">
+                      Braucht{' '}
                       <a
                         className="underline underline-offset-2 hover:text-ink"
-                        href="https://github.com/imputnet/cobalt/blob/main/docs/run-an-instance.md"
+                        href="https://docs.docker.com/get-docker/"
                         target="_blank"
                         rel="noreferrer noopener"
                       >
-                        cobalt/docs/run-an-instance.md
-                      </a>
-                      .
+                        Docker
+                      </a>{' '}
+                      — einmal installieren, wie jedes andere Programm. Der Dienst hört danach nur
+                      auf <code className="font-mono">localhost:{DEFAULT_PORT}</code> und ist von
+                      außen nicht erreichbar. Lesen Sie den Befehl, bevor Sie ihn ausführen; das gilt
+                      für alles, was eine Webseite Ihnen zum Ausführen gibt.
                     </p>
+
+                    <button
+                      type="button"
+                      onClick={() => setSetupOpen((value) => !value)}
+                      aria-expanded={setupOpen}
+                      className="mt-[9px] rounded-nav text-[12px] text-muted underline underline-offset-2 hover:text-ink"
+                    >
+                      {setupOpen ? 'Weniger' : 'Lieber fertige Dateien statt eines Befehls?'}
+                    </button>
+
+                    {setupOpen ? (
+                      <div className="mt-[9px] flex flex-col gap-[9px] text-[12px] leading-[1.5] text-prose/85">
+                        <p className="text-muted">
+                          Dasselbe als Datei: die Konfiguration zum Aufbewahren, oder ein Skript, das
+                          den Ordner anlegt und den Dienst startet. Alles hier entsteht im Browser,
+                          nichts wird nachgeladen.
+                        </p>
+                        <div className="flex flex-wrap gap-[7px]">
+                          <Button
+                            size="sm"
+                            variant="quiet"
+                            onClick={() =>
+                              saveBytes(
+                                new TextEncoder().encode(composeFile()),
+                                'docker-compose.yml',
+                                'text/yaml',
+                              )
+                            }
+                          >
+                            docker-compose.yml
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="quiet"
+                            onClick={() =>
+                              saveBytes(
+                                new TextEncoder().encode(unixScript()),
+                                'cobalt-starten.sh',
+                                'text/x-shellscript',
+                              )
+                            }
+                          >
+                            Skript für macOS/Linux
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="quiet"
+                            onClick={() =>
+                              saveBytes(
+                                new TextEncoder().encode(windowsScript()),
+                                'cobalt-starten.ps1',
+                                'text/plain',
+                              )
+                            }
+                          >
+                            Skript für Windows
+                          </Button>
+                        </div>
+                        <p className="text-muted">
+                          Auf einem eigenen Server statt auf dem Laptop geht es genauso; die
+                          Originalanleitung steht unter{' '}
+                          <a
+                            className="underline underline-offset-2 hover:text-ink"
+                            href="https://github.com/imputnet/cobalt/blob/main/docs/run-an-instance.md"
+                            target="_blank"
+                            rel="noreferrer noopener"
+                          >
+                            cobalt/docs/run-an-instance.md
+                          </a>
+                          .
+                        </p>
+                      </div>
+                    ) : null}
                   </div>
-                ) : null}
-              </div>
+                </div>
+              )}
 
               {/* Terms last, under the controls they apply to. */}
               <div className="rounded-card bg-raised p-[14px] text-[12px] leading-[1.5] ring-1 ring-inset ring-ink/30">
