@@ -59,5 +59,5 @@ export function withExtension(name: string, extension: string): string {
 }
 
 export function sanitizeFilename(name: string): string {
-  return name.replace(/[\\/:*?"<>|]+/g, '_').slice(0, 180) || 'lizge-output'
+  return name.replace(/[\\/:*?"<>|]+/g, '_').slice(0, 180) || 'sondra-output'
 }

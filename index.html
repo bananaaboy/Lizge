@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Lizge — Medienwerkzeuge, die lokal laufen</title>
+    <title>Sondra — Medienwerkzeuge, die lokal laufen</title>
     <meta
       name="description"
       content="Konvertieren, Spuren trennen, normalisieren und sampeln — vollständig lokal im Browser über WebAssembly und Web Workers. Keine Uploads, kein Server."
@@ -26,7 +26,7 @@
        */
       (function () {
         try {
-          var choice = localStorage.getItem('lizge:theme')
+          var choice = localStorage.getItem('sondra:theme')
           if (choice === 'light' || choice === 'dark') {
             document.documentElement.setAttribute('data-theme', choice)
           }
@@ -98,14 +98,14 @@
             whenActive(registration, reportResources)
           },
           function (error) {
-            console.warn('[lizge] Service Worker nicht verfügbar:', error)
+            console.warn('[sondra] Service Worker nicht verfügbar:', error)
           },
         )
       })()
     </script>
     <div id="root"></div>
     <noscript>
-      Lizge verarbeitet alle Medien lokal in Ihrem Browser und benötigt dafür JavaScript.
+      Sondra verarbeitet alle Medien lokal in Ihrem Browser und benötigt dafür JavaScript.
     </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>

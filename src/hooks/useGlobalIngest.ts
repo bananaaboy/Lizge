@@ -9,7 +9,7 @@
  *
  * The other two matter because the one thing this app cannot do itself is fetch
  * from YouTube. Somebody else's program has to do that, so the trip back has to
- * be short: once Lizge is installed, a downloaded file can be opened with it
+ * be short: once Sondra is installed, a downloaded file can be opened with it
  * straight from the file manager, or pushed into it from a phone's share sheet.
  */
 
@@ -108,7 +108,7 @@ export function useGlobalIngest(): { dragging: boolean } {
     }
   }, [ingest])
 
-  // "Open with Lizge" from the file manager. Chromium-only and desktop-only,
+  // "Open with Sondra" from the file manager. Chromium-only and desktop-only,
   // so its absence is the normal case rather than a problem.
   useEffect(() => {
     const queue = (window as Window & { launchQueue?: LaunchQueue }).launchQueue
@@ -132,7 +132,7 @@ export function useGlobalIngest(): { dragging: boolean } {
     void (async () => {
       const files: File[] = []
       try {
-        const cache = await caches.open('lizge-share')
+        const cache = await caches.open('sondra-share')
         for (let index = 0; index < waiting; index += 1) {
           const key = `./shared/${index}`
           const response = await cache.match(key)

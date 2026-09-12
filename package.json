@@ -1,9 +1,9 @@
 {
-  "name": "lizge",
+  "name": "sondra",
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "Lizge \u2014 a fully client-side media studio. Download, convert, separate, normalize and sample audio entirely in the browser.",
+  "description": "Sondra \u2014 a fully client-side media studio. Download, convert, separate, normalize and sample audio entirely in the browser.",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b --noEmit && vite build",

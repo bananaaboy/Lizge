@@ -288,10 +288,14 @@ export function Dialog({
       onClick={(event) => {
         if (event.target === ref.current) onClose()
       }}
-      className="m-auto w-[min(680px,calc(100vw-32px))] rounded-card bg-canvas p-0 text-prose backdrop:bg-ink/40 backdrop:backdrop-blur-[2px]"
+      // Wide and tall enough that the content inside is not squeezed into a
+      // column. A setup dialog that feels cramped reads as a warning label; this
+      // one holds commands, switches and running text and needs room for all of
+      // it, right up to the edges of a small window.
+      className="m-auto w-[min(920px,calc(100vw-24px))] rounded-card bg-canvas p-0 text-prose backdrop:bg-ink/50 backdrop:backdrop-blur-[3px]"
     >
-      <div className="flex max-h-[min(80vh,760px)] flex-col">
-        <div className="flex items-center justify-between gap-[14px] border-b border-line px-[21px] py-[16px]">
+      <div className="flex max-h-[min(88vh,900px)] flex-col">
+        <div className="flex items-center justify-between gap-[14px] border-b border-line px-[28px] py-[21px]">
           <p className="text-subheading text-ink">{title}</p>
           <button
             type="button"
@@ -304,7 +308,7 @@ export function Dialog({
             </svg>
           </button>
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto px-[21px] py-[18px]">{children}</div>
+        <div className="min-h-0 flex-1 overflow-y-auto px-[28px] py-[24px]">{children}</div>
       </div>
     </dialog>
   )

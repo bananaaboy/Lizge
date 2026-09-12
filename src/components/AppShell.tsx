@@ -27,7 +27,7 @@ export function Logo() {
           <path d="M24 14v4" />
         </g>
       </svg>
-      <span className="font-display text-[23px] font-light tracking-[-0.01em] text-ink">Lizge</span>
+      <span className="font-display text-[23px] font-light tracking-[-0.01em] text-ink">Sondra</span>
     </span>
   )
 }

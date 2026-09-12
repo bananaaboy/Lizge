@@ -578,7 +578,7 @@ export function ConverterPanel() {
               <div className="mt-[21px]">
                 <Button
                   onClick={() =>
-                    saveBytes(archive, `lizge-${format.extension}-${queue.length}.zip`, 'application/zip')
+                    saveBytes(archive, `sondra-${format.extension}-${queue.length}.zip`, 'application/zip')
                   }
                 >
                   Alle als ZIP speichern ({formatBytes(archive.byteLength)})

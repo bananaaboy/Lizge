@@ -104,7 +104,7 @@ export function BootGate({ children }: { children: ReactNode }) {
               className="h-[6px] w-full overflow-hidden rounded-pill bg-panel-mid"
             >
               <div
-                className={`h-full rounded-pill bg-ink ${fraction === null ? 'lizge-drift w-1/3' : 'transition-[width] duration-200'}`}
+                className={`h-full rounded-pill bg-ink ${fraction === null ? 'sondra-drift w-1/3' : 'transition-[width] duration-200'}`}
                 style={fraction === null ? undefined : { width: `${fraction * 100}%` }}
               />
             </div>

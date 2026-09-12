@@ -1,7 +1,7 @@
 /**
  * Optional neural stem separation with onnxruntime-web.
  *
- * Lizge ships no model weights. A Demucs or Spleeter export is tens to hundreds
+ * Sondra ships no model weights. A Demucs or Spleeter export is tens to hundreds
  * of megabytes, and bundling one would mean every visitor downloads it whether
  * or not they use separation. Instead the user points at a model — a local
  * `.onnx` file or a URL they choose — and it is executed here, on their machine,
