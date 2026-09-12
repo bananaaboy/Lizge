@@ -27,7 +27,13 @@ import {
   type TransferProgress,
 } from '../../lib/download'
 import { detectCapabilities } from '../../lib/capabilities'
-import { companionFor, COMPANION_NAME, COMPANION_SOURCE, detectPlatform } from '../../lib/companion'
+import {
+  companionFor,
+  COMPANION_NAME,
+  COMPANION_SOURCE,
+  detectPlatform,
+  INSTANCE_DIRECTORY,
+} from '../../lib/companion'
 import {
   DEFAULT_SERVICE,
   findLocalInstance,
@@ -892,59 +898,35 @@ export function DownloaderPanel() {
                   </div>
                 </>
               ) : (
-                /* Three ways, in the order most people can actually take
-                   them. The first needs no terminal and no server, because for
-                   almost everyone that is the only one that will happen. */
+                /* Three ways, headed by the one that asks least. Nothing to
+                   install comes first because that is what most people want;
+                   that it depends on a stranger’s goodwill is said plainly
+                   rather than discovered later. */
                 <div className="flex flex-col gap-[11px]">
                   <div className="rounded-card bg-raised p-[14px] ring-1 ring-inset ring-ink/20">
                     <div className="flex flex-wrap items-center gap-[7px]">
-                      <p className="text-[13px] font-semibold text-ink">Mit einem Programm laden</p>
-                      <Badge tone="forest">Einfachster Weg</Badge>
+                      <p className="text-[13px] font-semibold text-ink">Eine offene Instanz benutzen</p>
+                      <Badge tone="forest">Nichts zu installieren</Badge>
                     </div>
                     <p className="mt-[3px] text-[12px] leading-[1.5] text-muted">
-                      YouTube lässt sich aus einem Browser heraus nicht laden — das Portal erlaubt
-                      es einer fremden Seite schlicht nicht. Ein Programm auf dem Rechner darf es.{' '}
-                      {COMPANION_NAME} ist dafür gedacht: installieren wie jedes andere Programm,
-                      Link einfügen, Datei bekommen.
+                      Manche Leute betreiben so einen Dienst öffentlich und stellen ihn zur
+                      Verfügung. Eine Adresse einsetzen genügt dann — kein Programm, kein Terminal,
+                      kein Konto.
                     </p>
 
                     <div className="mt-[11px] flex flex-wrap items-center gap-[7px]">
-                      <Button size="sm" onClick={() => window.open(companion.url, '_blank', 'noopener')}>
-                        {companion.label}
+                      <Button
+                        size="sm"
+                        onClick={() => window.open(INSTANCE_DIRECTORY, '_blank', 'noopener')}
+                      >
+                        Liste offener Instanzen öffnen
                         <ArrowRight />
                       </Button>
                     </div>
-                    <p className="mt-[7px] text-[12px] leading-[1.5] text-muted">{companion.note}</p>
-
-                    <ol className="mt-[11px] flex flex-col gap-[4px] text-[12px] leading-[1.5] text-prose/85">
-                      <li>1 · Programm installieren und öffnen.</li>
-                      <li>2 · YouTube-Link dort einfügen und laden.</li>
-                      <li>
-                        3 · Die fertige Datei hierher ins Fenster ziehen. Alles Weitere —
-                        Umwandeln, Spuren trennen, Lautheit, Chopper — macht Lizge wieder
-                        vollständig auf Ihrem Gerät.
-                      </li>
-                    </ol>
-
-                    <p className="mt-[9px] text-[12px] leading-[1.5] text-muted">
-                      Ist Lizge als App installiert, geht auch „Öffnen mit“ direkt aus dem
-                      Dateimanager, und auf dem Handy das Teilen-Menü.{' '}
-                      <a
-                        className="underline underline-offset-2 hover:text-ink"
-                        href={COMPANION_SOURCE}
-                        target="_blank"
-                        rel="noreferrer noopener"
-                      >
-                        Quelloffen (MIT)
-                      </a>{' '}
-                      — und es gehört nicht zu diesem Projekt, prüfen Sie es wie jede Software,
-                      die Sie installieren.
-                    </p>
-                  </div>
-                  <div className="rounded-card bg-raised p-[14px]">
-                    <p className="text-[13px] font-semibold text-ink">Ich habe schon eine Adresse</p>
-                    <p className="mt-[3px] text-[12px] leading-[1.5] text-muted">
-                      Von einer eigenen Instanz oder einer, die jemand für Sie betreibt.
+                    <p className="mt-[7px] text-[12px] leading-[1.5] text-muted">
+                      Dort auf drei Dinge achten: als <em>online</em> geführt, <em>ohne</em>{' '}
+                      Bot-Prüfung, und YouTube in der Dienstliste. Die Adresse der API von dort
+                      hier einsetzen.
                     </p>
                     <div className="mt-[11px] flex flex-wrap items-center gap-[9px]">
                       <TextInput
@@ -988,6 +970,59 @@ export function DownloaderPanel() {
                         ))}
                       </div>
                     ) : null}
+
+                    <p className="mt-[9px] border-t border-line pt-[9px] text-[12px] leading-[1.5] text-muted">
+                      Ehrlich dazu: Der Dienst gehört jemand anderem. Er sieht Ihren Link und Ihre
+                      IP, und er kann langsam, überlastet oder morgen weg sein — viele werden von
+                      automatisierten Abrufen leergesaugt, weshalb die Liste inzwischen nur noch
+                      Betreiber führt, die ausdrücklich zugestimmt haben. Wenn es verlässlich sein
+                      soll, ist der Weg darunter der bessere.
+                    </p>
+                  </div>
+                  <div className="rounded-card bg-raised p-[14px]">
+                    <div className="flex flex-wrap items-center gap-[7px]">
+                      <p className="text-[13px] font-semibold text-ink">Mit einem Programm laden</p>
+                      <Badge>Zuverlässig</Badge>
+                    </div>
+                    <p className="mt-[3px] text-[12px] leading-[1.5] text-muted">
+                      YouTube lässt sich aus einem Browser heraus nicht laden — das Portal erlaubt
+                      es einer fremden Seite schlicht nicht. Ein Programm auf dem Rechner darf es.{' '}
+                      {COMPANION_NAME} ist dafür gedacht: installieren wie jedes andere Programm,
+                      Link einfügen, Datei bekommen.
+                    </p>
+
+                    <div className="mt-[11px] flex flex-wrap items-center gap-[7px]">
+                      <Button size="sm" onClick={() => window.open(companion.url, '_blank', 'noopener')}>
+                        {companion.label}
+                        <ArrowRight />
+                      </Button>
+                    </div>
+                    <p className="mt-[7px] text-[12px] leading-[1.5] text-muted">{companion.note}</p>
+
+                    <ol className="mt-[11px] flex flex-col gap-[4px] text-[12px] leading-[1.5] text-prose/85">
+                      <li>1 · Programm installieren und öffnen.</li>
+                      <li>2 · YouTube-Link dort einfügen und laden.</li>
+                      <li>
+                        3 · Die fertige Datei hierher ins Fenster ziehen. Alles Weitere —
+                        Umwandeln, Spuren trennen, Lautheit, Chopper — macht Lizge wieder
+                        vollständig auf Ihrem Gerät.
+                      </li>
+                    </ol>
+
+                    <p className="mt-[9px] text-[12px] leading-[1.5] text-muted">
+                      Ist Lizge als App installiert, geht auch „Öffnen mit“ direkt aus dem
+                      Dateimanager, und auf dem Handy das Teilen-Menü.{' '}
+                      <a
+                        className="underline underline-offset-2 hover:text-ink"
+                        href={COMPANION_SOURCE}
+                        target="_blank"
+                        rel="noreferrer noopener"
+                      >
+                        Quelloffen (MIT)
+                      </a>{' '}
+                      — und es gehört nicht zu diesem Projekt, prüfen Sie es wie jede Software,
+                      die Sie installieren.
+                    </p>
                   </div>
 
                   <div className="rounded-card bg-raised p-[14px]">

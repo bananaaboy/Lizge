@@ -238,7 +238,26 @@ Adresse nach außen gibt. Wird sie eingeschaltet, steht der Hinweis dauerhaft im
 Panel: was übertragen wird, an wen, und dass die Nutzung auf eigenes Risiko
 erfolgt.
 
-### Der Weg für alle anderen: ein Programm, dann die Datei
+### Ohne alles: eine offene Instanz
+
+Der Weg, der am wenigsten verlangt, steht zuoberst: Manche Leute betreiben so
+einen Dienst öffentlich. Eine Adresse einsetzen genügt dann — kein Programm,
+kein Terminal, kein Konto. Die Oberfläche verlinkt das Verzeichnis unter
+[instances.cobalt.best](https://instances.cobalt.best/) und sagt, worauf zu
+achten ist: als *online* geführt, *ohne* Bot-Prüfung, YouTube in der
+Dienstliste.
+
+Hinterlegt ist **nur das Verzeichnis, nie eine konkrete Adresse**. Eine
+mitgelieferte Adresse würde jeden Besucher auf eine Maschine zeigen, die weder
+er noch dieses Projekt kontrolliert — und eine Menschenmenge auf einen
+gespendeten Server zu lenken ist genau das, was die früheren Listen geleert
+hat. Die heutige Liste ist deshalb opt-in. Die Wahl und das Vertrauen, das sie
+voraussetzt, bleiben beim Nutzer.
+
+Ehrlich bleibt dabei im Panel stehen, was das kostet: Der Dienst gehört jemand
+anderem, sieht Link und IP, und kann langsam, überlastet oder morgen weg sein.
+
+### Wenn es verlässlich sein soll: ein Programm, dann die Datei
 
 Die Einrichtung eines Servers ist für die meisten Menschen kein gangbarer Weg,
 und sie sollten auch keinen einrichten müssen. Deshalb steht an erster Stelle
