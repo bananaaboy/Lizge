@@ -61,6 +61,7 @@ function PanelTabs() {
 function CapabilityStrip() {
   const [webgpu, setWebgpu] = useState<boolean | null>(null)
   const [service, setService] = useState<ServiceConnection>(serviceConnection)
+  const [details, setDetails] = useState(false)
   const [ffmpeg, setFfmpeg] = useState<FfmpegStatus>({ loaded: false, multiThreaded: false, threads: 1 })
   const caps = detectCapabilities()
 
@@ -114,26 +115,54 @@ function CapabilityStrip() {
   ]
 
   return (
-    <Card tone="sage">
-      <div className="flex flex-wrap items-baseline justify-between gap-[14px]">
-        <Eyebrow>Dieser Browser</Eyebrow>
-        {!ffmpeg.loaded ? (
-          <Button size="sm" variant="quiet" onClick={() => void loadFfmpeg()}>
-            FFmpeg jetzt laden
-          </Button>
-        ) : null}
+    <Card tone="sage" size="compact">
+      {/* One line by default. Six figures with a sentence each is a reference
+          card, and a reference card does not belong permanently between the
+          tools and the log — it belongs one click away. */}
+      <div className="flex flex-wrap items-center gap-x-[14px] gap-y-[9px]">
+        <Eyebrow className="shrink-0">Dieser Browser</Eyebrow>
+        <dl className="flex min-w-0 flex-1 flex-wrap items-center gap-x-[9px] gap-y-[7px]">
+          {entries.map((entry) => (
+            <div
+              key={entry.label}
+              className="flex items-baseline gap-[6px] rounded-pill bg-raised px-[11px] py-[5px]"
+              title={entry.note}
+            >
+              <dt className="text-[11px] uppercase tracking-[0.06em] text-ink/60">{entry.label}</dt>
+              <dd className="text-[12px] text-ink">{entry.value}</dd>
+            </div>
+          ))}
+        </dl>
+        <div className="flex shrink-0 items-center gap-[7px]">
+          {!ffmpeg.loaded ? (
+            <Button size="sm" variant="quiet" onClick={() => void loadFfmpeg()}>
+              FFmpeg laden
+            </Button>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => setDetails((value) => !value)}
+            aria-expanded={details}
+            className="rounded-nav text-[12px] text-ink/70 underline underline-offset-2 hover:text-ink"
+          >
+            {details ? 'Weniger' : 'Was heißt das?'}
+          </button>
+        </div>
       </div>
-      <dl className="mt-[21px] grid gap-[21px] sm:grid-cols-3 lg:grid-cols-6">
-        {entries.map((entry) => (
-          <div key={entry.label} className="flex flex-col gap-[4px]">
-            <dt className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink/70">
-              {entry.label}
-            </dt>
-            <dd className="text-subheading text-ink">{entry.value}</dd>
-            <p className="text-[12px] leading-[1.4] text-muted">{entry.note}</p>
-          </div>
-        ))}
-      </dl>
+
+      {details ? (
+        <dl className="mt-[14px] grid gap-[14px] border-t border-ink/10 pt-[14px] sm:grid-cols-2 lg:grid-cols-3">
+          {entries.map((entry) => (
+            <div key={entry.label} className="flex flex-col gap-[2px]">
+              <dt className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink/70">
+                {entry.label}
+              </dt>
+              <dd className="text-[13px] text-ink">{entry.value}</dd>
+              <p className="text-[12px] leading-[1.4] text-muted">{entry.note}</p>
+            </div>
+          ))}
+        </dl>
+      ) : null}
     </Card>
   )
 }

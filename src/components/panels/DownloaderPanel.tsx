@@ -75,6 +75,7 @@ import {
   Badge,
   Button,
   Card,
+  Dialog,
   Eyebrow,
   Field,
   Notice,
@@ -159,16 +160,14 @@ export function DownloaderPanel() {
   const [setupOpen, setSetupOpen] = useState(false)
   const [copied, setCopied] = useState(false)
   const [known, setKnown] = useState<string[]>(() => rememberedInstances())
-  // Open from the start. It was folded when three routes competed for the
-  // space; now it is the only one that actually gets a service running, and a
-  // route nobody opens is a route nobody takes.
-  const [dockerOpen, setDockerOpen] = useState(true)
   const [localWay, setLocalWay] = useState<'node' | 'docker'>('node')
   // What is already on this machine. Both start off, because assuming a
   // stranger has a developer's toolchain is how instructions end up skipping
   // the step they most needed to include.
   const [hasNode, setHasNode] = useState(false)
   const [hasGit, setHasGit] = useState(false)
+  /** Setup lives in a dialog, so the page itself stays short. */
+  const [setupDialog, setSetupDialog] = useState(false)
   /** How many fruitless sweeps the watcher has made, to know when to speak up. */
   const [sweeps, setSweeps] = useState(0)
   /** The guided setup is watching for an instance to come up. */
@@ -883,7 +882,11 @@ export function DownloaderPanel() {
           />
 
           {serviceEnabled ? (
-            <div className="mt-[14px] flex flex-col gap-[14px]">
+            /* Two things stay on the page: what is true right now, and a
+               way in. The rest is read once and then never again, so it
+               lives behind a door instead of pushing the address field —
+               the part used every single time — below the fold. */
+            <div className="mt-[14px] flex flex-col gap-[11px]">
               {/* What is true right now, stated before anything else. Someone
                   who just switched this on wants one answer — does YouTube work
                   yet — and that is a sentence, not a form. */}
@@ -934,481 +937,490 @@ export function DownloaderPanel() {
                 </Notice>
               ) : null}
 
-              {connected ? (
-                <>
-                  <div className="flex flex-wrap items-center gap-[7px]">
-                    <Badge tone="forest">cobalt {serviceInfo.version}</Badge>
-                    {/* Whether the instance actually offers YouTube is the thing
-                        people get wrong, so it is stated rather than implied. */}
-                    <Badge>
-                      {serviceInfo.services.includes('youtube')
-                        ? 'YouTube unterstützt'
-                        : 'YouTube nicht aktiviert'}
-                    </Badge>
-                    <Badge>
-                      {serviceInfo.services.length} {serviceInfo.services.length === 1 ? 'Dienst' : 'Dienste'}
-                    </Badge>
-                    {serviceInfo.needsTurnstile ? <Badge>verlangt Bot-Prüfung</Badge> : null}
-                  </div>
-
-                  <div className="grid gap-[14px] sm:grid-cols-2">
-                    <Field label="Was holen">
-                      <Select
-                        value={service.downloadMode}
-                        onChange={(event) => updateService({ downloadMode: event.target.value as DownloadMode })}
-                      >
-                        <option value="auto">Video mit Ton</option>
-                        <option value="audio">Nur Ton</option>
-                        <option value="mute">Video ohne Ton</option>
-                      </Select>
-                    </Field>
-
-                    {service.downloadMode === 'audio' ? (
-                      <Field label="Tonformat">
-                        <Select
-                          value={service.audioFormat}
-                          onChange={(event) => updateService({ audioFormat: event.target.value as AudioFormat })}
-                        >
-                          <option value="best">Bestes verfügbares</option>
-                          <option value="opus">Opus</option>
-                          <option value="mp3">MP3</option>
-                          <option value="wav">WAV</option>
-                        </Select>
-                      </Field>
-                    ) : (
-                      <Field label="Auflösung">
-                        <Select
-                          value={service.videoQuality}
-                          onChange={(event) => updateService({ videoQuality: event.target.value as VideoQuality })}
-                        >
-                          <option value="max">Höchste</option>
-                          <option value="2160">2160p</option>
-                          <option value="1440">1440p</option>
-                          <option value="1080">1080p</option>
-                          <option value="720">720p</option>
-                          <option value="480">480p</option>
-                          <option value="360">360p</option>
-                        </Select>
-                      </Field>
-                    )}
-
-                    {/* Only asked for once something is connected, because an
-                        empty key field on a screen with no service is just
-                        another thing to worry about. */}
-                    <Field label="Zugangsschlüssel" className="sm:col-span-2">
-                      <TextInput
-                        type="password"
-                        autoComplete="off"
-                        placeholder="optional, wird nicht gespeichert"
-                        value={apiKey}
-                        onChange={(event) => setApiKey(event.target.value)}
-                      />
-                    </Field>
-                  </div>
-                </>
-              ) : (
-                /* What is left once the browser is ruled out: somebody has to
-                   run a service. Either someone you know, or you. There is no
-                   third option — see the note in the first card for why. */
-                <div className="flex flex-col gap-[11px]">
-                  <div className="rounded-card bg-raised p-[14px] ring-1 ring-inset ring-ink/20">
-                    <p className="text-[13px] font-semibold text-ink">Eine fremde Instanz benutzen</p>
-                    <p className="mt-[3px] text-[12px] leading-[1.5] text-muted">
-                      Wenn Sie eine Adresse haben — von jemandem, der so einen Dienst betreibt —
-                      genügt sie hier. Kein Programm, kein Terminal, kein Konto.
-                    </p>
-                    <div className="mt-[11px] flex flex-wrap items-center gap-[9px]">
-                      <TextInput
-                        type="url"
-                        inputMode="url"
-                        className="min-w-[200px] flex-1"
-                        placeholder="https://meine-instanz.example/"
-                        value={service.endpoint}
-                        onChange={(event) => {
-                          updateService({ endpoint: event.target.value })
-                          setServiceInfo(null)
-                        }}
-                        onKeyDown={(event) => {
-                          if (event.key === 'Enter') void checkService()
-                        }}
-                      />
-                      <Button
-                        size="sm"
-                        onClick={checkService}
-                        disabled={checking || waiting || !service.endpoint.trim()}
-                      >
-                        {checking ? 'Prüft…' : 'Verbinden'}
-                      </Button>
-                    </div>
-                    {known.length > 0 ? (
-                      <div className="mt-[9px] flex flex-wrap items-center gap-[7px]">
-                        <span className="text-[12px] text-muted">Zuletzt benutzt</span>
-                        {known.map((entry) => (
-                          <button
-                            key={entry}
-                            type="button"
-                            onClick={() => {
-                              updateService({ endpoint: entry })
-                              setServiceInfo(null)
-                            }}
-                            title={entry}
-                            className="max-w-[200px] truncate rounded-pill bg-panel-soft px-[11px] py-[5px] text-[12px] text-ink hover:bg-panel-mid"
-                          >
-                            {entry.replace(/^https?:\/\//, '').replace(/\/$/, '')}
-                          </button>
-                        ))}
-                      </div>
-                    ) : null}
-
-
-                    <p className="mt-[9px] border-t border-line pt-[9px] text-[12px] leading-[1.5] text-muted">
-                      Warum es nichts Leichteres gibt: Ein Browser kommt an YouTube nicht heran.
-                      Die Server, auf denen die Videodaten liegen, nehmen Anfragen nur von
-                      youtube.com selbst an — mit oder ohne Link in der Hand. Holen muss also
-                      immer ein Server, und den betreibt entweder jemand, den Sie kennen, oder
-                      Sie selbst. Öffentliche Verzeichnisse solcher Dienste gibt es derzeit keine
-                      mehr; die bekannten Listen sind abgeschaltet, nachdem automatisierte Abrufe
-                      die Betreiber leergesaugt hatten. Der offizielle Dienst führt YouTube nicht
-                      mehr und verlangt eine Bot-Prüfung, die diese Seite nicht lösen kann.
-                      Der Dienst gehört dann jemand anderem, sieht Ihren Link und Ihre IP, und
-                      kann langsam oder morgen weg sein.
-                    </p>
-                  </div>
-                  <div className="rounded-card bg-raised p-[14px]">
-                    <button
-                      type="button"
-                      onClick={() => setDockerOpen((value) => !value)}
-                      aria-expanded={dockerOpen}
-                      className="flex w-full items-center justify-between gap-3 rounded-nav text-left"
-                    >
-                      <span className="text-[13px] font-semibold text-ink">
-                        Eigenen Dienst betreiben
-                      </span>
-                      {/* Named for what it asks of you, so nobody opens it by accident. */}
-                      <span className="text-[12px] text-muted">
-                        {dockerOpen ? 'Schließen' : 'Drei Wege'}
-                      </span>
-                    </button>
-
-                    {dockerOpen ? (
-                      <div className="mt-[11px]">
-                        {/* Two ways to the same service. Node leads because it is
-                            the one that cannot fail for reasons outside your
-                            control: Docker Desktop on Windows needs WSL2, which
-                            needs a virtual machine, and that stack has open bugs
-                            no amount of reinstalling gets past. */}
-                        <div
-                          role="radiogroup"
-                          aria-label="Art der Installation"
-                          className="flex flex-wrap gap-[2px] rounded-pill bg-panel-soft p-[3px]"
-                        >
-                          {(
-                            [
-                              { id: 'node', label: 'Ohne Docker' },
-                              { id: 'docker', label: 'Mit Docker' },
-                            ] as const
-                          ).map((choice) => (
-                            <button
-                              key={choice.id}
-                              type="button"
-                              role="radio"
-                              aria-checked={localWay === choice.id}
-                              onClick={() => setLocalWay(choice.id)}
-                              className={`rounded-pill px-[14px] py-[6px] text-[13px] transition-colors ${
-                                localWay === choice.id ? 'bg-ink text-on-ink' : 'text-ink hover:bg-panel-mid'
-                              }`}
-                            >
-                              {choice.label}
-                            </button>
-                          ))}
-                        </div>
-
-                        {localWay === 'node' ? (
-                          /* Asking beats assuming. The commands below are then
-                             the ones for this machine and no others, so the list
-                             can be pasted start to finish without anyone having
-                             to work out which half applies to them. */
-                          <div className="mt-[14px] rounded-nav bg-panel-soft p-[11px]">
-                            <p className="mb-[9px] text-[12px] font-semibold text-ink">
-                              Was ist auf diesem Rechner schon da?
-                            </p>
-                            <div className="flex flex-col gap-[9px]">
-                              <Toggle
-                                label="Node.js"
-                                hint={
-                                  hasNode
-                                    ? undefined
-                                    : 'Aus: die Anleitung fängt mit dem Installieren an.'
-                                }
-                                checked={hasNode}
-                                onChange={setHasNode}
-                              />
-                              <Toggle
-                                label="Git"
-                                hint={
-                                  hasGit
-                                    ? undefined
-                                    : 'Aus: der Quelltext kommt als Archiv, Git wird nicht gebraucht.'
-                                }
-                                checked={hasGit}
-                                onChange={setHasGit}
-                              />
-                            </div>
-                            <p className="mt-[9px] text-[12px] leading-[1.5] text-muted">
-                              Nicht sicher? Beide aus lassen — dann steht alles da, und ein Schritt,
-                              der schon erledigt ist, schadet nicht.
-                            </p>
-                            {!pageIsLocal() ? (
-                              <p className="mt-[9px] border-t border-line pt-[9px] text-[12px] leading-[1.5] text-prose/85">
-                                Wichtig, wenn der Dienst läuft und trotzdem nichts passiert: Diese
-                                Seite kommt aus dem Netz, der Dienst läuft auf Ihrem Rechner — und
-                                Browser lassen das nicht ohne Weiteres zu. Fragt Ihrer nach Zugriff
-                                aufs lokale Netzwerk, erlauben Sie es. Sonst öffnen Sie Lizge lokal,
-                                dann liegen beide auf derselben Maschine.
-                              </p>
-                            ) : null}
-                          </div>
-                        ) : null}
-
-                        <p className="mt-[11px] text-[12px] leading-[1.5] text-muted">
-                          {localWay === 'node' ? (
-                            <>
-                              Node.js ist ein gewöhnlicher Installer, ohne virtuelle Maschine — genau
-                              das ist der Unterschied zu Docker Desktop, das unter Windows WSL2
-                              voraussetzt und daran auch scheitern kann.
-                              {!hasGit ? (
-                                <>
-                                  {' '}
-                                  <span className="text-prose/85">
-                                    Ohne Git kommt der Quelltext als Archiv. Die drei{' '}
-                                    <code className="font-mono">.git</code>-Zeilen darin sind kein
-                                    Git: der Dienst liest daraus nur seine eigene Versionsangabe und
-                                    startet sonst nicht. Drei Textdateien genügen ihm.
-                                  </span>
-                                </>
-                              ) : null}
-                            </>
-                          ) : (
-                            <>
-                              Ein Befehl, danach läuft es dauerhaft mit. Braucht{' '}
-                              <a
-                                className="underline underline-offset-2 hover:text-ink"
-                                href="https://docs.docker.com/get-docker/"
-                                target="_blank"
-                                rel="noreferrer noopener"
-                              >
-                                Docker
-                              </a>
-                              , unter Windows also auch WSL2 und eine virtuelle Maschine.
-                            </>
-                          )}
-                        </p>
-
-                        {waiting ? (
-                          <div className="mt-[11px] flex flex-wrap items-center gap-[11px]">
-                            <p className="min-w-0 flex-1 text-[12px] leading-[1.5] text-prose/85">
-                              Ist kopiert. Jetzt ins Terminal einfügen und ausführen — Lizge schaut
-                              weiter nach und verbindet sich selbst, sobald der Dienst antwortet.
-                            </p>
-                            <Button size="sm" variant="quiet" onClick={stopWaiting}>
-                              Abbrechen
-                            </Button>
-                          </div>
-                        ) : (
-                          <div className="mt-[11px] flex flex-wrap items-center gap-[7px]">
-                            <Button size="sm" onClick={startAndWait} disabled={searching}>
-                              {copied
-                                ? 'Kopiert — einfügen und ausführen'
-                                : localWay === 'docker'
-                                  ? 'Befehl kopieren'
-                                  : 'Befehle kopieren'}
-                              <ArrowRight />
-                            </Button>
-                            <Button size="sm" variant="quiet" onClick={searchLocal} disabled={searching}>
-                              {searching ? 'Sucht…' : 'Läuft schon — suchen'}
-                            </Button>
-                          </div>
-                        )}
-
-                        {needsNodeByHand ? (
-                          /* No package manager worth guessing at on this system,
-                             so the one step that cannot be a command says so
-                             plainly instead of being silently left out. */
-                          <div className="mt-[9px] flex flex-wrap items-center gap-[11px] rounded-nav bg-panel-soft px-[11px] py-[9px]">
-                            <p className="min-w-0 flex-1 text-[12px] leading-[1.5] text-prose/85">
-                              Zuerst Node.js installieren — über die Paketverwaltung Ihres Systems
-                              oder mit dem LTS-Installer. Danach gelten die Befehle darunter.
-                            </p>
-                            <Button
-                              size="sm"
-                              variant="quiet"
-                              onClick={() => window.open(NODE_DOWNLOAD, '_blank', 'noopener')}
-                            >
-                              Node.js holen
-                            </Button>
-                          </div>
-                        ) : null}
-
-                        <code className="mt-[9px] block rounded-nav bg-panel-soft px-[11px] py-[9px] font-mono text-[11px] leading-[1.6] whitespace-pre-wrap text-prose">
-                          {localCommand}
-                        </code>
-
-                        <p className="mt-[9px] text-[12px] leading-[1.5] text-muted">
-                          {localWay !== 'docker' ? (
-                            <>
-                              Unter Windows nehmen Sie besser das fertige Skript unten: PowerShell
-                              schreibt eine Datei mit <code className="font-mono">&gt;</code> in einer
-                              Kodierung, die der Dienst nicht liest. Das Fenster muss offen bleiben,
-                              solange der Dienst läuft.
-                            </>
-                          ) : (
-                            <>
-                              Der Dienst hört danach nur auf{' '}
-                              <code className="font-mono">localhost:{DEFAULT_PORT}</code> und ist von
-                              außen nicht erreichbar.
-                            </>
-                          )}{' '}
-                          Lesen Sie, was Sie ausführen, bevor Sie es tun — das gilt für alles, was
-                          eine Webseite Ihnen dafür in die Hand gibt.
-                        </p>
-
-                        {localWay === 'node' ? (
-                          <p className="mt-[7px] text-[12px] leading-[1.5] text-muted">
-                            Meldet <code className="font-mono">corepack</code> einen Fehler — etwa{' '}
-                            <code className="font-mono">EPERM</code>, wenn Node über nvm verwaltet
-                            wird —, einfach weitermachen. Die Zeile besorgt nur pnpm; ist es schon
-                            da, läuft der Rest unverändert durch.
-                          </p>
-                        ) : null}
-
-                        <button
-                          type="button"
-                          onClick={() => setSetupOpen((value) => !value)}
-                          aria-expanded={setupOpen}
-                          className="mt-[9px] rounded-nav text-[12px] text-muted underline underline-offset-2 hover:text-ink"
-                        >
-                          {setupOpen ? 'Weniger' : 'Lieber fertige Dateien statt Befehlen?'}
-                        </button>
-
-                        {setupOpen ? (
-                          <div className="mt-[9px] flex flex-col gap-[9px] text-[12px] leading-[1.5] text-prose/85">
-                            <p className="text-muted">
-                              Ein Skript, das den Ordner anlegt und den Dienst startet. Alles hier
-                              entsteht im Browser, nichts wird nachgeladen.
-                            </p>
-                            <div className="flex flex-wrap gap-[7px]">
-                              {localWay !== 'docker' ? (
-                                <>
-                                  <Button
-                                    size="sm"
-                                    variant="quiet"
-                                    onClick={() =>
-                                      saveBytes(
-                                        new TextEncoder().encode(
-                                          hasGit ? nodeWindowsScript() : nodeOnlyWindowsScript(),
-                                        ),
-                                        hasGit ? 'cobalt-ohne-docker.ps1' : 'cobalt-nur-node.ps1',
-                                        'text/plain',
-                                      )
-                                    }
-                                  >
-                                    Skript für Windows
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="quiet"
-                                    onClick={() =>
-                                      saveBytes(
-                                        new TextEncoder().encode(
-                                          hasGit ? nodeUnixScript() : nodeOnlyUnixScript(),
-                                        ),
-                                        hasGit ? 'cobalt-ohne-docker.sh' : 'cobalt-nur-node.sh',
-                                        'text/x-shellscript',
-                                      )
-                                    }
-                                  >
-                                    Skript für macOS/Linux
-                                  </Button>
-                                </>
-                              ) : (
-                                <>
-                                  <Button
-                                    size="sm"
-                                    variant="quiet"
-                                    onClick={() =>
-                                      saveBytes(
-                                        new TextEncoder().encode(composeFile()),
-                                        'docker-compose.yml',
-                                        'text/yaml',
-                                      )
-                                    }
-                                  >
-                                    docker-compose.yml
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="quiet"
-                                    onClick={() =>
-                                      saveBytes(
-                                        new TextEncoder().encode(unixScript()),
-                                        'cobalt-starten.sh',
-                                        'text/x-shellscript',
-                                      )
-                                    }
-                                  >
-                                    Skript für macOS/Linux
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="quiet"
-                                    onClick={() =>
-                                      saveBytes(
-                                        new TextEncoder().encode(windowsScript()),
-                                        'cobalt-starten.ps1',
-                                        'text/plain',
-                                      )
-                                    }
-                                  >
-                                    Skript für Windows
-                                  </Button>
-                                </>
-                              )}
-                            </div>
-                            <p className="text-muted">
-                              Auf einem eigenen Server statt auf dem Laptop geht es genauso; die
-                              Originalanleitung steht unter{' '}
-                              <a
-                                className="underline underline-offset-2 hover:text-ink"
-                                href="https://github.com/imputnet/cobalt/blob/main/docs/run-an-instance.md"
-                                target="_blank"
-                                rel="noreferrer noopener"
-                              >
-                                cobalt/docs/run-an-instance.md
-                              </a>
-                              .
-                            </p>
-                          </div>
-                        ) : null}
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
-              )}
-
-              {/* Terms last, under the controls they apply to. */}
-              <div className="rounded-card bg-raised p-[14px] text-[12px] leading-[1.5] ring-1 ring-inset ring-ink/30">
-                <p className="mb-[7px] font-semibold text-ink">{SERVICE_DISCLAIMER.title}</p>
-                {SERVICE_DISCLAIMER.paragraphs.map((paragraph) => (
-                  <p key={paragraph.slice(0, 24)} className="mb-[7px] text-prose/85">
-                    {paragraph}
-                  </p>
-                ))}
-                <p className="mt-[9px] border-t border-line pt-[9px] text-muted">
-                  {SERVICE_DISCLAIMER.liability}
-                </p>
+              <div className="flex flex-wrap items-center gap-[9px]">
+                <Button size="sm" variant="quiet" onClick={() => setSetupDialog(true)}>
+                  {connected ? 'Dienst ändern' : 'Dienst einrichten'}
+                </Button>
+                {connected ? (
+                  <span className="text-[12px] text-muted">
+                    Portal-Links im Feld oben gehen jetzt.
+                  </span>
+                ) : null}
               </div>
             </div>
           ) : null}
+
+          <Dialog open={setupDialog} onClose={() => setSetupDialog(false)} title="Dienst einrichten">
+            <div className="flex flex-col gap-[14px]">
+                {connected ? (
+                  <>
+                    <div className="flex flex-wrap items-center gap-[7px]">
+                      <Badge tone="forest">cobalt {serviceInfo.version}</Badge>
+                      {/* Whether the instance actually offers YouTube is the thing
+                          people get wrong, so it is stated rather than implied. */}
+                      <Badge>
+                        {serviceInfo.services.includes('youtube')
+                          ? 'YouTube unterstützt'
+                          : 'YouTube nicht aktiviert'}
+                      </Badge>
+                      <Badge>
+                        {serviceInfo.services.length} {serviceInfo.services.length === 1 ? 'Dienst' : 'Dienste'}
+                      </Badge>
+                      {serviceInfo.needsTurnstile ? <Badge>verlangt Bot-Prüfung</Badge> : null}
+                    </div>
+
+                    <div className="grid gap-[14px] sm:grid-cols-2">
+                      <Field label="Was holen">
+                        <Select
+                          value={service.downloadMode}
+                          onChange={(event) => updateService({ downloadMode: event.target.value as DownloadMode })}
+                        >
+                          <option value="auto">Video mit Ton</option>
+                          <option value="audio">Nur Ton</option>
+                          <option value="mute">Video ohne Ton</option>
+                        </Select>
+                      </Field>
+
+                      {service.downloadMode === 'audio' ? (
+                        <Field label="Tonformat">
+                          <Select
+                            value={service.audioFormat}
+                            onChange={(event) => updateService({ audioFormat: event.target.value as AudioFormat })}
+                          >
+                            <option value="best">Bestes verfügbares</option>
+                            <option value="opus">Opus</option>
+                            <option value="mp3">MP3</option>
+                            <option value="wav">WAV</option>
+                          </Select>
+                        </Field>
+                      ) : (
+                        <Field label="Auflösung">
+                          <Select
+                            value={service.videoQuality}
+                            onChange={(event) => updateService({ videoQuality: event.target.value as VideoQuality })}
+                          >
+                            <option value="max">Höchste</option>
+                            <option value="2160">2160p</option>
+                            <option value="1440">1440p</option>
+                            <option value="1080">1080p</option>
+                            <option value="720">720p</option>
+                            <option value="480">480p</option>
+                            <option value="360">360p</option>
+                          </Select>
+                        </Field>
+                      )}
+
+                      {/* Only asked for once something is connected, because an
+                          empty key field on a screen with no service is just
+                          another thing to worry about. */}
+                      <Field label="Zugangsschlüssel" className="sm:col-span-2">
+                        <TextInput
+                          type="password"
+                          autoComplete="off"
+                          placeholder="optional, wird nicht gespeichert"
+                          value={apiKey}
+                          onChange={(event) => setApiKey(event.target.value)}
+                        />
+                      </Field>
+                    </div>
+                  </>
+                ) : (
+                  /* What is left once the browser is ruled out: somebody has to
+                     run a service. Either someone you know, or you. There is no
+                     third option — see the note in the first card for why. */
+                  <div className="flex flex-col gap-[11px]">
+                    <div className="rounded-card bg-raised p-[14px] ring-1 ring-inset ring-ink/20">
+                      <p className="text-[13px] font-semibold text-ink">Eine fremde Instanz benutzen</p>
+                      <p className="mt-[3px] text-[12px] leading-[1.5] text-muted">
+                        Wenn Sie eine Adresse haben — von jemandem, der so einen Dienst betreibt —
+                        genügt sie hier. Kein Programm, kein Terminal, kein Konto.
+                      </p>
+                      <div className="mt-[11px] flex flex-wrap items-center gap-[9px]">
+                        <TextInput
+                          type="url"
+                          inputMode="url"
+                          className="min-w-[200px] flex-1"
+                          placeholder="https://meine-instanz.example/"
+                          value={service.endpoint}
+                          onChange={(event) => {
+                            updateService({ endpoint: event.target.value })
+                            setServiceInfo(null)
+                          }}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter') void checkService()
+                          }}
+                        />
+                        <Button
+                          size="sm"
+                          onClick={checkService}
+                          disabled={checking || waiting || !service.endpoint.trim()}
+                        >
+                          {checking ? 'Prüft…' : 'Verbinden'}
+                        </Button>
+                      </div>
+                      {known.length > 0 ? (
+                        <div className="mt-[9px] flex flex-wrap items-center gap-[7px]">
+                          <span className="text-[12px] text-muted">Zuletzt benutzt</span>
+                          {known.map((entry) => (
+                            <button
+                              key={entry}
+                              type="button"
+                              onClick={() => {
+                                updateService({ endpoint: entry })
+                                setServiceInfo(null)
+                              }}
+                              title={entry}
+                              className="max-w-[200px] truncate rounded-pill bg-panel-soft px-[11px] py-[5px] text-[12px] text-ink hover:bg-panel-mid"
+                            >
+                              {entry.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+                            </button>
+                          ))}
+                        </div>
+                      ) : null}
+
+
+                      <details className="mt-[9px] border-t border-line pt-[9px]">
+                        <summary className="cursor-pointer list-none text-[12px] text-muted underline underline-offset-2 hover:text-ink">
+                          Warum gibt es nichts Leichteres?
+                        </summary>
+                        <p className="mt-[7px] text-[12px] leading-[1.5] text-muted">
+                        Ein Browser kommt an YouTube nicht heran.
+                        Die Server, auf denen die Videodaten liegen, nehmen Anfragen nur von
+                        youtube.com selbst an — mit oder ohne Link in der Hand. Holen muss also
+                        immer ein Server, und den betreibt entweder jemand, den Sie kennen, oder
+                        Sie selbst. Öffentliche Verzeichnisse solcher Dienste gibt es derzeit keine
+                        mehr; die bekannten Listen sind abgeschaltet, nachdem automatisierte Abrufe
+                        die Betreiber leergesaugt hatten. Der offizielle Dienst führt YouTube nicht
+                        mehr und verlangt eine Bot-Prüfung, die diese Seite nicht lösen kann.
+                        Der Dienst gehört dann jemand anderem, sieht Ihren Link und Ihre IP, und
+                        kann langsam oder morgen weg sein.
+                      </p>
+                      </details>
+                    </div>
+                    <div className="rounded-card bg-raised p-[14px]">
+                      <p className="mb-[11px] text-[13px] font-semibold text-ink">
+                        Eigenen Dienst betreiben
+                      </p>
+                      {/* No fold in here: the dialog is already the fold. */}
+                      <>
+                        <div className="mt-[11px]">
+                          {/* Two ways to the same service. Node leads because it is
+                              the one that cannot fail for reasons outside your
+                              control: Docker Desktop on Windows needs WSL2, which
+                              needs a virtual machine, and that stack has open bugs
+                              no amount of reinstalling gets past. */}
+                          <div
+                            role="radiogroup"
+                            aria-label="Art der Installation"
+                            className="flex flex-wrap gap-[2px] rounded-pill bg-panel-soft p-[3px]"
+                          >
+                            {(
+                              [
+                                { id: 'node', label: 'Ohne Docker' },
+                                { id: 'docker', label: 'Mit Docker' },
+                              ] as const
+                            ).map((choice) => (
+                              <button
+                                key={choice.id}
+                                type="button"
+                                role="radio"
+                                aria-checked={localWay === choice.id}
+                                onClick={() => setLocalWay(choice.id)}
+                                className={`rounded-pill px-[14px] py-[6px] text-[13px] transition-colors ${
+                                  localWay === choice.id ? 'bg-ink text-on-ink' : 'text-ink hover:bg-panel-mid'
+                                }`}
+                              >
+                                {choice.label}
+                              </button>
+                            ))}
+                          </div>
+
+                          {localWay === 'node' ? (
+                            /* Asking beats assuming. The commands below are then
+                               the ones for this machine and no others, so the list
+                               can be pasted start to finish without anyone having
+                               to work out which half applies to them. */
+                            <div className="mt-[14px] rounded-nav bg-panel-soft p-[11px]">
+                              <p className="mb-[9px] text-[12px] font-semibold text-ink">
+                                Was ist auf diesem Rechner schon da?
+                              </p>
+                              <div className="flex flex-col gap-[9px]">
+                                <Toggle
+                                  label="Node.js"
+                                  hint={
+                                    hasNode
+                                      ? undefined
+                                      : 'Aus: die Anleitung fängt mit dem Installieren an.'
+                                  }
+                                  checked={hasNode}
+                                  onChange={setHasNode}
+                                />
+                                <Toggle
+                                  label="Git"
+                                  hint={
+                                    hasGit
+                                      ? undefined
+                                      : 'Aus: der Quelltext kommt als Archiv, Git wird nicht gebraucht.'
+                                  }
+                                  checked={hasGit}
+                                  onChange={setHasGit}
+                                />
+                              </div>
+                              <p className="mt-[9px] text-[12px] leading-[1.5] text-muted">
+                                Nicht sicher? Beide aus lassen — dann steht alles da, und ein Schritt,
+                                der schon erledigt ist, schadet nicht.
+                              </p>
+                              {!pageIsLocal() ? (
+                                <p className="mt-[9px] border-t border-line pt-[9px] text-[12px] leading-[1.5] text-prose/85">
+                                  Wichtig, wenn der Dienst läuft und trotzdem nichts passiert: Diese
+                                  Seite kommt aus dem Netz, der Dienst läuft auf Ihrem Rechner — und
+                                  Browser lassen das nicht ohne Weiteres zu. Fragt Ihrer nach Zugriff
+                                  aufs lokale Netzwerk, erlauben Sie es. Sonst öffnen Sie Lizge lokal,
+                                  dann liegen beide auf derselben Maschine.
+                                </p>
+                              ) : null}
+                            </div>
+                          ) : null}
+
+                          <p className="mt-[11px] text-[12px] leading-[1.5] text-muted">
+                            {localWay === 'node' ? (
+                              <>
+                                Node.js ist ein gewöhnlicher Installer, ohne virtuelle Maschine — genau
+                                das ist der Unterschied zu Docker Desktop, das unter Windows WSL2
+                                voraussetzt und daran auch scheitern kann.
+                                {!hasGit ? (
+                                  <>
+                                    {' '}
+                                    <span className="text-prose/85">
+                                      Ohne Git kommt der Quelltext als Archiv. Die drei{' '}
+                                      <code className="font-mono">.git</code>-Zeilen darin sind kein
+                                      Git: der Dienst liest daraus nur seine eigene Versionsangabe und
+                                      startet sonst nicht. Drei Textdateien genügen ihm.
+                                    </span>
+                                  </>
+                                ) : null}
+                              </>
+                            ) : (
+                              <>
+                                Ein Befehl, danach läuft es dauerhaft mit. Braucht{' '}
+                                <a
+                                  className="underline underline-offset-2 hover:text-ink"
+                                  href="https://docs.docker.com/get-docker/"
+                                  target="_blank"
+                                  rel="noreferrer noopener"
+                                >
+                                  Docker
+                                </a>
+                                , unter Windows also auch WSL2 und eine virtuelle Maschine.
+                              </>
+                            )}
+                          </p>
+
+                          {waiting ? (
+                            <div className="mt-[11px] flex flex-wrap items-center gap-[11px]">
+                              <p className="min-w-0 flex-1 text-[12px] leading-[1.5] text-prose/85">
+                                Ist kopiert. Jetzt ins Terminal einfügen und ausführen — Lizge schaut
+                                weiter nach und verbindet sich selbst, sobald der Dienst antwortet.
+                              </p>
+                              <Button size="sm" variant="quiet" onClick={stopWaiting}>
+                                Abbrechen
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="mt-[11px] flex flex-wrap items-center gap-[7px]">
+                              <Button size="sm" onClick={startAndWait} disabled={searching}>
+                                {copied
+                                  ? 'Kopiert — einfügen und ausführen'
+                                  : localWay === 'docker'
+                                    ? 'Befehl kopieren'
+                                    : 'Befehle kopieren'}
+                                <ArrowRight />
+                              </Button>
+                              <Button size="sm" variant="quiet" onClick={searchLocal} disabled={searching}>
+                                {searching ? 'Sucht…' : 'Läuft schon — suchen'}
+                              </Button>
+                            </div>
+                          )}
+
+                          {needsNodeByHand ? (
+                            /* No package manager worth guessing at on this system,
+                               so the one step that cannot be a command says so
+                               plainly instead of being silently left out. */
+                            <div className="mt-[9px] flex flex-wrap items-center gap-[11px] rounded-nav bg-panel-soft px-[11px] py-[9px]">
+                              <p className="min-w-0 flex-1 text-[12px] leading-[1.5] text-prose/85">
+                                Zuerst Node.js installieren — über die Paketverwaltung Ihres Systems
+                                oder mit dem LTS-Installer. Danach gelten die Befehle darunter.
+                              </p>
+                              <Button
+                                size="sm"
+                                variant="quiet"
+                                onClick={() => window.open(NODE_DOWNLOAD, '_blank', 'noopener')}
+                              >
+                                Node.js holen
+                              </Button>
+                            </div>
+                          ) : null}
+
+                          <code className="mt-[9px] block rounded-nav bg-panel-soft px-[11px] py-[9px] font-mono text-[11px] leading-[1.6] whitespace-pre-wrap text-prose">
+                            {localCommand}
+                          </code>
+
+                          <p className="mt-[9px] text-[12px] leading-[1.5] text-muted">
+                            {localWay !== 'docker' ? (
+                              <>
+                                Unter Windows nehmen Sie besser das fertige Skript unten: PowerShell
+                                schreibt eine Datei mit <code className="font-mono">&gt;</code> in einer
+                                Kodierung, die der Dienst nicht liest. Das Fenster muss offen bleiben,
+                                solange der Dienst läuft.
+                              </>
+                            ) : (
+                              <>
+                                Der Dienst hört danach nur auf{' '}
+                                <code className="font-mono">localhost:{DEFAULT_PORT}</code> und ist von
+                                außen nicht erreichbar.
+                              </>
+                            )}{' '}
+                            Lesen Sie, was Sie ausführen, bevor Sie es tun — das gilt für alles, was
+                            eine Webseite Ihnen dafür in die Hand gibt.
+                          </p>
+
+                          {localWay === 'node' ? (
+                            <p className="mt-[7px] text-[12px] leading-[1.5] text-muted">
+                              Meldet <code className="font-mono">corepack</code> einen Fehler — etwa{' '}
+                              <code className="font-mono">EPERM</code>, wenn Node über nvm verwaltet
+                              wird —, einfach weitermachen. Die Zeile besorgt nur pnpm; ist es schon
+                              da, läuft der Rest unverändert durch.
+                            </p>
+                          ) : null}
+
+                          <button
+                            type="button"
+                            onClick={() => setSetupOpen((value) => !value)}
+                            aria-expanded={setupOpen}
+                            className="mt-[9px] rounded-nav text-[12px] text-muted underline underline-offset-2 hover:text-ink"
+                          >
+                            {setupOpen ? 'Weniger' : 'Lieber fertige Dateien statt Befehlen?'}
+                          </button>
+
+                          {setupOpen ? (
+                            <div className="mt-[9px] flex flex-col gap-[9px] text-[12px] leading-[1.5] text-prose/85">
+                              <p className="text-muted">
+                                Ein Skript, das den Ordner anlegt und den Dienst startet. Alles hier
+                                entsteht im Browser, nichts wird nachgeladen.
+                              </p>
+                              <div className="flex flex-wrap gap-[7px]">
+                                {localWay !== 'docker' ? (
+                                  <>
+                                    <Button
+                                      size="sm"
+                                      variant="quiet"
+                                      onClick={() =>
+                                        saveBytes(
+                                          new TextEncoder().encode(
+                                            hasGit ? nodeWindowsScript() : nodeOnlyWindowsScript(),
+                                          ),
+                                          hasGit ? 'cobalt-ohne-docker.ps1' : 'cobalt-nur-node.ps1',
+                                          'text/plain',
+                                        )
+                                      }
+                                    >
+                                      Skript für Windows
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="quiet"
+                                      onClick={() =>
+                                        saveBytes(
+                                          new TextEncoder().encode(
+                                            hasGit ? nodeUnixScript() : nodeOnlyUnixScript(),
+                                          ),
+                                          hasGit ? 'cobalt-ohne-docker.sh' : 'cobalt-nur-node.sh',
+                                          'text/x-shellscript',
+                                        )
+                                      }
+                                    >
+                                      Skript für macOS/Linux
+                                    </Button>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Button
+                                      size="sm"
+                                      variant="quiet"
+                                      onClick={() =>
+                                        saveBytes(
+                                          new TextEncoder().encode(composeFile()),
+                                          'docker-compose.yml',
+                                          'text/yaml',
+                                        )
+                                      }
+                                    >
+                                      docker-compose.yml
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="quiet"
+                                      onClick={() =>
+                                        saveBytes(
+                                          new TextEncoder().encode(unixScript()),
+                                          'cobalt-starten.sh',
+                                          'text/x-shellscript',
+                                        )
+                                      }
+                                    >
+                                      Skript für macOS/Linux
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="quiet"
+                                      onClick={() =>
+                                        saveBytes(
+                                          new TextEncoder().encode(windowsScript()),
+                                          'cobalt-starten.ps1',
+                                          'text/plain',
+                                        )
+                                      }
+                                    >
+                                      Skript für Windows
+                                    </Button>
+                                  </>
+                                )}
+                              </div>
+                              <p className="text-muted">
+                                Auf einem eigenen Server statt auf dem Laptop geht es genauso; die
+                                Originalanleitung steht unter{' '}
+                                <a
+                                  className="underline underline-offset-2 hover:text-ink"
+                                  href="https://github.com/imputnet/cobalt/blob/main/docs/run-an-instance.md"
+                                  target="_blank"
+                                  rel="noreferrer noopener"
+                                >
+                                  cobalt/docs/run-an-instance.md
+                                </a>
+                                .
+                              </p>
+                            </div>
+                          ) : null}
+                        </div>
+                      </>
+                    </div>
+                  </div>
+                )}
+
+                {/* Terms last, under the controls they apply to. */}
+                <div className="rounded-card bg-raised p-[14px] text-[12px] leading-[1.5] ring-1 ring-inset ring-ink/30">
+                  <p className="mb-[7px] font-semibold text-ink">{SERVICE_DISCLAIMER.title}</p>
+                  {SERVICE_DISCLAIMER.paragraphs.map((paragraph) => (
+                    <p key={paragraph.slice(0, 24)} className="mb-[7px] text-prose/85">
+                      {paragraph}
+                    </p>
+                  ))}
+                  <p className="mt-[9px] border-t border-line pt-[9px] text-muted">
+                    {SERVICE_DISCLAIMER.liability}
+                  </p>
+                </div>
+            </div>
+          </Dialog>
         </div>
       </Card>
 

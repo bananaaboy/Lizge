@@ -7,6 +7,7 @@
  * saturated colour on the page.
  */
 
+import { useEffect, useRef } from 'react'
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, SelectHTMLAttributes } from 'react'
 
 type Tone = 'cream' | 'keylime' | 'mint' | 'sage' | 'slate'
@@ -248,5 +249,63 @@ export function ArrowRight({ className = '' }: { className?: string }) {
     <svg viewBox="0 0 16 16" aria-hidden className={`h-3.5 w-3.5 ${className}`} fill="none">
       <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
+  )
+}
+
+/**
+ * A modal built on the platform's own `<dialog>`.
+ *
+ * Setup belongs behind a door rather than inline: it is read once, and leaving
+ * it on the page pushed everything that gets used daily below the fold. The
+ * native element brings the focus trap, the Escape key and the backdrop with
+ * it, so none of that has to be reimplemented badly here.
+ */
+export function Dialog({
+  open,
+  onClose,
+  title,
+  children,
+}: {
+  open: boolean
+  onClose: () => void
+  title: string
+  children: ReactNode
+}) {
+  const ref = useRef<HTMLDialogElement>(null)
+
+  useEffect(() => {
+    const node = ref.current
+    if (!node) return
+    if (open && !node.open) node.showModal()
+    if (!open && node.open) node.close()
+  }, [open])
+
+  return (
+    <dialog
+      ref={ref}
+      onClose={onClose}
+      // A click on the backdrop lands on the dialog itself, never on its content.
+      onClick={(event) => {
+        if (event.target === ref.current) onClose()
+      }}
+      className="m-auto w-[min(680px,calc(100vw-32px))] rounded-card bg-canvas p-0 text-prose backdrop:bg-ink/40 backdrop:backdrop-blur-[2px]"
+    >
+      <div className="flex max-h-[min(80vh,760px)] flex-col">
+        <div className="flex items-center justify-between gap-[14px] border-b border-line px-[21px] py-[16px]">
+          <p className="text-subheading text-ink">{title}</p>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Schließen"
+            className="rounded-nav p-[6px] text-muted transition-colors hover:text-ink"
+          >
+            <svg viewBox="0 0 16 16" className="h-4 w-4" fill="none" aria-hidden>
+              <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+          </button>
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto px-[21px] py-[18px]">{children}</div>
+      </div>
+    </dialog>
   )
 }

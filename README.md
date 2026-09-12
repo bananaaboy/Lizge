@@ -263,6 +263,29 @@ Zwei Dinge halten das Warten ehrlich:
 Beim zweiten Besuch liegt der Kern im Zwischenspeicher des Service Workers, die
 Seite startet also sofort und auch ohne Netz.
 
+### Der Downloader passt auf einen Bildschirm
+
+Eingeschaltet war der Tab 2270 Pixel hoch — knapp drei Bildschirme, und das
+Adressfeld, also das Einzige, was bei jeder Nutzung gebraucht wird, stand ganz
+oben, während der Rest der Seite Einrichtungstexte waren. Jetzt sind es 949
+Pixel.
+
+Was sich geändert hat, ist nicht das Kürzen von Texten, sondern wo sie stehen:
+
+* **Die Einrichtung liegt in einem Dialog.** Sie wird einmal gelesen und danach
+  nie wieder, also gehört sie hinter eine Tür statt dauerhaft zwischen das
+  Adressfeld und alles andere. Der Dialog baut auf dem nativen
+  `<dialog>`-Element auf, damit Fokusfalle, Escape und Hintergrund nicht
+  schlecht nachgebaut werden müssen.
+* **Auf der Seite bleiben zwei Zeilen:** was gerade gilt, und ein Knopf hinein.
+* **Die Leiste „Dieser Browser" ist eine Zeile Chips** statt sechs Kennzahlen mit
+  je einem Satz. Die Sätze stehen hinter „Was heißt das?" und im Tooltip.
+* **Keine Tür hinter der Tür.** Im Dialog war noch eine Klapp-Ebene und ein
+  Absatz, der vor dem Eingabefeld stand; die Ebene ist weg, der Absatz liegt
+  unter „Warum gibt es nichts Leichteres?".
+
+Bei 400 Pixeln Breite läuft nichts seitlich über, und der Dialog passt hinein.
+
 ### Woran man sieht, ob es verbunden ist
 
 Die Antwort steht jetzt in der Leiste „Dieser Browser", unter **Dienst**, neben
