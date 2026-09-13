@@ -221,10 +221,13 @@ export function DownloaderPanel() {
   }
 
   const platform = detectPlatform()
+  // Empty on a page that is already local: there is nothing to mirror then, and
+  // the launcher would be a step that buys nothing.
+  const hostedOrigin = pageIsLocal() ? '' : window.location.origin
   const localCommand =
     localWay === 'docker'
       ? oneLiner()
-      : localSteps({ hasNode, hasGit, platform }).join('\n')
+      : localSteps({ hasNode, hasGit, platform, origin: window.location.origin }).join('\n')
   /** Node is missing and this system has no install command worth printing. */
   const needsNodeByHand = localWay === 'node' && manualPrerequisite({ hasNode, platform })
   const connected = serviceInfo !== null
@@ -1486,7 +1489,9 @@ export function DownloaderPanel() {
                                       onClick={() =>
                                         saveBytes(
                                           new TextEncoder().encode(
-                                            hasGit ? nodeWindowsScript() : nodeOnlyWindowsScript(),
+                                            hasGit
+                                            ? nodeWindowsScript(DEFAULT_PORT, hostedOrigin)
+                                            : nodeOnlyWindowsScript(DEFAULT_PORT, hostedOrigin),
                                           ),
                                           hasGit ? 'cobalt-ohne-docker.ps1' : 'cobalt-nur-node.ps1',
                                           'text/plain',
@@ -1501,7 +1506,9 @@ export function DownloaderPanel() {
                                       onClick={() =>
                                         saveBytes(
                                           new TextEncoder().encode(
-                                            hasGit ? nodeUnixScript() : nodeOnlyUnixScript(),
+                                            hasGit
+                                            ? nodeUnixScript(DEFAULT_PORT, hostedOrigin)
+                                            : nodeOnlyUnixScript(DEFAULT_PORT, hostedOrigin),
                                           ),
                                           hasGit ? 'cobalt-ohne-docker.sh' : 'cobalt-nur-node.sh',
                                           'text/x-shellscript',

@@ -428,6 +428,31 @@ echt öffentlichen Adresse erscheint, lässt sich in einer Umgebung ohne
 öffentliche IP nicht feststellen. Getestet ist, dass die Kennzeichnung gesetzt
 wird, wo sie hingehört, und dass sie nichts kaputt macht, wo sie nicht hingehört.
 
+### Ein Befehl startet beides
+
+Der Spiegel war ein zweiter Schritt, und ein zweiter Schritt ist einer zu viel.
+Er steckt jetzt im Einrichtungsbefehl selbst: `sondra-start.mjs` fährt den Dienst
+hoch **und** liefert Sondra von demselben Rechner aus. Danach liegen Seite und
+Dienst auf einer Maschine, es gibt keine Grenze zu überschreiten, und niemand
+muss etwas erlauben.
+
+Die Datei liegt als statisches Asset auf der Seite, wird von den Befehlen und von
+beiden Skripten geholt und existiert genau einmal — der Spiegel war vorher im
+Browser erzeugter Text, was eine zweite Umsetzung derselben Sache gewesen wäre.
+Auf einer lokal geöffneten Seite entfällt sie ganz: dort bringt sie nichts, also
+endet der Befehl wie bisher mit `pnpm start`.
+
+Beim Einbauen wäre fast ein stiller Fehler entstanden: die Skript-Erzeuger
+bekamen die Adresse zunächst nicht als Parameter, und `origin` hätte sich
+klaglos auf die globale DOM-Variable bezogen — ein echter Wert, der plausibel
+aussieht und überall außerhalb eines Browsers falsch ist.
+
+Gemessen, mit dem echten Dienst statt einem Attrappen-Server: ein Aufruf, cobalt
+11.7.1 auf 9000 und die Seite auf 8787 mit den Isolations-Kopfzeilen. Im Browser
+darüber geöffnet gilt sie als lokal, `crossOriginIsolated` steht, kein
+Erlaubnis-Knopf erscheint, die Verbindung steht nach 8 ms — und ein echter
+YouTube-Download lief durch: 84 MB, 1080p.
+
 ### Was auf einer gehosteten Seite wirklich hilft
 
 Drei Anläufe lang war die Erlaubnis fürs lokale Netzwerk die Empfehlung. Auf der
