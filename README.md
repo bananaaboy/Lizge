@@ -428,6 +428,32 @@ echt öffentlichen Adresse erscheint, lässt sich in einer Umgebung ohne
 öffentliche IP nicht feststellen. Getestet ist, dass die Kennzeichnung gesetzt
 wird, wo sie hingehört, und dass sie nichts kaputt macht, wo sie nicht hingehört.
 
+### Was auf einer gehosteten Seite wirklich hilft
+
+Drei Anläufe lang war die Erlaubnis fürs lokale Netzwerk die Empfehlung. Auf der
+echten Seite hat sie dreimal nicht funktioniert: Chrome meldet sie als
+verfügbar, meldet sie als nicht verweigert, und fragt trotzdem nicht — auch nicht
+aus einem frischen Klick heraus, mit korrekt angesagtem Adressraum.
+
+Zwei Verdächtige wurden dabei ausgeschlossen, nicht vermutet:
+
+* **Mixed Content ist es nicht.** Gemessen von einer echten HTTPS-Seite gegen
+  `http://localhost:9000`: geht durch, mit und ohne Ansage. Chrome behandelt
+  `localhost` als vertrauenswürdig, die Regel greift dort gar nicht.
+* **Der falsche Adressraum war ein echter Fehler, aber nicht der letzte.**
+  `loopback` statt `local` reparierte den Fall von einer HTTP-Seite aus; von der
+  echten Seite bleibt die Anfrage tot.
+
+Deshalb steht jetzt der Spiegel an erster Stelle, wenn nichts antwortet, und die
+Erlaubnis nur noch als Nebensatz. Der Spiegel hängt von keiner Browserfunktion
+ab: er liefert die Seite von demselben Rechner aus, auf dem der Dienst läuft, und
+zwischen zwei Dingen auf einer Maschine gibt es keine Grenze, die jemand erlauben
+müsste. Erneut durch ihn hindurch gemessen: gilt als lokal, Isolation steht,
+verbunden nach 1,8 Sekunden ohne einen Klick, Datei komplett geladen.
+
+Eine Empfehlung, die dreimal nicht getragen hat, ein viertes Mal zu wiederholen,
+wäre Rat ohne Beleg.
+
 ### Ein Knopf, nicht zwei
 
 Prüfen und Erlauben waren getrennt, und die Prüfung endete mit „drücken Sie jetzt
