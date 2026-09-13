@@ -298,6 +298,29 @@ keine Nutzeraktion hinter sich, also kann er keine Abfrage auslösen — deshalb
 gibt es **Zugriff erlauben**. Das ist das eine, was auf einer gehosteten Seite
 von Hand passieren muss; danach läuft wieder alles von selbst.
 
+### Der Spiegel: die Seite auf den eigenen Rechner holen
+
+Alles Bisherige streitet mit dem Browser darüber, ob eine Seite aus dem Netz
+`localhost` anfassen darf. Der Spiegel beendet den Streit, indem er die Seite auf
+`localhost` stellt. Dann liegen Seite und Dienst im selben Adressraum: keine
+Erlaubnis greift, keine Vorabfrage ist nötig, und es verhält sich in Browsern
+gleich, die von alldem nie etwas umgesetzt haben.
+
+Er ist eine Durchreiche, keine Kopie: jede Anfrage wird von der Seite geholt und
+weitergegeben, man sieht also immer den aktuellen Stand. Zwei Kopfzeilen kommen
+dazu, die den mehrfädigen FFmpeg-Kern freischalten — ohne sie liefe die App
+zwar, nur langsamer, und das an einen Umweg zu verlieren wäre ein schlechter
+Tausch. Inhaltskodierung und -länge fallen weg, weil der Rumpf im Vorbeigehen
+entpackt wird und die alten Angaben ihn nicht mehr beschreiben.
+
+Die heruntergeladene Datei trägt die Adresse der Seite, von der sie stammt,
+bereits in sich. Ein Befehl, dann `localhost:8787` öffnen statt der Website.
+
+Gemessen, im Browser durch den Spiegel hindurch: Seite lädt, gilt als lokal,
+`crossOriginIsolated` und `SharedArrayBuffer` stehen, Service Worker
+kontrolliert, kein Erlaubnis-Knopf mehr nötig, Verbindung zum Dienst nach 1,8
+Sekunden ohne einen einzigen Klick, und eine Datei komplett durchgeladen.
+
 ### Die Brücke, für Browser ohne diese Abfrage
 
 Ältere Browser kennen die Erlaubnis nicht. Dort galt die ältere Regelung: nicht
