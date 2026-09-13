@@ -244,7 +244,7 @@ export function nodeSteps(port = DEFAULT_PORT): string[] {
   ]
 }
 
-export function nodeUnixScript(port = DEFAULT_PORT): string {
+export function nodeUnixScript(port = DEFAULT_PORT, origin = ''): string {
   return `#!/usr/bin/env bash
 # cobalt ohne Docker starten. Erzeugt von Sondra.
 # Vor dem Ausführen lesen. Das Skript holt den Quelltext, installiert die
@@ -275,13 +275,21 @@ API_PORT=${port}
 ENVFILE
 
 echo
-echo "Startet auf http://localhost:${port}/ — dieses Fenster offen lassen."
-echo "In Sondra passiert der Rest von selbst."
-pnpm start
+${
+  origin
+    ? `# Der Starter fährt den Dienst hoch UND liefert Sondra von diesem Rechner
+# aus. Dann liegen Seite und Dienst auf derselben Maschine, und die Sperre,
+# die eine Seite aus dem Netz von localhost fernhält, greift gar nicht.
+cd ..
+curl -fsSL -O ${origin}/${LAUNCHER_FILE}
+exec node ${LAUNCHER_FILE} ${origin}`
+    : `echo "Startet auf http://localhost:${port}/ — dieses Fenster offen lassen."
+pnpm start`
+}
 `
 }
 
-export function nodeWindowsScript(port = DEFAULT_PORT): string {
+export function nodeWindowsScript(port = DEFAULT_PORT, origin = ''): string {
   return `# cobalt ohne Docker starten. Erzeugt von Sondra.
 # Vor dem Ausfuehren lesen. Das Skript holt den Quelltext, installiert die
 # Abhaengigkeiten in einen Ordner und startet den Dienst - sonst nichts.
@@ -314,9 +322,17 @@ API_PORT=${port}
 "@ | Set-Content -Path ".env" -Encoding UTF8
 
 Write-Host ""
-Write-Host "Startet auf http://localhost:${port}/ - dieses Fenster offen lassen."
-Write-Host "In Sondra passiert der Rest von selbst."
-pnpm start
+${
+  origin
+    ? `# Der Starter faehrt den Dienst hoch UND liefert Sondra von diesem Rechner
+# aus. Dann liegen Seite und Dienst auf derselben Maschine, und die Sperre,
+# die eine Seite aus dem Netz von localhost fernhaelt, greift gar nicht.
+Set-Location ..
+Invoke-WebRequest -Uri "${origin}/${LAUNCHER_FILE}" -OutFile "${LAUNCHER_FILE}"
+node ${LAUNCHER_FILE} ${origin}`
+    : `Write-Host "Startet auf http://localhost:${port}/ - dieses Fenster offen lassen."
+pnpm start`
+}
 `
 }
 
@@ -369,7 +385,7 @@ export function nodeOnlySteps(port = DEFAULT_PORT): string[] {
   ]
 }
 
-export function nodeOnlyUnixScript(port = DEFAULT_PORT): string {
+export function nodeOnlyUnixScript(port = DEFAULT_PORT, origin = ''): string {
   return [
     '#!/usr/bin/env bash',
     '# cobalt ohne Docker und ohne Git starten. Erzeugt von Sondra.',
@@ -416,14 +432,24 @@ export function nodeOnlyUnixScript(port = DEFAULT_PORT): string {
     'ENVFILE',
     '',
     'echo',
-    'echo "Startet auf http://localhost:' + port + '/ — dieses Fenster offen lassen."',
-    'echo "In Sondra passiert der Rest von selbst."',
-    'pnpm start',
+    ...(origin
+      ? [
+          '# Der Starter fährt den Dienst hoch UND liefert Sondra von diesem Rechner',
+          '# aus. Dann liegen Seite und Dienst auf derselben Maschine, und die Sperre,',
+          '# die eine Seite aus dem Netz von localhost fernhält, greift gar nicht.',
+          'cd ..',
+          'curl -fsSL -O ' + origin + '/' + LAUNCHER_FILE,
+          'exec node ' + LAUNCHER_FILE + ' ' + origin,
+        ]
+      : [
+          'echo "Startet auf http://localhost:' + port + '/ — dieses Fenster offen lassen."',
+          'pnpm start',
+        ]),
     '',
   ].join('\n')
 }
 
-export function nodeOnlyWindowsScript(port = DEFAULT_PORT): string {
+export function nodeOnlyWindowsScript(port = DEFAULT_PORT, origin = ''): string {
   // Every file below is written with a literal here-string (@'…'@) rather than
   // a quoted value. PowerShell does not expand escapes inside single quotes, so
   // a `n in one would land in the file as two characters — and the whole point
@@ -494,9 +520,19 @@ export function nodeOnlyWindowsScript(port = DEFAULT_PORT): string {
     '"@ | Set-Content -Path ".env" -Encoding UTF8',
     '',
     'Write-Host ""',
-    'Write-Host "Startet auf http://localhost:' + port + '/ - dieses Fenster offen lassen."',
-    'Write-Host "In Sondra passiert der Rest von selbst."',
-    'pnpm start',
+    ...(origin
+      ? [
+          '# Der Starter faehrt den Dienst hoch UND liefert Sondra von diesem Rechner',
+          '# aus. Dann liegen Seite und Dienst auf derselben Maschine, und die Sperre,',
+          '# die eine Seite aus dem Netz von localhost fernhaelt, greift gar nicht.',
+          'Set-Location ..',
+          'Invoke-WebRequest -Uri "' + origin + '/' + LAUNCHER_FILE + '" -OutFile "' + LAUNCHER_FILE + '"',
+          'node ' + LAUNCHER_FILE + ' ' + origin,
+        ]
+      : [
+          'Write-Host "Startet auf http://localhost:' + port + '/ - dieses Fenster offen lassen."',
+          'pnpm start',
+        ]),
     '',
   ].join('\n')
 }
@@ -527,6 +563,8 @@ export interface LocalSetup {
   hasGit: boolean
   platform: Platform
   port?: number
+  /** Where this page is served from. Absent means "do not add the launcher". */
+  origin?: string
 }
 
 /**
@@ -537,7 +575,13 @@ export interface LocalSetup {
  * of an instruction they need. Two answers, four combinations, and each one
  * produces a list that can be pasted start to finish.
  */
-export function localSteps({ hasNode, hasGit, platform, port = DEFAULT_PORT }: LocalSetup): string[] {
+export function localSteps({
+  hasNode,
+  hasGit,
+  platform,
+  port = DEFAULT_PORT,
+  origin,
+}: LocalSetup): string[] {
   const steps: string[] = []
 
   if (!hasNode) {
@@ -546,7 +590,37 @@ export function localSteps({ hasNode, hasGit, platform, port = DEFAULT_PORT }: L
   }
 
   steps.push(...(hasGit ? nodeSteps(port) : nodeOnlySteps(port)))
+
+  // On a hosted page, starting the service alone is not enough: the browser
+  // will not let this page reach it. The launcher starts the service *and*
+  // serves this page from the same machine, which removes the boundary rather
+  // than asking permission to cross it. So it replaces the bare start command
+  // instead of arriving later as a second thing to set up.
+  if (origin && !isLoopbackOrigin(origin)) {
+    steps.pop() // the plain `pnpm start`
+    steps.push(`cd ${DOWNLOAD_DIR}`)
+    steps.push(
+      platform === 'windows'
+        ? `curl.exe -O ${origin.replace(/\/$/, '')}/${LAUNCHER_FILE}`
+        : `curl -O ${origin.replace(/\/$/, '')}/${LAUNCHER_FILE}`,
+    )
+    steps.push(`node ${LAUNCHER_FILE} ${origin.replace(/\/$/, '')}`)
+  }
+
   return steps
+}
+
+/** The launcher lives next to the unpacked source, one level above `api`. */
+const DOWNLOAD_DIR = '..'
+export const LAUNCHER_FILE = 'sondra-start.mjs'
+
+function isLoopbackOrigin(origin: string): boolean {
+  try {
+    const host = new URL(origin).hostname
+    return ['localhost', '127.0.0.1', '[::1]', '::1'].includes(host)
+  } catch {
+    return false
+  }
 }
 
 /** What still has to be done by hand before the commands will work. */
