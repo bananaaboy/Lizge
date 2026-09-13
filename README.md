@@ -428,6 +428,27 @@ echt öffentlichen Adresse erscheint, lässt sich in einer Umgebung ohne
 öffentliche IP nicht feststellen. Getestet ist, dass die Kennzeichnung gesetzt
 wird, wo sie hingehört, und dass sie nichts kaputt macht, wo sie nicht hingehört.
 
+### Ein Knopf, nicht zwei
+
+Prüfen und Erlauben waren getrennt, und die Prüfung endete mit „drücken Sie jetzt
+den anderen Knopf". Das ist eine Anweisung, keine Lösung — und schlimmer: die
+Erlaubnisanfrage hatte damit nicht mehr den Klick hinter sich, den eine Abfrage
+braucht. Ein Browser stellt die Frage nur als Antwort auf eine echte Interaktion,
+also muss die auslösende Anfrage das Erste sein, was auf den Klick folgt, nicht
+das Zweite nach einem Fehlschlag.
+
+Auf einer gehosteten Seite heißt der Knopf deshalb „Verbinden und Zugriff
+erlauben" und stellt die Anfrage sofort; lokal heißt er „Jetzt prüfen" und lässt
+die Erlaubnis weg, die dort nichts zu tun hat.
+
+Zwei Kleinigkeiten aus demselben Durchgang: Die Anfrage brach nach acht Sekunden
+ab — währenddessen steht der Erlaubnis-Dialog auf dem Schirm und will gelesen
+werden, acht Sekunden sind eine plausible Bedenkzeit, und das Abbrechen hätte
+genau die Anfrage gekillt, für die die Antwort gedacht war. Jetzt zwei Minuten.
+Und der Bericht kürzte jede Fehlermeldung auf den ersten Satz, indem er am ersten
+Punkt trennte — was aus `127.0.0.1:9000` ein „127." machte und eine abgeschnittene
+Adresse als Ursache meldete.
+
 ### „Jetzt prüfen": der Fehler im Klartext
 
 Der Wächter arbeitet leise, was richtig ist, solange er irgendwann Erfolg hat.

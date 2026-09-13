@@ -657,17 +657,42 @@ export function DownloaderPanel() {
   }, [serviceEnabled, connected, waiting])
 
   /**
-   * Tries every local address once and reports exactly what came back.
+   * One button: ask for what is needed, try every address, report what happened.
    *
-   * The watcher runs quietly, which is right until it never succeeds — then the
-   * silence tells you nothing, and "it does not connect" is all anyone can say.
-   * This says which address was tried, what the browser answered, and where this
-   * page itself is served from, because that last one decides whether the
-   * failure is the service's fault or the browser's.
+   * This used to be two. The check ran quietly and then told you to press a
+   * second button for the permission — which is a instruction, not a solution,
+   * and it also meant the permission request no longer had the click behind it
+   * that a prompt needs. A browser will only put that question on screen in
+   * response to a real interaction, so the request that triggers it has to be
+   * the first thing this does, not the second thing after a failure.
    */
   const runProbe = async () => {
     setProbe('Wird geprüft…')
+    const hosted = !pageIsLocal()
+    const before = await localNetworkPermission()
+
+    // On a hosted page the annotated request comes first, while the click is
+    // still fresh. That is the one that can raise the prompt.
+    if (hosted && before !== 'denied') {
+      setProbe(
+        'Der Browser sollte jetzt fragen, ob diese Seite auf Ihren Rechner zugreifen darf. ' +
+          'Erlauben Sie es — die Prüfung läuft danach weiter.',
+      )
+      for (const candidate of localCandidates()) {
+        try {
+          await requestLocalAccess(candidate)
+          const info = await probeService(candidate, null, AbortSignal.timeout(8000))
+          adopt(candidate, info)
+          setProbe(`Verbunden mit ${candidate} — cobalt ${info.version}, ${info.services.length} Dienste.`)
+          return
+        } catch {
+          // Next address. The report below says what the browser decided.
+        }
+      }
+    }
+
     const permission = await localNetworkPermission()
+    const browser = navigator.userAgent.match(/(Chrome|Firefox|Version)\/[\d.]+/)?.[0] ?? 'unbekannt'
     const lines: string[] = [
       `Diese Seite: ${window.location.origin}`,
       `Sicherer Kontext: ${window.isSecureContext ? 'ja' : 'nein'}`,
@@ -679,86 +704,46 @@ export function DownloaderPanel() {
           unsupported: 'kennt dieser Browser nicht',
         }[permission]
       }`,
-      `Browser: ${navigator.userAgent.match(/(Chrome|Firefox|Version)\/[\d.]+/)?.[0] ?? 'unbekannt'}`,
+      `Browser: ${browser}`,
+      '',
     ]
 
     for (const candidate of localCandidates()) {
       try {
-        const info = await probeService(candidate, null, AbortSignal.timeout(4000))
+        const info = await probeService(candidate, null, AbortSignal.timeout(5000))
         lines.push(`${candidate} → cobalt ${info.version}, ${info.services.length} Dienste`)
         adopt(candidate, info)
         setProbe(lines.join('\n'))
         return
       } catch (failure) {
-        lines.push(`${candidate} → ${failure instanceof Error ? failure.message : String(failure)}`)
+        // Only the first sentence of each message: four paragraphs of identical
+        // advice is a wall, and the summary underneath says it once. Split on a
+        // period followed by a space — the naive split cut "127.0.0.1" down to
+        // "127." and reported a truncated address as the thing that failed.
+        const text = failure instanceof Error ? failure.message : String(failure)
+        const first = text.split(/\.\s/)[0]
+        lines.push(`${candidate} → ${first}${first.endsWith('.') ? '' : '.'}`)
       }
     }
 
-    if (!pageIsLocal()) {
+    if (hosted) {
       lines.push('')
-      if (permission === 'denied') {
-        lines.push(
-          'Die Erlaubnis ist verweigert. Daran scheitert es, nicht am Dienst. Links in der ' +
-            'Adresszeile aufs Schloss, unter den Berechtigungen den Zugriff aufs lokale Netzwerk ' +
-            'wieder erlauben, Seite neu laden.',
-        )
-      } else if (permission === 'unsupported') {
-        lines.push(
-          'Dieser Browser kennt die Erlaubnis für lokale Netzwerke noch nicht. Dann muss der ' +
-            'Dienst selbst für die Anfrage bürgen — dafür gibt es in der Einrichtung die Brücke.',
-        )
-      } else {
-        lines.push(
-          'Die Erlaubnis steht noch aus. Mit „Zugriff erlauben“ fragt der Browser danach; ' +
-            'die Frage kommt nur auf einen Klick hin, nicht von selbst.',
-        )
-      }
+      lines.push(
+        permission === 'granted'
+          ? 'Der Zugriff ist erlaubt, aber unter keiner Adresse antwortet ein Dienst. Läuft er, und ' +
+            'steht in seinem Fenster port: 9000?'
+          : permission === 'denied'
+            ? 'Der Zugriff ist verweigert. Links in der Adresszeile aufs Schloss, unter den ' +
+              'Berechtigungen den Zugriff aufs lokale Netzwerk erlauben, Seite neu laden.'
+            : 'Der Browser hat trotz Klick nicht gefragt. Dann kommt die Frage hier nicht zustande — ' +
+              'der Spiegel umgeht sie: Sondra läuft dann auf Ihrem Rechner, und eine Grenze, die es ' +
+              'nicht gibt, muss auch niemand erlauben.',
+      )
+    } else {
+      lines.push('')
+      lines.push('Läuft der Dienst, und steht in seinem Fenster port: 9000?')
     }
     setProbe(lines.join('\n'))
-  }
-
-  /**
-   * Puts the permission question to the browser, from a real click.
-   *
-   * The watcher cannot do this: a prompt needs user activation behind it, and a
-   * request on a timer has none. So the one thing a person has to do on a hosted
-   * page is press this once — everything after it runs by itself again.
-   */
-  const askForLocalAccess = async () => {
-    setProbe('Der Browser sollte jetzt nach Zugriff auf das lokale Netzwerk fragen…')
-    for (const candidate of localCandidates()) {
-      try {
-        await requestLocalAccess(candidate)
-        const info = await probeService(candidate, null, AbortSignal.timeout(6000))
-        adopt(candidate, info)
-        setProbe(`Erlaubt. Verbunden mit ${candidate} — cobalt ${info.version}.`)
-        return
-      } catch {
-        // Next address; the summary below says what the browser decided.
-      }
-    }
-    // Two very different situations used to share one sentence here, which made
-    // the message read like a diagnosis while saying nothing. Each gets its own,
-    // and the raw state comes along so it can be reported rather than paraphrased.
-    const permission = await localNetworkPermission()
-    const browser = navigator.userAgent.match(/(Chrome|Firefox|Version)\/[\d.]+/)?.[0] ?? 'unbekannt'
-    const footer = `\n\nZustand: ${permission} · ${browser}`
-
-    setProbe(
-      (permission === 'denied'
-        ? 'Der Zugriff wurde verweigert. Links in der Adresszeile aufs Schloss, unter den ' +
-          'Berechtigungen den Zugriff aufs lokale Netzwerk erlauben und neu laden.'
-        : permission === 'granted'
-          ? 'Der Zugriff ist erlaubt, aber unter keiner Adresse antwortet ein Dienst. ' +
-            'Läuft er, und steht in seinem Fenster port: 9000?'
-          : permission === 'prompt'
-            ? 'Der Browser kennt die Erlaubnis, hat aber nicht gefragt. Dann scheitert die ' +
-              'Anfrage schon vorher — meist daran, dass eine HTTPS-Seite nichts über HTTP ' +
-              'laden darf. Der zuverlässige Weg steht in der Einrichtung: Sondra über den ' +
-              'Spiegel lokal öffnen, dann entfällt die Sperre ganz.'
-            : 'Dieser Browser kennt die Erlaubnis nicht. Dann hilft nur, Sondra lokal zu ' +
-              'öffnen — in der Einrichtung steht der Spiegel, der genau das tut.') + footer,
-    )
   }
 
   /**
@@ -1097,13 +1082,8 @@ export function DownloaderPanel() {
                   {connected ? 'Dienst ändern' : 'Dienst einrichten'}
                 </Button>
                 {!connected ? (
-                  <Button size="sm" variant="quiet" onClick={runProbe}>
-                    Jetzt prüfen
-                  </Button>
-                ) : null}
-                {!connected && !pageIsLocal() ? (
-                  <Button size="sm" onClick={askForLocalAccess}>
-                    Zugriff erlauben
+                  <Button size="sm" onClick={runProbe}>
+                    {pageIsLocal() ? 'Jetzt prüfen' : 'Verbinden und Zugriff erlauben'}
                   </Button>
                 ) : null}
                 {connected ? (
