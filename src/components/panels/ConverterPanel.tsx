@@ -31,7 +31,6 @@ import { AudioPreview } from '../AudioPreview'
 import { FileDrop } from '../FileDrop'
 import {
   ArrowRight,
-  Badge,
   Button,
   Card,
   Eyebrow,
@@ -245,11 +244,16 @@ export function ConverterPanel() {
         <Card tone="keylime">
           <Eyebrow>Konverter</Eyebrow>
           <h2 className="display-md mt-[11px] mb-[14px]">Format umwandeln</h2>
-          <p className="max-w-[56ch] text-body leading-[1.6] text-prose/85">
-            FFmpeg läuft als WebAssembly in einem Web Worker dieses Tabs. Die Datei wird in ein
-            In-Memory-Dateisystem geschrieben, dort transkodiert und wieder ausgelesen — sie verlässt
-            den Arbeitsspeicher Ihres Rechners zu keinem Zeitpunkt.
-          </p>
+          <details className="max-w-[56ch]">
+            <summary className="cursor-pointer list-none text-[13px] text-muted underline underline-offset-2 hover:text-ink">
+              Wie das funktioniert
+            </summary>
+            <p className="mt-[9px] text-[13px] leading-[1.6] text-prose/85">
+              FFmpeg läuft als WebAssembly in einem Web Worker dieses Tabs. Die Datei wird in ein
+              In-Memory-Dateisystem geschrieben, dort transkodiert und wieder ausgelesen — sie
+              verlässt den Arbeitsspeicher Ihres Rechners zu keinem Zeitpunkt.
+            </p>
+          </details>
 
           {!asset ? (
             <div className="mt-[28px]">
@@ -650,24 +654,6 @@ export function ConverterPanel() {
       <aside className="flex flex-col gap-[21px]">
         <Card tone="mint">
           <AssetList />
-          <div className="mt-[18px]">
-            <FileDrop compact />
-          </div>
-        </Card>
-        <Card tone="cream" className="ring-1 ring-inset ring-line">
-          <Eyebrow>Quelle</Eyebrow>
-          {asset ? (
-            <div className="mt-[14px] flex flex-col gap-[11px]">
-              <p className="break-all text-body text-ink">{asset.name}</p>
-              <div className="flex flex-wrap gap-[7px]">
-                <Badge>{formatBytes(asset.sizeBytes)}</Badge>
-                <Badge>{asset.kind === 'video' ? 'Video' : asset.kind === 'audio' ? 'Audio' : 'Unbekannt'}</Badge>
-                {asset.mime ? <Badge>{asset.mime}</Badge> : null}
-              </div>
-            </div>
-          ) : (
-            <p className="mt-[14px] text-[13px] text-muted">Keine Datei ausgewählt.</p>
-          )}
         </Card>
       </aside>
     </div>

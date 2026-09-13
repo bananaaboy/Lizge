@@ -452,9 +452,6 @@ export function HarmonyPanel() {
 
         <Card tone="cream" size="compact" className="ring-1 ring-inset ring-line">
           <AssetList />
-          <div className="mt-[14px]">
-            <FileDrop compact />
-          </div>
         </Card>
       </aside>
     </div>

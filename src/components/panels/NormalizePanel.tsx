@@ -190,11 +190,16 @@ export function NormalizePanel() {
         <Card tone="keylime">
           <Eyebrow>Lautheit</Eyebrow>
           <h2 className="display-md mt-[11px] mb-[14px]">Nach EBU R128 normalisieren</h2>
-          <p className="max-w-[58ch] text-body leading-[1.6] text-prose/85">
-            Gemessen wird die integrierte Lautheit mit K-Bewertung und zweistufigem Gate, dazu die
-            Loudness Range und der True Peak bei vierfacher Überabtastung. Die Rechnung läuft in einem
-            Web Worker, damit die Oberfläche bedienbar bleibt.
-          </p>
+          <details className="max-w-[60ch]">
+            <summary className="cursor-pointer list-none text-[13px] text-muted underline underline-offset-2 hover:text-ink">
+              Wie gemessen wird
+            </summary>
+            <p className="mt-[9px] text-[13px] leading-[1.6] text-prose/85">
+              Gemessen wird die integrierte Lautheit mit K-Bewertung und zweistufigem Gate, dazu die
+              Loudness Range und der True Peak bei vierfacher Überabtastung. Die Rechnung läuft in einem
+              Web Worker, damit die Oberfläche bedienbar bleibt.
+            </p>
+          </details>
 
           {!asset ? (
             <div className="mt-[28px]">
@@ -247,53 +252,66 @@ export function NormalizePanel() {
                   </Select>
                 </Field>
 
-                <div className="sm:col-span-2 grid gap-[21px] sm:grid-cols-2">
-                  {settings.mode === 'lufs' ? (
+                {/* The method and the preset are real choices; these refine
+                   them. Folded, because a preset that is about to be adjusted
+                   by hand is not much of a preset. */}
+                <details className="sm:col-span-2 rounded-card bg-raised p-[18px]">
+                  <summary className="cursor-pointer list-none text-[13px] font-semibold text-ink">
+                    Feineinstellungen
+                    <span className="ml-[7px] font-normal text-muted">
+                      Zielwert, Grenze und wie Spitzen behandelt werden
+                    </span>
+                  </summary>
+                  <div className="mt-[18px] flex flex-col gap-[21px]">
+                  <div className="sm:col-span-2 grid gap-[21px] sm:grid-cols-2">
+                    {settings.mode === 'lufs' ? (
+                      <Slider
+                        label="Zielwert"
+                        display={`${settings.targetLufs} LUFS`}
+                        min={-31}
+                        max={-6}
+                        step={0.5}
+                        value={settings.targetLufs}
+                        onChange={(event) => setNormalization({ targetLufs: Number(event.target.value) })}
+                      />
+                    ) : (
+                      <Slider
+                        label="Zielwert"
+                        display={`${settings.targetPeakDbfs} dBFS`}
+                        min={-12}
+                        max={0}
+                        step={0.1}
+                        value={settings.targetPeakDbfs}
+                        onChange={(event) => setNormalization({ targetPeakDbfs: Number(event.target.value) })}
+                      />
+                    )}
                     <Slider
-                      label="Zielwert"
-                      display={`${settings.targetLufs} LUFS`}
-                      min={-31}
-                      max={-6}
-                      step={0.5}
-                      value={settings.targetLufs}
-                      onChange={(event) => setNormalization({ targetLufs: Number(event.target.value) })}
-                    />
-                  ) : (
-                    <Slider
-                      label="Zielwert"
-                      display={`${settings.targetPeakDbfs} dBFS`}
-                      min={-12}
+                      label="True-Peak-Grenze"
+                      display={`${settings.truePeakCeilingDbtp} dBTP`}
+                      min={-6}
                       max={0}
                       step={0.1}
-                      value={settings.targetPeakDbfs}
-                      onChange={(event) => setNormalization({ targetPeakDbfs: Number(event.target.value) })}
+                      value={settings.truePeakCeilingDbtp}
+                      onChange={(event) =>
+                        setNormalization({ truePeakCeilingDbtp: Number(event.target.value) })
+                      }
                     />
-                  )}
-                  <Slider
-                    label="True-Peak-Grenze"
-                    display={`${settings.truePeakCeilingDbtp} dBTP`}
-                    min={-6}
-                    max={0}
-                    step={0.1}
-                    value={settings.truePeakCeilingDbtp}
-                    onChange={(event) =>
-                      setNormalization({ truePeakCeilingDbtp: Number(event.target.value) })
-                    }
-                  />
-                </div>
+                  </div>
 
-                <Toggle
-                  label="Übersteuerung verhindern"
-                  hint="Nimmt die Verstärkung zurück, statt die Grenze zu überschreiten."
-                  checked={settings.preventClipping}
-                  onChange={(value) => setNormalization({ preventClipping: value })}
-                />
-                <Toggle
-                  label="Limiter statt Rücknahme"
-                  hint="Hält den Zielwert und begrenzt nur die Spitzen. Lauter, aber ein Eingriff."
-                  checked={settings.useLimiter}
-                  onChange={(value) => setNormalization({ useLimiter: value })}
-                />
+                  <Toggle
+                    label="Übersteuerung verhindern"
+                    hint="Nimmt die Verstärkung zurück, statt die Grenze zu überschreiten."
+                    checked={settings.preventClipping}
+                    onChange={(value) => setNormalization({ preventClipping: value })}
+                  />
+                  <Toggle
+                    label="Limiter statt Rücknahme"
+                    hint="Hält den Zielwert und begrenzt nur die Spitzen. Lauter, aber ein Eingriff."
+                    checked={settings.useLimiter}
+                    onChange={(value) => setNormalization({ useLimiter: value })}
+                  />
+                  </div>
+                </details>
               </div>
 
               <div className="mt-[28px] flex flex-wrap items-center gap-[11px]">
@@ -410,9 +428,6 @@ export function NormalizePanel() {
       <aside className="flex flex-col gap-[21px]">
         <Card tone="mint">
           <AssetList />
-          <div className="mt-[18px]">
-            <FileDrop compact />
-          </div>
         </Card>
         <Card tone="cream" className="ring-1 ring-inset ring-line">
           <Eyebrow>Zielwerte</Eyebrow>

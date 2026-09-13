@@ -15,6 +15,7 @@ import { DownloaderPanel } from './panels/DownloaderPanel'
 import { NormalizePanel } from './panels/NormalizePanel'
 import { SamplerPanel } from './panels/SamplerPanel'
 import { StemsPanel } from './panels/StemsPanel'
+import { FileDrop } from './FileDrop'
 import { Badge, Button, Card, Eyebrow } from './ui/primitives'
 
 const PANELS: { id: PanelId; label: string; summary: string }[] = [
@@ -227,21 +228,79 @@ function ActivityLog() {
   )
 }
 
+/**
+ * What a tool shows before it has anything to work on.
+ *
+ * Five panels used to answer this question five times over, and each of them
+ * twice on the same screen: a drop zone in the middle, a second one in the
+ * sidebar, and the library saying "nothing loaded" underneath. Three ways to do
+ * one thing, surrounded by settings for material that did not exist — fade
+ * lengths, model choices, output formats, all of it decided in advance of the
+ * file they apply to.
+ *
+ * So the question is answered once, here, and the panel itself only renders when
+ * there is something for it to render about. The downloader is exempt: it is not
+ * a tool that needs a file, it is one of the two ways to get one.
+ */
+function NothingLoaded({ label, summary }: { label: string; summary: string }) {
+  const setPanel = useSession((state) => state.setPanel)
+
+  return (
+    <Card tone="keylime">
+      <div className="mx-auto flex max-w-[480px] flex-col items-center gap-[16px] text-center">
+        <div>
+          <Eyebrow>{label}</Eyebrow>
+          <p className="mt-[7px] text-subheading text-ink">{summary}</p>
+          <p className="mt-[9px] text-body leading-[1.55] text-prose/85">
+            Dafür braucht es erst eine Datei. Alles, was Sie hinzufügen, bleibt in diesem Tab —
+            gerechnet wird auf Ihrem Gerät, hochgeladen wird nichts.
+          </p>
+        </div>
+
+        <div className="w-full">
+          <FileDrop />
+        </div>
+
+        <p className="text-[13px] text-muted">
+          Keine Datei zur Hand?{' '}
+          <button
+            type="button"
+            onClick={() => setPanel('downloader')}
+            className="rounded-nav underline underline-offset-2 hover:text-ink"
+          >
+            Im Downloader eine Adresse einfügen
+          </button>
+          .
+        </p>
+      </div>
+    </Card>
+  )
+}
+
 export function Dashboard({ theme }: { theme: ResolvedTheme }) {
   const panel = useSession((state) => state.panel)
+  const hasAssets = useSession((state) => state.assets.length > 0)
   const current = PANELS.find((entry) => entry.id === panel)
+  // The downloader is how files arrive, so it never waits for one.
+  const ready = hasAssets || panel === 'downloader'
 
   return (
     <section id="studio" className="shell flex flex-col gap-[18px] py-[21px]">
       <PanelTabs />
 
       <div role="tabpanel" aria-label={current?.label}>
-        {panel === 'downloader' ? <DownloaderPanel /> : null}
-        {panel === 'converter' ? <ConverterPanel /> : null}
-        {panel === 'stems' ? <StemsPanel /> : null}
-        {panel === 'normalize' ? <NormalizePanel /> : null}
-        {panel === 'sampler' ? <SamplerPanel theme={theme} /> : null}
-        {panel === 'harmony' ? <HarmonyPanel /> : null}
+        {!ready ? (
+          <NothingLoaded label={current?.label ?? ''} summary={current?.summary ?? ''} />
+        ) : (
+          <>
+            {panel === 'downloader' ? <DownloaderPanel /> : null}
+            {panel === 'converter' ? <ConverterPanel /> : null}
+            {panel === 'stems' ? <StemsPanel /> : null}
+            {panel === 'normalize' ? <NormalizePanel /> : null}
+            {panel === 'sampler' ? <SamplerPanel theme={theme} /> : null}
+            {panel === 'harmony' ? <HarmonyPanel /> : null}
+          </>
+        )}
       </div>
 
       <CapabilityStrip />
