@@ -157,11 +157,16 @@ export function StemsPanel() {
         <Card tone="keylime">
           <Eyebrow>Spurentrennung</Eyebrow>
           <h2 className="display-md mt-[11px] mb-[14px]">Gesang, Schlagzeug, Bass, Rest</h2>
-          <p className="max-w-[60ch] text-body leading-[1.6] text-prose/85">
-            Das eingebaute Verfahren trennt harmonische von perkussiven Anteilen über Medianfilter im
-            Spektrogramm und schätzt den Gesang aus der Mittenkohärenz zwischen links und rechts. Vier
-            Masken, die sich zu eins ergänzen — die Spuren addieren sich exakt zum Original zurück.
-          </p>
+          <details className="max-w-[60ch]">
+            <summary className="cursor-pointer list-none text-[13px] text-muted underline underline-offset-2 hover:text-ink">
+              Wie die Trennung rechnet
+            </summary>
+            <p className="mt-[9px] text-[13px] leading-[1.6] text-prose/85">
+              Das eingebaute Verfahren trennt harmonische von perkussiven Anteilen über Medianfilter im
+              Spektrogramm und schätzt den Gesang aus der Mittenkohärenz zwischen links und rechts. Vier
+              Masken, die sich zu eins ergänzen — die Spuren addieren sich exakt zum Original zurück.
+            </p>
+          </details>
 
           {!asset ? (
             <div className="mt-[28px]">
@@ -179,52 +184,64 @@ export function StemsPanel() {
                 </div>
               ) : null}
 
-              <div className="mt-[28px] grid gap-[21px] sm:grid-cols-2">
-                <Slider
-                  label="Mittenschärfe"
-                  display={options.vocalFocus.toFixed(2)}
-                  min={0}
-                  max={0.9}
-                  step={0.05}
-                  value={options.vocalFocus}
-                  onChange={(event) => setSeparation({ vocalFocus: Number(event.target.value) })}
-                />
-                <Slider
-                  label="Maskenhärte"
-                  display={options.maskExponent.toFixed(1)}
-                  min={1}
-                  max={4}
-                  step={0.5}
-                  value={options.maskExponent}
-                  onChange={(event) => setSeparation({ maskExponent: Number(event.target.value) })}
-                />
-                <Field label="Auflösung" hint="Größer trennt Töne feiner, verschmiert aber Transienten.">
-                  <Select
-                    value={options.fftSize}
-                    onChange={(event) => {
-                      const fftSize = Number(event.target.value)
-                      setSeparation({ fftSize, hopSize: fftSize / 4 })
-                    }}
-                  >
-                    <option value={2048}>2048 — transientenfreundlich</option>
-                    <option value={4096}>4096 — ausgewogen</option>
-                    <option value={8192}>8192 — feine Tonhöhen</option>
-                  </Select>
-                </Field>
-                <Field label="Medianfenster" hint="Länge der Harmonisch-/Perkussiv-Filter.">
-                  <Select
-                    value={options.timeKernel}
-                    onChange={(event) => {
-                      const kernel = Number(event.target.value)
-                      setSeparation({ timeKernel: kernel, freqKernel: kernel })
-                    }}
-                  >
-                    <option value={9}>9 — schnell</option>
-                    <option value={17}>17 — Standard</option>
-                    <option value={31}>31 — gründlich</option>
-                  </Select>
-                </Field>
-              </div>
+              {/* Four expert dials, defaulted sensibly and folded away. They
+                  used to be the first thing on screen, ahead of the button
+                  that uses them — which puts a decision in front of anyone
+                  who only wanted the thing to run. */}
+              <details className="mt-[21px] rounded-card bg-raised p-[18px]">
+                <summary className="cursor-pointer list-none text-[13px] font-semibold text-ink">
+                  Feineinstellungen
+                  <span className="ml-[7px] font-normal text-muted">
+                    für Ausnahmefälle — die Vorgaben passen meistens
+                  </span>
+                </summary>
+                <div className="mt-[18px] grid gap-[21px] sm:grid-cols-2">
+                  <Slider
+                    label="Mittenschärfe"
+                    display={options.vocalFocus.toFixed(2)}
+                    min={0}
+                    max={0.9}
+                    step={0.05}
+                    value={options.vocalFocus}
+                    onChange={(event) => setSeparation({ vocalFocus: Number(event.target.value) })}
+                  />
+                  <Slider
+                    label="Maskenhärte"
+                    display={options.maskExponent.toFixed(1)}
+                    min={1}
+                    max={4}
+                    step={0.5}
+                    value={options.maskExponent}
+                    onChange={(event) => setSeparation({ maskExponent: Number(event.target.value) })}
+                  />
+                  <Field label="Auflösung" hint="Größer trennt Töne feiner, verschmiert aber Transienten.">
+                    <Select
+                      value={options.fftSize}
+                      onChange={(event) => {
+                        const fftSize = Number(event.target.value)
+                        setSeparation({ fftSize, hopSize: fftSize / 4 })
+                      }}
+                    >
+                      <option value={2048}>2048 — transientenfreundlich</option>
+                      <option value={4096}>4096 — ausgewogen</option>
+                      <option value={8192}>8192 — feine Tonhöhen</option>
+                    </Select>
+                  </Field>
+                  <Field label="Medianfenster" hint="Länge der Harmonisch-/Perkussiv-Filter.">
+                    <Select
+                      value={options.timeKernel}
+                      onChange={(event) => {
+                        const kernel = Number(event.target.value)
+                        setSeparation({ timeKernel: kernel, freqKernel: kernel })
+                      }}
+                    >
+                      <option value={9}>9 — schnell</option>
+                      <option value={17}>17 — Standard</option>
+                      <option value={31}>31 — gründlich</option>
+                    </Select>
+                  </Field>
+                </div>
+              </details>
 
               <div className="mt-[28px] flex flex-wrap items-center gap-[11px]">
                 <Button onClick={run} disabled={running}>
@@ -332,18 +349,22 @@ export function StemsPanel() {
       <aside className="flex flex-col gap-[21px]">
         <Card tone="mint">
           <AssetList />
-          <div className="mt-[18px]">
-            <FileDrop compact />
-          </div>
         </Card>
 
         <Card tone="cream" className="ring-1 ring-inset ring-line">
           <Eyebrow>Neuronales Modell</Eyebrow>
-          <p className="mt-[11px] text-[13px] leading-[1.55] text-prose/85">
-            Sondra liefert keine Modellgewichte mit — ein Demucs-Export wiegt Hunderte Megabyte, die
-            sonst jeder Besuch herunterlädt. Laden Sie stattdessen Ihr eigenes <code>.onnx</code>, es
-            wird lokal ausgeführt.
+          <p className="mt-[9px] text-[13px] leading-[1.55] text-prose/85">
+            Optional. Ohne Modell rechnet das eingebaute Verfahren.
           </p>
+          <details className="mt-[7px]">
+            <summary className="cursor-pointer list-none text-[12px] text-muted underline underline-offset-2 hover:text-ink">
+              Warum keins mitgeliefert wird
+            </summary>
+            <p className="mt-[7px] text-[12px] leading-[1.55] text-prose/85">
+              Ein Demucs-Export wiegt Hunderte Megabyte, die sonst jeder Besuch herunterlädt. Ihr
+              eigenes <code>.onnx</code> wird lokal ausgeführt und verlässt das Gerät nicht.
+            </p>
+          </details>
 
           <input
             ref={modelInputRef}

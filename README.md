@@ -263,6 +263,36 @@ Zwei Dinge halten das Warten ehrlich:
 Beim zweiten Besuch liegt der Kern im Zwischenspeicher des Service Workers, die
 Seite startet also sofort und auch ohne Netz.
 
+### Eine Frage, einmal beantwortet
+
+Fünf Panels beantworteten dieselbe Frage — „noch keine Datei" — fünfmal, und
+jedes davon zweimal auf einem Bildschirm: ein Ablagebereich in der Mitte, ein
+zweiter in der Seitenspalte, darunter die Bibliothek mit „Noch nichts geladen".
+Drumherum Einstellungen für Material, das es nicht gab: Blendenlängen,
+Modellwahl, Zielformate, alles zu entscheiden, bevor die Datei existierte, auf
+die es sich bezieht.
+
+Jetzt wird die Frage einmal beantwortet, im Dashboard, und das Panel rendert
+überhaupt erst, wenn es etwas zu zeigen hat. Der Downloader ist ausgenommen: er
+ist kein Werkzeug, das eine Datei braucht, sondern einer der beiden Wege, an
+eine zu kommen — und der zweite Weg steht als Satz darunter.
+
+Dasselbe Prinzip nach innen:
+
+* **Erklärungen hinter ein Wort.** Wie FFmpeg rechnet, wie die Trennung
+  funktioniert, wie gemessen wird — vier Zeilen Verfahrensbeschreibung standen
+  jeweils zwischen der Überschrift und dem Knopf, für den man gekommen war.
+* **Feineinstellungen eingeklappt.** Mittenschärfe, Maskenhärte, Auflösung,
+  Medianfenster bei den Spuren; Zielwert, Grenze und Spitzenbehandlung bei der
+  Lautheit. Vorgaben, die meistens passen, und ein Knopf davor.
+* **Die Datei einmal benennen.** Die Bibliothek zeigt Name, Größe, Dauer,
+  Abtastrate und einen Player. Eine zweite Karte daneben, die einen Teil davon
+  wiederholte, ist weg.
+
+Gemessen: leerer Zustand in allen fünf Werkzeug-Tabs identisch bei 955 px, mit
+Datei zwischen 832 px und 1406 px. Bei 400 px Breite kein seitlicher Überlauf,
+im Dunkelmodus kein Text auf gleichfarbigem Grund.
+
 ### Der Downloader passt auf einen Bildschirm
 
 Eingeschaltet war der Tab 2270 Pixel hoch — knapp drei Bildschirme, und das
