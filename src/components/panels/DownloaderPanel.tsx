@@ -34,7 +34,9 @@ import {
   localJobExtension,
   probeService,
   resolveMedia,
+  localNetworkPermission,
   pageIsLocal,
+  requestLocalAccess,
   SERVICE_DISCLAIMER,
   ServiceError,
   watchForInstance,
@@ -49,6 +51,8 @@ import {
 import { loadFfmpeg, runFfmpeg } from '../../lib/ffmpegClient'
 import { formatBytes, sanitizeFilename, withExtension } from '../../lib/format'
 import {
+  BRIDGE_PORT,
+  bridgeScript,
   composeFile,
   DEFAULT_PORT,
   localSteps,
@@ -653,9 +657,19 @@ export function DownloaderPanel() {
    */
   const runProbe = async () => {
     setProbe('Wird geprüft…')
+    const permission = await localNetworkPermission()
     const lines: string[] = [
       `Diese Seite: ${window.location.origin}`,
       `Sicherer Kontext: ${window.isSecureContext ? 'ja' : 'nein'}`,
+      `Erlaubnis für lokales Netzwerk: ${
+        {
+          granted: 'erteilt',
+          denied: 'verweigert — der Browser fragt nicht mehr von selbst',
+          prompt: 'noch nicht erteilt',
+          unsupported: 'kennt dieser Browser nicht',
+        }[permission]
+      }`,
+      `Browser: ${navigator.userAgent.match(/(Chrome|Firefox|Version)\/[\d.]+/)?.[0] ?? 'unbekannt'}`,
     ]
 
     for (const candidate of localCandidates()) {
@@ -671,13 +685,59 @@ export function DownloaderPanel() {
     }
 
     if (!pageIsLocal()) {
-      lines.push(
-        '',
-        'Diese Seite kommt nicht von diesem Rechner. Browser sperren solche Zugriffe auf ' +
-          'localhost, und die Sperre sieht von hier aus genauso aus wie ein nicht laufender Dienst.',
-      )
+      lines.push('')
+      if (permission === 'denied') {
+        lines.push(
+          'Die Erlaubnis ist verweigert. Daran scheitert es, nicht am Dienst. Links in der ' +
+            'Adresszeile aufs Schloss, unter den Berechtigungen den Zugriff aufs lokale Netzwerk ' +
+            'wieder erlauben, Seite neu laden.',
+        )
+      } else if (permission === 'unsupported') {
+        lines.push(
+          'Dieser Browser kennt die Erlaubnis für lokale Netzwerke noch nicht. Dann muss der ' +
+            'Dienst selbst für die Anfrage bürgen — dafür gibt es in der Einrichtung die Brücke.',
+        )
+      } else {
+        lines.push(
+          'Die Erlaubnis steht noch aus. Mit „Zugriff erlauben“ fragt der Browser danach; ' +
+            'die Frage kommt nur auf einen Klick hin, nicht von selbst.',
+        )
+      }
     }
     setProbe(lines.join('\n'))
+  }
+
+  /**
+   * Puts the permission question to the browser, from a real click.
+   *
+   * The watcher cannot do this: a prompt needs user activation behind it, and a
+   * request on a timer has none. So the one thing a person has to do on a hosted
+   * page is press this once — everything after it runs by itself again.
+   */
+  const askForLocalAccess = async () => {
+    setProbe('Der Browser sollte jetzt nach Zugriff auf das lokale Netzwerk fragen…')
+    for (const candidate of localCandidates()) {
+      try {
+        await requestLocalAccess(candidate)
+        const info = await probeService(candidate, null, AbortSignal.timeout(6000))
+        adopt(candidate, info)
+        setProbe(`Erlaubt. Verbunden mit ${candidate} — cobalt ${info.version}.`)
+        return
+      } catch {
+        // Next address; the summary below says what the browser decided.
+      }
+    }
+    const permission = await localNetworkPermission()
+    setProbe(
+      permission === 'denied'
+        ? 'Der Zugriff wurde verweigert. Links in der Adresszeile aufs Schloss, unter den ' +
+            'Berechtigungen den Zugriff aufs lokale Netzwerk erlauben und neu laden.'
+        : permission === 'granted'
+          ? 'Der Zugriff ist erlaubt, aber unter keiner der Adressen antwortet ein Dienst. ' +
+            'Läuft er, und steht in seinem Fenster port: 9000?'
+          : 'Der Browser hat nicht gefragt. Dann kennt er die Erlaubnis nicht — in der ' +
+            'Einrichtung steht die Brücke, die den Dienst selbst für die Anfrage bürgen lässt.',
+    )
   }
 
   /**
@@ -1002,6 +1062,11 @@ export function DownloaderPanel() {
                 {!connected ? (
                   <Button size="sm" variant="quiet" onClick={runProbe}>
                     Jetzt prüfen
+                  </Button>
+                ) : null}
+                {!connected && !pageIsLocal() ? (
+                  <Button size="sm" onClick={askForLocalAccess}>
+                    Zugriff erlauben
                   </Button>
                 ) : null}
                 {connected ? (
@@ -1466,6 +1531,42 @@ export function DownloaderPanel() {
                                   </>
                                 )}
                               </div>
+                              {!pageIsLocal() ? (
+                                <div className="rounded-nav bg-panel-soft p-[16px]">
+                                  <p className="text-[13px] font-semibold text-ink">
+                                    Falls der Browser nicht nach Erlaubnis fragt
+                                  </p>
+                                  <p className="mt-[4px] text-[12px] leading-[1.5] text-muted">
+                                    Ältere Browser kennen die Abfrage nicht. Dann muss der Dienst
+                                    selbst für die Anfrage bürgen, und dafür gibt es diese Brücke:
+                                    eine Datei, ein Befehl, keine Abhängigkeiten. Sie läuft vor dem
+                                    Dienst und beantwortet die Rückfrage des Browsers.
+                                  </p>
+                                  <div className="mt-[11px] flex flex-wrap items-center gap-[9px]">
+                                    <Button
+                                      size="sm"
+                                      variant="quiet"
+                                      onClick={() =>
+                                        saveBytes(
+                                          new TextEncoder().encode(bridgeScript()),
+                                          'sondra-bruecke.mjs',
+                                          'text/javascript',
+                                        )
+                                      }
+                                    >
+                                      Brücke herunterladen
+                                    </Button>
+                                    <code className="rounded-nav bg-raised px-[9px] py-[5px] font-mono text-[11px] text-prose">
+                                      node sondra-bruecke.mjs
+                                    </code>
+                                  </div>
+                                  <p className="mt-[9px] text-[12px] leading-[1.5] text-muted">
+                                    Läuft dann auf{' '}
+                                    <code className="font-mono">localhost:{BRIDGE_PORT}</code> —
+                                    Sondra sucht dort von selbst mit, es ist nichts einzutragen.
+                                  </p>
+                                </div>
+                              ) : null}
                               <p className="text-muted">
                                 Auf einem eigenen Server statt auf dem Laptop geht es genauso; die
                                 Originalanleitung steht unter{' '}

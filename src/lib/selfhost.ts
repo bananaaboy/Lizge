@@ -32,6 +32,8 @@ function readStored(key: string, previous: string): string | null {
 
 export const COBALT_IMAGE = 'ghcr.io/imputnet/cobalt:11'
 export const DEFAULT_PORT = 9000
+/** Where the bridge listens. The service itself stays on its usual port. */
+export const BRIDGE_PORT = 9001
 
 const STORAGE_KEY = 'sondra:instances'
 const MAX_REMEMBERED = 6
@@ -76,9 +78,16 @@ export function forgetInstance(endpoint: string): string[] {
   return next
 }
 
-/** Addresses a local instance is likely to be reachable at. */
+/**
+ * Addresses a local instance is likely to be reachable at.
+ *
+ * The bridge's port is in the list too, and before the plain ones: if somebody
+ * went to the trouble of starting it, it is the address that will actually work
+ * from a hosted page, and finding it first saves two doomed attempts.
+ */
 export function localCandidates(port = DEFAULT_PORT): string[] {
   return [
+    `http://localhost:${BRIDGE_PORT}/`,
     `http://localhost:${port}/`,
     `http://127.0.0.1:${port}/`,
     // Docker Desktop on Windows and macOS sometimes lands here instead.
@@ -541,4 +550,88 @@ export function localSteps({ hasNode, hasGit, platform, port = DEFAULT_PORT }: L
 /** What still has to be done by hand before the commands will work. */
 export function manualPrerequisite({ hasNode, platform }: Pick<LocalSetup, 'hasNode' | 'platform'>): boolean {
   return !hasNode && nodeInstallCommand(platform) === null
+}
+
+/* -------------------------------------------------------------------------- */
+/* The bridge                                                                  */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * A few lines of Node that let an older browser through.
+ *
+ * Before browsers grew a permission for this, the rule was that the *service*
+ * had to vouch for the request: a page from the internet reaching a private
+ * address triggers a preflight carrying `Access-Control-Request-Private-Network`,
+ * and only an answer of `Access-Control-Allow-Private-Network: true` lets the
+ * real request follow. cobalt does not send that header and has no reason to, so
+ * something in front of it has to.
+ *
+ * That is all this is: it answers the preflight itself and passes everything
+ * else through untouched, apart from replacing the CORS headers — leaving
+ * cobalt's own in place would send two values for one header, which browsers
+ * reject outright.
+ *
+ * Nothing is stored and nothing is logged. It listens only on the loopback
+ * interface, so it is no more reachable from outside than the service behind it.
+ */
+export function bridgeScript(port = DEFAULT_PORT, bridgePort = BRIDGE_PORT): string {
+  return [
+    '// Brücke für Browser ohne Erlaubnis-Abfrage fürs lokale Netzwerk.',
+    '// Erzeugt von Sondra. Vor dem Ausführen lesen — es sind keine 60 Zeilen.',
+    '//',
+    '// Starten mit:  node sondra-bruecke.mjs',
+    `// Danach in Sondra die Adresse http://localhost:${bridgePort}/ eintragen.`,
+    '',
+    "import http from 'node:http'",
+    '',
+    `const TARGET = { host: '127.0.0.1', port: ${port} }`,
+    `const LISTEN = ${bridgePort}`,
+    '',
+    '// Genau die Kopfzeilen, die eine Anfrage aus dem Netz an eine private',
+    '// Adresse braucht. Der Ursprung wird gespiegelt statt auf "*" gesetzt,',
+    '// weil "*" zusammen mit Anmeldedaten nicht erlaubt ist.',
+    'const cors = (req) => ({',
+    "  'Access-Control-Allow-Origin': req.headers.origin ?? '*',",
+    "  'Access-Control-Allow-Private-Network': 'true',",
+    "  'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',",
+    "  'Access-Control-Allow-Headers': req.headers['access-control-request-headers'] ?? '*',",
+    "  'Access-Control-Max-Age': '86400',",
+    "  Vary: 'Origin',",
+    '})',
+    '',
+    'http',
+    '  .createServer((req, res) => {',
+    '    // Die Vorabfrage beantwortet die Brücke selbst.',
+    "    if (req.method === 'OPTIONS') {",
+    '      res.writeHead(204, cors(req))',
+    '      return res.end()',
+    '    }',
+    '',
+    '    const upstream = http.request(',
+    '      { ...TARGET, path: req.url, method: req.method, headers: { ...req.headers, host: `127.0.0.1:${TARGET.port}` } },',
+    '      (answer) => {',
+    '        const headers = { ...answer.headers }',
+    '        // Die eigenen CORS-Kopfzeilen des Dienstes müssen weg, sonst',
+    '        // stünde jede doppelt da und der Browser verwirft die Antwort.',
+    '        for (const name of Object.keys(headers)) {',
+    "          if (name.toLowerCase().startsWith('access-control-')) delete headers[name]",
+    '        }',
+    '        res.writeHead(answer.statusCode ?? 502, { ...headers, ...cors(req) })',
+    '        answer.pipe(res)',
+    '      },',
+    '    )',
+    '',
+    "    upstream.on('error', () => {",
+    "      res.writeHead(502, { 'Content-Type': 'text/plain', ...cors(req) })",
+    `      res.end('Der Dienst auf Port ${port} antwortet nicht.')`,
+    '    })',
+    '',
+    '    req.pipe(upstream)',
+    '  })',
+    "  .listen(LISTEN, '127.0.0.1', () => {",
+    '    console.log(`Brücke läuft: http://localhost:${LISTEN}/ → 127.0.0.1:${TARGET.port}`)',
+    "    console.log('Diese Adresse in Sondra eintragen. Fenster offen lassen.')",
+    '  })',
+    '',
+  ].join('\n')
 }

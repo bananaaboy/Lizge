@@ -286,6 +286,42 @@ Was sich geändert hat, ist nicht das Kürzen von Texten, sondern wo sie stehen:
 
 Bei 400 Pixeln Breite läuft nichts seitlich über, und der Dialog passt hinein.
 
+Bleibt es dabei gesperrt, sagt die Prüfung jetzt, woran es liegt, statt es zu
+vermuten: Chrome legt die Erlaubnis wie jede andere offen, also lässt sie sich
+abfragen. `erteilt` und trotzdem nichts heißt, der Dienst läuft wirklich nicht.
+`verweigert` heißt, es wurde einmal Nein gesagt und der Browser fragt nicht
+wieder — dann hilft nur das Schloss in der Adresszeile. `noch nicht erteilt`
+heißt, die Frage steht aus.
+
+Und eine Frage kommt nur auf einen Klick hin. Ein Wächter auf dem Zeitgeber hat
+keine Nutzeraktion hinter sich, also kann er keine Abfrage auslösen — deshalb
+gibt es **Zugriff erlauben**. Das ist das eine, was auf einer gehosteten Seite
+von Hand passieren muss; danach läuft wieder alles von selbst.
+
+### Die Brücke, für Browser ohne diese Abfrage
+
+Ältere Browser kennen die Erlaubnis nicht. Dort galt die ältere Regelung: nicht
+der Besucher, sondern der *Dienst* muss für die Anfrage bürgen. Eine Anfrage aus
+dem Netz an eine private Adresse löst eine Vorabfrage mit
+`Access-Control-Request-Private-Network` aus, und nur eine Antwort mit
+`Access-Control-Allow-Private-Network: true` lässt die eigentliche Anfrage
+folgen. cobalt sendet die Kopfzeile nicht und hat auch keinen Grund dazu, also
+muss etwas davor es tun.
+
+Mehr ist die Brücke nicht: keine 60 Zeilen Node, keine Abhängigkeiten, hört nur
+auf der Loopback-Schnittstelle. Sie beantwortet die Vorabfrage selbst und reicht
+alles andere unverändert durch — bis auf die CORS-Kopfzeilen, die ersetzt statt
+ergänzt werden, weil zwei Werte für eine Kopfzeile vom Browser verworfen werden.
+
+Sie läuft auf Port 9001, und der steht in der Kandidatenliste *vor* den übrigen:
+wer sie gestartet hat, hat die Adresse, die von einer gehosteten Seite aus
+tatsächlich funktioniert, und sie zuerst zu prüfen spart zwei aussichtslose
+Versuche. Einzutragen ist nichts.
+
+Geprüft mit echter Vorabfrage: 204 mit allen nötigen Kopfzeilen, echte Anfrage
+mit unverändertem Rumpf und genau einem Satz CORS-Kopfzeilen, und in der App
+selbst gefunden, verbunden und eine Datei durchgeladen.
+
 ### Wenn die Seite gehostet ist, der Dienst aber zu Hause läuft
 
 Die Prüfung hat den Fall dann auch geliefert: Seite auf `https://www.lizge.ch`,
