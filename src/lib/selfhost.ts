@@ -34,6 +34,8 @@ export const COBALT_IMAGE = 'ghcr.io/imputnet/cobalt:11'
 export const DEFAULT_PORT = 9000
 /** Where the bridge listens. The service itself stays on its usual port. */
 export const BRIDGE_PORT = 9001
+/** Where the mirror serves the app back. */
+export const MIRROR_PORT = 8787
 
 const STORAGE_KEY = 'sondra:instances'
 const MAX_REMEMBERED = 6
@@ -631,6 +633,83 @@ export function bridgeScript(port = DEFAULT_PORT, bridgePort = BRIDGE_PORT): str
     "  .listen(LISTEN, '127.0.0.1', () => {",
     '    console.log(`Brücke läuft: http://localhost:${LISTEN}/ → 127.0.0.1:${TARGET.port}`)',
     "    console.log('Diese Adresse in Sondra eintragen. Fenster offen lassen.')",
+    '  })',
+    '',
+  ].join('\n')
+}
+
+/* -------------------------------------------------------------------------- */
+/* The mirror                                                                  */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Serves this very app back from the machine it is talking to.
+ *
+ * Every other approach here argues with the browser about whether a page from
+ * the internet may touch `localhost`. This one removes the argument: it puts the
+ * app on `localhost` too. Page and service then share an address space, no
+ * permission applies, no preflight is needed, and it works the same in browsers
+ * that never implemented any of it.
+ *
+ * It is a pass-through, not a copy: each request is fetched from the site and
+ * handed on, so what you get is whatever the site currently serves. Two headers
+ * are added on the way, the ones that unlock the multi-threaded FFmpeg core —
+ * without them the app still runs, just slower, and losing that to a workaround
+ * would be a poor trade. Content encoding and length are dropped because the
+ * body is decoded in passing and the old numbers would no longer describe it.
+ *
+ * Nothing is stored, nothing is logged, and it listens on loopback only.
+ */
+export function mirrorScript(origin: string, port = MIRROR_PORT): string {
+  return [
+    '// Sondra lokal spiegeln. Erzeugt von Sondra selbst.',
+    '// Vor dem Ausführen lesen — es ist eine Datei ohne Abhängigkeiten.',
+    '//',
+    '// Starten mit:  node sondra-spiegel.mjs',
+    `// Dann http://localhost:${port}/ öffnen statt der Website.`,
+    '//',
+    '// Warum das hilft: Seite und Dienst liegen dann beide auf diesem Rechner.',
+    '// Browser sperren nur den Weg von außen nach innen — den geht es dann nicht',
+    '// mehr, also ist auch keine Erlaubnis nötig.',
+    '',
+    "import http from 'node:http'",
+    '',
+    `const SITE = '${origin.replace(/\/$/, '')}'`,
+    `const LISTEN = ${port}`,
+    '',
+    'http',
+    '  .createServer(async (req, res) => {',
+    '    try {',
+    '      const upstream = await fetch(SITE + req.url, {',
+    '        method: req.method,',
+    "        headers: { 'user-agent': req.headers['user-agent'] ?? 'sondra-spiegel', accept: req.headers.accept ?? '*/*' },",
+    "        redirect: 'follow',",
+    '      })',
+    '',
+    '      const headers = {}',
+    '      upstream.headers.forEach((value, name) => {',
+    '        // Der Rumpf wird beim Durchreichen entpackt, also beschreiben die',
+    '        // alten Angaben ihn nicht mehr.',
+    "        if (['content-encoding', 'content-length', 'transfer-encoding'].includes(name)) return",
+    '        headers[name] = value',
+    '      })',
+    '',
+    '      // Diese beiden schalten den mehrfädigen FFmpeg-Kern frei.',
+    "      headers['cross-origin-opener-policy'] = 'same-origin'",
+    "      headers['cross-origin-embedder-policy'] = 'credentialless'",
+    '',
+    '      res.writeHead(upstream.status, headers)',
+    '      if (!upstream.body) return res.end()',
+    '      for await (const chunk of upstream.body) res.write(chunk)',
+    '      res.end()',
+    '    } catch (error) {',
+    "      res.writeHead(502, { 'Content-Type': 'text/plain; charset=utf-8' })",
+    '      res.end(`Die Seite ${SITE} war nicht erreichbar: ${error.message}`)',
+    '    }',
+    '  })',
+    "  .listen(LISTEN, '127.0.0.1', () => {",
+    '    console.log(`Sondra läuft jetzt lokal: http://localhost:${LISTEN}/`)',
+    "    console.log('Diese Adresse im Browser öffnen. Fenster offen lassen.')",
     '  })',
     '',
   ].join('\n')

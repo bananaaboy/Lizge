@@ -53,6 +53,8 @@ import { formatBytes, sanitizeFilename, withExtension } from '../../lib/format'
 import {
   BRIDGE_PORT,
   bridgeScript,
+  MIRROR_PORT,
+  mirrorScript,
   composeFile,
   DEFAULT_PORT,
   localSteps,
@@ -188,6 +190,14 @@ export function DownloaderPanel() {
   const [hasGit, setHasGit] = useState(false)
   /** Setup lives in a dialog, so the page itself stays short. */
   const [setupDialog, setSetupDialog] = useState(false)
+  /** Hands over the mirror, with this site's own address already in it. */
+  const saveMirror = () =>
+    saveBytes(
+      new TextEncoder().encode(mirrorScript(window.location.origin)),
+      'sondra-spiegel.mjs',
+      'text/javascript',
+    )
+
   /** The last hand-run check, kept verbatim so it can be read or pasted. */
   const [probe, setProbe] = useState<string | null>(null)
   /** How many fruitless sweeps the watcher has made, to know when to speak up. */
@@ -727,16 +737,27 @@ export function DownloaderPanel() {
         // Next address; the summary below says what the browser decided.
       }
     }
+    // Two very different situations used to share one sentence here, which made
+    // the message read like a diagnosis while saying nothing. Each gets its own,
+    // and the raw state comes along so it can be reported rather than paraphrased.
     const permission = await localNetworkPermission()
+    const browser = navigator.userAgent.match(/(Chrome|Firefox|Version)\/[\d.]+/)?.[0] ?? 'unbekannt'
+    const footer = `\n\nZustand: ${permission} · ${browser}`
+
     setProbe(
-      permission === 'denied'
+      (permission === 'denied'
         ? 'Der Zugriff wurde verweigert. Links in der Adresszeile aufs Schloss, unter den ' +
-            'Berechtigungen den Zugriff aufs lokale Netzwerk erlauben und neu laden.'
+          'Berechtigungen den Zugriff aufs lokale Netzwerk erlauben und neu laden.'
         : permission === 'granted'
-          ? 'Der Zugriff ist erlaubt, aber unter keiner der Adressen antwortet ein Dienst. ' +
+          ? 'Der Zugriff ist erlaubt, aber unter keiner Adresse antwortet ein Dienst. ' +
             'Läuft er, und steht in seinem Fenster port: 9000?'
-          : 'Der Browser hat nicht gefragt. Dann kennt er die Erlaubnis nicht — in der ' +
-            'Einrichtung steht die Brücke, die den Dienst selbst für die Anfrage bürgen lässt.',
+          : permission === 'prompt'
+            ? 'Der Browser kennt die Erlaubnis, hat aber nicht gefragt. Dann scheitert die ' +
+              'Anfrage schon vorher — meist daran, dass eine HTTPS-Seite nichts über HTTP ' +
+              'laden darf. Der zuverlässige Weg steht in der Einrichtung: Sondra über den ' +
+              'Spiegel lokal öffnen, dann entfällt die Sperre ganz.'
+            : 'Dieser Browser kennt die Erlaubnis nicht. Dann hilft nur, Sondra lokal zu ' +
+              'öffnen — in der Einrichtung steht der Spiegel, der genau das tut.') + footer,
     )
   }
 
@@ -1044,12 +1065,28 @@ export function DownloaderPanel() {
                   ) : (
                     <>
                       Läuft der Dienst, liegt es nicht an ihm. Diese Seite kommt aus dem Netz und
-                      greift auf Ihren eigenen Rechner zu — dafür verlangt der Browser seit Kurzem
-                      Ihre ausdrückliche Erlaubnis und fragt beim Versuch danach.{' '}
-                      <strong className="font-semibold text-ink">Sagen Sie ja.</strong> Haben Sie
-                      einmal abgelehnt, fragt er nicht wieder: dann links in der Adresszeile aufs
-                      Schloss, unter den Berechtigungen den Zugriff aufs lokale Netzwerk erlauben
-                      und neu laden.
+                      greift auf Ihren eigenen Rechner zu — das sperren Browser, teils mit einer
+                      Rückfrage, teils ohne. „Zugriff erlauben“ stellt die Frage, falls Ihrer sie
+                      kennt.
+                      <span className="mt-[9px] block border-t border-line pt-[9px]">
+                        Sicher geht es anders herum: Holen Sie Sondra auf diesen Rechner, statt den
+                        Rechner von außen anzusprechen. Der Spiegel ist eine Datei, ein Befehl, und
+                        danach gibt es keine Sperre mehr, weil es keine Grenze mehr zu überschreiten
+                        gibt.
+                      </span>
+                      <span className="mt-[11px] flex flex-wrap items-center gap-[9px]">
+                        <Button size="sm" onClick={saveMirror}>
+                          Spiegel herunterladen
+                        </Button>
+                        <code className="rounded-nav bg-panel-soft px-[9px] py-[5px] font-mono text-[11px] text-prose">
+                          node sondra-spiegel.mjs
+                        </code>
+                      </span>
+                      <span className="mt-[7px] block text-muted">
+                        Danach <code className="font-mono">localhost:{MIRROR_PORT}</code> öffnen
+                        statt dieser Adresse. Es ist dieselbe Seite, nur von Ihrem Rechner
+                        ausgeliefert.
+                      </span>
                     </>
                   )}
                 </Notice>
@@ -1531,6 +1568,35 @@ export function DownloaderPanel() {
                                   </>
                                 )}
                               </div>
+                              {!pageIsLocal() ? (
+                                <div className="rounded-nav bg-panel-soft p-[16px] ring-1 ring-inset ring-ink/20">
+                                  <p className="text-[13px] font-semibold text-ink">
+                                    Sondra lokal öffnen — der sichere Weg
+                                  </p>
+                                  <p className="mt-[4px] text-[12px] leading-[1.5] text-muted">
+                                    Solange diese Seite aus dem Netz kommt und der Dienst auf Ihrem
+                                    Rechner läuft, steht eine Browsersperre dazwischen. Der Spiegel
+                                    liefert dieselbe Seite von Ihrem Rechner aus — dann liegen beide
+                                    auf derselben Maschine und die Sperre entfällt. Keine
+                                    Abhängigkeiten, nichts wird gespeichert, und der mehrfädige
+                                    FFmpeg-Kern bleibt erhalten.
+                                  </p>
+                                  <div className="mt-[11px] flex flex-wrap items-center gap-[9px]">
+                                    <Button size="sm" onClick={saveMirror}>
+                                      Spiegel herunterladen
+                                    </Button>
+                                    <code className="rounded-nav bg-raised px-[9px] py-[5px] font-mono text-[11px] text-prose">
+                                      node sondra-spiegel.mjs
+                                    </code>
+                                  </div>
+                                  <p className="mt-[9px] text-[12px] leading-[1.5] text-muted">
+                                    Dann <code className="font-mono">localhost:{MIRROR_PORT}</code>{' '}
+                                    öffnen. Von dort aus findet Sondra den Dienst ohne jede
+                                    Erlaubnis.
+                                  </p>
+                                </div>
+                              ) : null}
+
                               {!pageIsLocal() ? (
                                 <div className="rounded-nav bg-panel-soft p-[16px]">
                                   <p className="text-[13px] font-semibold text-ink">
