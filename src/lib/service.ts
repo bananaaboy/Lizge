@@ -208,6 +208,45 @@ export function pageIsLocal(): boolean {
  * hostname of its own that resolves to 127.0.0.1 broke exactly that way. So the
  * plain attempt goes first and the declaration is kept for the case it is for.
  */
+/**
+ * What the browser has decided about reaching this machine.
+ *
+ * Chrome exposes the local network permission like any other, which turns the
+ * whole question from guesswork into a fact: `granted` and a failure means the
+ * service really is not there, `denied` means the visitor said no once and the
+ * browser will not ask again, `prompt` means it has yet to be asked. Browsers
+ * without the permission answer `unsupported`, which is its own useful answer —
+ * those need the older arrangement where the service itself vouches for the
+ * request.
+ */
+export async function localNetworkPermission(): Promise<'granted' | 'denied' | 'prompt' | 'unsupported'> {
+  try {
+    const status = await navigator.permissions.query({
+      name: 'local-network-access' as PermissionName,
+    })
+    return status.state
+  } catch {
+    return 'unsupported'
+  }
+}
+
+/**
+ * Asks for the local network in the one way that can produce a prompt.
+ *
+ * A permission prompt needs a real click behind it, and it needs the request to
+ * declare where it is going. This does both and nothing else, so it can be
+ * wired straight to a button rather than buried under a retry the browser may
+ * no longer consider user-initiated.
+ */
+export async function requestLocalAccess(target: string): Promise<Response> {
+  return fetch(target, {
+    credentials: 'omit',
+    headers: { Accept: 'application/json' },
+    signal: AbortSignal.timeout(8000),
+    targetAddressSpace: 'local',
+  } as RequestInit)
+}
+
 export async function fetchLocalAware(target: string, init: RequestInit): Promise<Response> {
   try {
     return await fetch(target, init)
