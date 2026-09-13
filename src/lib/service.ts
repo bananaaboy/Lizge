@@ -266,7 +266,11 @@ export async function requestLocalAccess(target: string): Promise<Response> {
   const init = {
     credentials: 'omit' as const,
     headers: { Accept: 'application/json' },
-    signal: AbortSignal.timeout(8000),
+    // No short deadline here. This request is what makes the browser put the
+    // permission question on screen, and the clock would otherwise be running
+    // while somebody reads it — eight seconds is a plausible time to think, and
+    // aborting then would cancel the very request the answer was meant for.
+    signal: AbortSignal.timeout(120_000),
   }
   const first = addressSpaceFor(target)
   try {
