@@ -141,7 +141,31 @@ const MEDIA_HOSTS =
  * out, it was refused for not being HTTPS — a true statement about a rule that
  * does not apply, which is the least useful kind of error message.
  */
-const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]', '::1', 'host.docker.internal'])
+const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]', '::1'])
+const LOCAL_HOSTS = new Set([...LOOPBACK_HOSTS, 'host.docker.internal'])
+
+/**
+ * Which address space a target actually sits in.
+ *
+ * There are three, and the distinction turned out to be the whole ballgame:
+ * `loopback` is this very machine, `local` is the network it sits on (the
+ * router, a printer, a NAS), `public` is everything else. A request may declare
+ * where it is going — but the browser checks that declaration against where the
+ * request really lands, and a wrong one is not ignored. It fails the check, and
+ * the request dies without so much as a prompt.
+ *
+ * That is exactly what happened here: `local` was declared for an address on
+ * `127.0.0.1`, and the symptom was maddening — permission available, permission
+ * not denied, no question asked, request dead. Measured afterwards from a hosted
+ * page against all four values, only `loopback` reaches `127.0.0.1`.
+ */
+function addressSpaceFor(target: string): 'loopback' | 'local' {
+  try {
+    return LOOPBACK_HOSTS.has(new URL(target).hostname) ? 'loopback' : 'local'
+  } catch {
+    return 'local'
+  }
+}
 
 function normalizeEndpoint(endpoint: string): string {
   const trimmed = endpoint.trim()
@@ -239,12 +263,19 @@ export async function localNetworkPermission(): Promise<'granted' | 'denied' | '
  * no longer consider user-initiated.
  */
 export async function requestLocalAccess(target: string): Promise<Response> {
-  return fetch(target, {
-    credentials: 'omit',
+  const init = {
+    credentials: 'omit' as const,
     headers: { Accept: 'application/json' },
     signal: AbortSignal.timeout(8000),
-    targetAddressSpace: 'local',
-  } as RequestInit)
+  }
+  const first = addressSpaceFor(target)
+  try {
+    return await fetch(target, { ...init, targetAddressSpace: first } as RequestInit)
+  } catch {
+    // A hostname can resolve into either space, so the other one gets a turn.
+    const second = first === 'loopback' ? 'local' : 'loopback'
+    return await fetch(target, { ...init, targetAddressSpace: second } as RequestInit)
+  }
 }
 
 export async function fetchLocalAware(target: string, init: RequestInit): Promise<Response> {
@@ -252,9 +283,15 @@ export async function fetchLocalAware(target: string, init: RequestInit): Promis
     return await fetch(target, init)
   } catch (error) {
     if (!isLoopback(target) || pageIsLocal()) throw error
-    // Not in the DOM typings yet; a browser that does not know the member
-    // ignores it, and then this retry simply fails the same way as the first.
-    return await fetch(target, { ...init, targetAddressSpace: 'local' } as RequestInit)
+    const first = addressSpaceFor(target)
+    const second = first === 'loopback' ? 'local' : 'loopback'
+    try {
+      // Not in the DOM typings yet; a browser that does not know the member
+      // ignores it, and the retry then fails the same way the first did.
+      return await fetch(target, { ...init, targetAddressSpace: first } as RequestInit)
+    } catch {
+      return await fetch(target, { ...init, targetAddressSpace: second } as RequestInit)
+    }
   }
 }
 

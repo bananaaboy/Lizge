@@ -298,6 +298,31 @@ keine Nutzeraktion hinter sich, also kann er keine Abfrage auslösen — deshalb
 gibt es **Zugriff erlauben**. Das ist das eine, was auf einer gehosteten Seite
 von Hand passieren muss; danach läuft wieder alles von selbst.
 
+### Der Fehler war ein Wort
+
+Die Anfrage darf ansagen, wohin sie geht, und der Browser prüft die Ansage gegen
+den tatsächlichen Landeplatz. Es gibt drei Räume: `loopback` ist dieser Rechner,
+`local` ist das Netz, in dem er steht, `public` der Rest. Hier stand `local` für
+eine Adresse auf `127.0.0.1` — und eine falsche Ansage wird nicht ignoriert. Sie
+fällt durch die Prüfung, und die Anfrage stirbt, ohne dass überhaupt gefragt
+wird.
+
+Genau das war das Bild: Erlaubnis vorhanden, Erlaubnis nicht verweigert, keine
+Abfrage, tote Anfrage. Von einer gehosteten Seite aus gegen alle vier Werte
+gemessen:
+
+| Ansage | Ziel `127.0.0.1:9000` |
+|---|---|
+| keine | geht durch |
+| `loopback` | geht durch |
+| `local` | scheitert |
+| `private` | scheitert |
+| `public` | scheitert |
+
+Also `loopback` für diesen Rechner, `local` für alles andere Lokale, und wenn
+der erste Wert scheitert, bekommt der zweite eine Chance — ein Name kann in
+beide Räume auflösen. Danach verbindet sich die gehostete Seite von selbst.
+
 ### Der Spiegel: die Seite auf den eigenen Rechner holen
 
 Alles Bisherige streitet mit dem Browser darüber, ob eine Seite aus dem Netz
