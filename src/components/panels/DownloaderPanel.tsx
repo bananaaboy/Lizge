@@ -728,16 +728,23 @@ export function DownloaderPanel() {
 
     if (hosted) {
       lines.push('')
+      // Leading with the permission was right until it kept not working.
+      // Chrome reports it as available and never asks — measured on the real
+      // site, not guessed — so pointing at it a fourth time would be advice
+      // this app has no evidence for. The mirror depends on no browser
+      // feature at all, so it goes first and the permission is the footnote.
       lines.push(
         permission === 'granted'
-          ? 'Der Zugriff ist erlaubt, aber unter keiner Adresse antwortet ein Dienst. Läuft er, und ' +
-            'steht in seinem Fenster port: 9000?'
-          : permission === 'denied'
-            ? 'Der Zugriff ist verweigert. Links in der Adresszeile aufs Schloss, unter den ' +
-              'Berechtigungen den Zugriff aufs lokale Netzwerk erlauben, Seite neu laden.'
-            : 'Der Browser hat trotz Klick nicht gefragt. Dann kommt die Frage hier nicht zustande — ' +
-              'der Spiegel umgeht sie: Sondra läuft dann auf Ihrem Rechner, und eine Grenze, die es ' +
-              'nicht gibt, muss auch niemand erlauben.',
+          ? 'Der Zugriff ist erlaubt, aber unter keiner Adresse antwortet ein Dienst. Läuft er, ' +
+            'und steht in seinem Fenster port: 9000?'
+          : 'Läuft der Dienst, dann hält ihn der Browser zurück, nicht Ihr Rechner. Der Spiegel ' +
+            'unten löst das ohne Erlaubnis und ohne Nachfrage: er liefert Sondra von Ihrem ' +
+            'Rechner aus, und zwischen zwei Dingen auf derselben Maschine gibt es keine Grenze, ' +
+            'die jemand erlauben müsste.' +
+            (permission === 'denied'
+              ? ' Die Erlaubnis ist hier zusätzlich verweigert — im Schloss links in der ' +
+                'Adresszeile wieder zu erlauben.'
+              : ''),
       )
     } else {
       lines.push('')
