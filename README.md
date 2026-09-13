@@ -286,6 +286,34 @@ Was sich geändert hat, ist nicht das Kürzen von Texten, sondern wo sie stehen:
 
 Bei 400 Pixeln Breite läuft nichts seitlich über, und der Dialog passt hinein.
 
+### Wenn die Seite gehostet ist, der Dienst aber zu Hause läuft
+
+Die Prüfung hat den Fall dann auch geliefert: Seite auf `https://www.lizge.ch`,
+Dienst auf `http://localhost:9000`. Das ist kein Fehler im Dienst, sondern eine
+Sperre des Browsers. Eine Seite aus dem Netz, die auf `localhost` zugreift, hat
+die Form eines Angriffs auf den Router im selben Haus, also verlangt Chrome seit
+Version 141 dafür die ausdrückliche Erlaubnis des Besuchers — und eine
+HTTPS-Seite, die `http://` anfragt, wäre zusätzlich als Mixed Content
+abgewiesen worden.
+
+Der Ausweg steht in derselben Spezifikation: `targetAddressSpace: 'local'` sagt
+einer Anfrage an, wohin sie geht. Erst das erlaubt dem Browser, die Frage dem
+Besucher zu stellen, statt die Anfrage stumm fallen zu lassen — und eine erteilte
+Erlaubnis hebt die Mixed-Content-Abweisung gleich mit auf.
+
+Wichtig ist die Reihenfolge, und die ist nicht geraten: **erst normal, dann mit
+Kennzeichnung.** Die Angabe wird gegen den tatsächlichen Landeplatz geprüft,
+also lässt ein „local" für eine Adresse, die sich als Loopback herausstellt, eine
+Anfrage scheitern, die sonst durchgegangen wäre. Genau das ist im Versuch
+passiert, mit einer Seite unter eigenem Hostnamen, der auf 127.0.0.1 zeigt: neun
+gekennzeichnete Anfragen, keine Verbindung. Als Nachschlag statt als Vorgabe
+verbinden sich beide Fälle wieder.
+
+Zu prüfen bleibt, was hier nicht prüfbar war: Ob die Erlaubnisabfrage auf einer
+echt öffentlichen Adresse erscheint, lässt sich in einer Umgebung ohne
+öffentliche IP nicht feststellen. Getestet ist, dass die Kennzeichnung gesetzt
+wird, wo sie hingehört, und dass sie nichts kaputt macht, wo sie nicht hingehört.
+
 ### „Jetzt prüfen": der Fehler im Klartext
 
 Der Wächter arbeitet leise, was richtig ist, solange er irgendwann Erfolg hat.

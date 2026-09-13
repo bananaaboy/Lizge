@@ -190,6 +190,36 @@ export function pageIsLocal(): boolean {
 }
 
 /**
+ * Fetches, and if the browser refuses, asks once more the way it wants to be
+ * asked.
+ *
+ * A page served from the internet reaching for `localhost` is the shape of a
+ * cross-site attack on someone's router, so browsers gate it: since Chrome 141
+ * such a request needs the visitor's permission, and an HTTPS page asking for
+ * `http://` would be refused as mixed content besides. `targetAddressSpace:
+ * 'local'` is how a request declares where it is going, which is what lets the
+ * browser put the question to the visitor rather than dropping the request in
+ * silence — and a granted permission lifts the mixed-content refusal too.
+ *
+ * It is the second attempt, not the first, and that ordering was earned: the
+ * declaration is checked against where the request actually lands, so asserting
+ * "local" for an address that turns out to be loopback fails a request that
+ * would otherwise have gone through. Measured, not assumed — a page on a
+ * hostname of its own that resolves to 127.0.0.1 broke exactly that way. So the
+ * plain attempt goes first and the declaration is kept for the case it is for.
+ */
+export async function fetchLocalAware(target: string, init: RequestInit): Promise<Response> {
+  try {
+    return await fetch(target, init)
+  } catch (error) {
+    if (!isLoopback(target) || pageIsLocal()) throw error
+    // Not in the DOM typings yet; a browser that does not know the member
+    // ignores it, and then this retry simply fails the same way as the first.
+    return await fetch(target, { ...init, targetAddressSpace: 'local' } as RequestInit)
+  }
+}
+
+/**
  * Turns a fetch rejection into something the user can act on.
  *
  * The awkward case is a hosted page reaching for a service on the visitor's own
@@ -209,10 +239,12 @@ function describeUnreachable(endpoint: string): ServiceError {
 
   if (isLoopback(endpoint) && !pageIsLocal()) {
     return new ServiceError(
-      `${host} war nicht erreichbar. Wenn der Dienst dort läuft, liegt es vermutlich nicht an ihm: ` +
-        'Browser lassen eine Seite aus dem Netz nicht ohne Weiteres auf Adressen im eigenen Rechner ' +
-        'zugreifen. Fragt der Browser nach Zugriff aufs lokale Netzwerk, erlauben Sie es. Sonst hilft, ' +
-        'Sondra selbst lokal zu öffnen — dann liegen Seite und Dienst auf derselben Maschine.',
+      `${host} war nicht erreichbar. Läuft der Dienst dort, liegt es nicht an ihm: Diese Seite kommt ` +
+        'aus dem Netz und greift auf Ihren eigenen Rechner zu, und dafür verlangt der Browser seit ' +
+        'Kurzem Ihre ausdrückliche Erlaubnis. Er sollte danach fragen — sagen Sie ja. Haben Sie ' +
+        'vorher einmal abgelehnt, fragt er nicht wieder: dann im Schloss-Symbol links in der ' +
+        'Adresszeile unter den Berechtigungen den Zugriff aufs lokale Netzwerk erlauben und neu ' +
+        'laden. Zuverlässig ohne all das geht es, wenn Sondra selbst lokal läuft.',
       'local-network-blocked',
     )
   }
@@ -241,7 +273,7 @@ export async function probeService(
 
   let response: Response
   try {
-    response = await fetch(normalized, {
+    response = await fetchLocalAware(normalized, {
       signal,
       credentials: 'omit',
       headers: { Accept: 'application/json', ...(apiKey ? { Authorization: `Api-Key ${apiKey}` } : {}) },
@@ -352,7 +384,7 @@ export async function resolveMedia(
 
   let response: Response
   try {
-    response = await fetch(endpoint, {
+    response = await fetchLocalAware(endpoint, {
       method: 'POST',
       signal,
       credentials: 'omit',
