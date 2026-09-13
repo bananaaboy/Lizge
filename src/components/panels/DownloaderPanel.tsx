@@ -983,11 +983,13 @@ export function DownloaderPanel() {
                     </>
                   ) : (
                     <>
-                      Wenn der Dienst läuft, liegt es vermutlich nicht an ihm: Diese Seite kommt aus
-                      dem Netz, der Dienst läuft auf Ihrem Rechner, und Browser lassen das nicht ohne
-                      Weiteres zu. Fragt Ihrer nach Zugriff aufs lokale Netzwerk, erlauben Sie es.
-                      Sonst öffnen Sie Sondra lokal — dann liegen Seite und Dienst auf derselben
-                      Maschine und die Sperre entfällt.
+                      Läuft der Dienst, liegt es nicht an ihm. Diese Seite kommt aus dem Netz und
+                      greift auf Ihren eigenen Rechner zu — dafür verlangt der Browser seit Kurzem
+                      Ihre ausdrückliche Erlaubnis und fragt beim Versuch danach.{' '}
+                      <strong className="font-semibold text-ink">Sagen Sie ja.</strong> Haben Sie
+                      einmal abgelehnt, fragt er nicht wieder: dann links in der Adresszeile aufs
+                      Schloss, unter den Berechtigungen den Zugriff aufs lokale Netzwerk erlauben
+                      und neu laden.
                     </>
                   )}
                 </Notice>
@@ -1251,11 +1253,10 @@ export function DownloaderPanel() {
                               </p>
                               {!pageIsLocal() ? (
                                 <p className="mt-[9px] border-t border-line pt-[9px] text-[12px] leading-[1.5] text-prose/85">
-                                  Wichtig, wenn der Dienst läuft und trotzdem nichts passiert: Diese
-                                  Seite kommt aus dem Netz, der Dienst läuft auf Ihrem Rechner — und
-                                  Browser lassen das nicht ohne Weiteres zu. Fragt Ihrer nach Zugriff
-                                  aufs lokale Netzwerk, erlauben Sie es. Sonst öffnen Sie Sondra lokal,
-                                  dann liegen beide auf derselben Maschine.
+                                  Noch eines vorweg: Sobald der Dienst läuft, fragt der Browser,
+                                  ob diese Seite auf Ihren Rechner zugreifen darf. Erlauben Sie
+                                  es — ohne diese Erlaubnis bleibt der Dienst unerreichbar, egal
+                                  wie richtig er läuft.
                                 </p>
                               ) : null}
                             </div>

@@ -14,6 +14,7 @@
  */
 
 import { sanitizeFilename } from './format'
+import { fetchLocalAware } from './service'
 
 export interface TransferProgress {
   receivedBytes: number
@@ -122,7 +123,7 @@ export async function fetchMedia(
 ): Promise<{ bytes: Uint8Array; contentType: string | null; filename: string }> {
   let response: Response
   try {
-    response = await fetch(url, { signal, redirect: 'follow', credentials: 'omit' })
+    response = await fetchLocalAware(url, { signal, redirect: 'follow', credentials: 'omit' })
   } catch (error) {
     throw describeFetchFailure(error, url)
   }
@@ -228,7 +229,7 @@ export function parseM3u8(text: string, baseUrl: string): HlsPlaylist {
 export async function fetchPlaylist(url: string, signal?: AbortSignal): Promise<HlsPlaylist> {
   let response: Response
   try {
-    response = await fetch(url, { signal, credentials: 'omit' })
+    response = await fetchLocalAware(url, { signal, credentials: 'omit' })
   } catch (error) {
     throw describeFetchFailure(error, url)
   }
@@ -274,7 +275,7 @@ export async function fetchHlsSegments(
 
       let response: Response
       try {
-        response = await fetch(playlist.segments[index], { signal, credentials: 'omit' })
+        response = await fetchLocalAware(playlist.segments[index], { signal, credentials: 'omit' })
       } catch (error) {
         throw describeFetchFailure(error, playlist.segments[index])
       }
@@ -343,7 +344,7 @@ export async function streamToDisk(
   try {
     let response: Response
     try {
-      response = await fetch(url, { signal, credentials: 'omit' })
+      response = await fetchLocalAware(url, { signal, credentials: 'omit' })
     } catch (error) {
       throw describeFetchFailure(error, url)
     }
