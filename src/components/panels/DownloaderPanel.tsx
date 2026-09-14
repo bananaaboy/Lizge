@@ -448,6 +448,18 @@ export function DownloaderPanel() {
 
     const { files } = await runFfmpeg({ input: inputs, output: [outputName], args, signal })
     const bytes = files[outputName]
+
+    // FFmpeg writes a container header before it knows the streams are unusable,
+    // so a failed merge leaves a file of a few bytes behind. Offering that for
+    // saving is worse than saying plainly that nothing came through.
+    if (!bytes || bytes.byteLength < 1024) {
+      throw new Error(
+        `Das Zusammenfügen ergab nur ${bytes?.byteLength ?? 0} Bytes — die Teile vom Dienst ` +
+          'waren unbrauchbar. Meist hilft eine andere Qualität oder ein erneuter Versuch ' +
+          'in ein paar Minuten.',
+      )
+    }
+
     const name = sanitizeFilename(withExtension(job.filename, extension))
 
     addAsset({

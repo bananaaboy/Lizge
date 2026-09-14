@@ -29,7 +29,7 @@ type ProgressHandler = (progress: TransferProgress) => void
 
 /** Wraps a fetch failure in language that says what the user can do about it. */
 export class TransferError extends Error {
-  readonly kind: 'cors' | 'network' | 'http' | 'aborted'
+  readonly kind: 'cors' | 'network' | 'http' | 'aborted' | 'empty'
 
   constructor(kind: TransferError['kind'], message: string) {
     super(message)
@@ -56,6 +56,43 @@ function describeFetchFailure(error: unknown, url: string): TransferError {
     `${host} erlaubt keinen direkten Zugriff aus dem Browser (fehlender CORS-Header) ` +
       'oder ist nicht erreichbar. Sondra kann das nicht umgehen, ohne die Anfrage über ' +
       'einen fremden Server zu leiten — und genau das tut diese App nicht.',
+  )
+}
+
+/**
+ * Smallest payload we are willing to call a media file.
+ *
+ * Big enough to reject a truncated answer, small enough that no real audio or
+ * video file ever falls below it.
+ */
+const MIN_MEDIA_BYTES = 1024
+
+/**
+ * A transfer that ended with `200 OK` and nothing usable in it.
+ *
+ * This is not a theoretical case. When YouTube refuses the underlying stream,
+ * cobalt's tunnel handler has already sent its headers, so it closes the body
+ * without writing a single byte — the request looks like a success from here.
+ * Without this check the empty body travels into the session and gets offered
+ * for saving as a file of a few bytes.
+ */
+function emptyTransferError(byteLength: number, url: string): TransferError {
+  let host = url
+  try {
+    host = new URL(url).host
+  } catch {
+    /* keep the raw string */
+  }
+  const what =
+    byteLength === 0
+      ? `${host} hat mit "in Ordnung" geantwortet und dann nichts geschickt (0 Bytes).`
+      : `Von ${host} kamen nur ${byteLength} Bytes — das ist keine abspielbare Datei.`
+  return new TransferError(
+    'empty',
+    `${what} Bei YouTube heisst das fast immer, dass der Abruf des Videos abgelehnt ` +
+      'wurde. Meist hilft: eine andere Qualität wählen, ein anderes Format wählen, ' +
+      'oder es in ein paar Minuten noch einmal versuchen. Bleibt es dabei, hilft ein ' +
+      'Neustart des Dienstes — dann holt er sich einen frischen Zugang.',
   )
 }
 
@@ -133,6 +170,7 @@ export async function fetchMedia(
   }
 
   const bytes = await readWithProgress(response, onProgress, signal)
+  if (bytes.byteLength < MIN_MEDIA_BYTES) throw emptyTransferError(bytes.byteLength, url)
   return {
     bytes,
     contentType: response.headers.get('content-type'),
@@ -292,6 +330,8 @@ export async function fetchHlsSegments(
 
   await Promise.all(Array.from({ length: Math.min(concurrency, total) }, worker))
 
+  if (bytes < MIN_MEDIA_BYTES) throw emptyTransferError(bytes, playlist.segments[0])
+
   const merged = new Uint8Array(bytes)
   let offset = 0
   for (const part of parts) {
@@ -384,6 +424,10 @@ export async function streamToDisk(
         bytesPerSecond,
       })
     }
+
+    // An empty body means the far end gave up after the headers. Closing the
+    // writable here would leave a 0-byte file sitting where the user pointed.
+    if (receivedBytes < MIN_MEDIA_BYTES) throw emptyTransferError(receivedBytes, url)
 
     await writable.close()
     return 'saved'
