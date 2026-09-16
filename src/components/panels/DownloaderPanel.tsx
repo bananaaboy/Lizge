@@ -75,7 +75,7 @@ import { detectPlatform } from '../../lib/platform'
 import { serviceConnection, setServiceConnection } from '../../lib/serviceState'
 import { holdScreenAwake } from '../../lib/wakeLock'
 import { kindFromMime, useSession } from '../../state/store'
-import { AssetList } from '../AssetList'
+import { SessionAside } from '../AssetList'
 import {
   ArrowRight,
   Badge,
@@ -144,6 +144,7 @@ function readStored(key: string, previous: string): string | null {
 export function DownloaderPanel() {
   const addAsset = useSession((state) => state.addAsset)
   const log = useSession((state) => state.log)
+  const assetCount = useSession((state) => state.assets.length)
   const caps = detectCapabilities()
 
   const [url, setUrl] = useState('')
@@ -808,13 +809,28 @@ export function DownloaderPanel() {
     }
   }
 
+  // Named after what the address is, not after the protocol behind it. The
+  // right one is picked automatically from the link; this row exists to show
+  // what was picked and to override it.
   const PATHS: { id: Mode; label: string; hint: string; disabled: boolean }[] = [
-    { id: 'direct', label: 'Direkt', hint: 'Der Browser holt die Datei selbst.', disabled: false },
-    { id: 'hls', label: 'HLS', hint: 'Segmente laden, lokal zu MP4 fassen.', disabled: false },
+    {
+      id: 'direct',
+      label: 'Direkte Datei',
+      hint: 'Die Adresse zeigt auf die Datei selbst. Der Browser holt sie.',
+      disabled: false,
+    },
+    {
+      id: 'hls',
+      label: 'Stream',
+      hint: 'Ein Stream in vielen kleinen Teilen. Wird hier zu einer MP4 zusammengesetzt.',
+      disabled: false,
+    },
     {
       id: 'service',
       label: 'Portal',
-      hint: serviceEnabled ? 'Läuft über einen fremden Server.' : 'Muss unten eingeschaltet werden.',
+      hint: serviceEnabled
+        ? 'YouTube und ähnliche Seiten. Läuft über einen fremden Server.'
+        : 'Für YouTube und ähnliche Seiten — unten einschalten.',
       disabled: !serviceEnabled,
     },
   ]
@@ -824,16 +840,20 @@ export function DownloaderPanel() {
   const pathNote =
     detectedPortal && effectiveMode !== 'service'
       ? serviceEnabled
-        ? 'Portale lassen den Browser nicht direkt heran — hier den Weg „Portal“ wählen.'
-        : 'Portale brauchen die Option unten.'
+        ? 'YouTube und ähnliche Seiten lassen den Browser nicht direkt heran — hier „Portal“ wählen.'
+        : 'Für diese Adresse braucht es den Dienst — unten einschalten.'
       : PATHS.find((path) => path.id === effectiveMode)?.hint
 
   return (
-    <div className="grid gap-[18px] lg:grid-cols-[minmax(0,1fr)_320px]">
+    <div
+      className={`grid gap-[18px] ${
+        assetCount > 0 ? 'lg:grid-cols-[minmax(0,1fr)_320px]' : 'lg:grid-cols-1'
+      }`}
+    >
       <Card tone="keylime" size="compact">
         <div className="flex flex-wrap items-baseline justify-between gap-x-[14px] gap-y-[4px]">
-          <Eyebrow>Downloader</Eyebrow>
-          <span className="text-[12px] text-muted">Adresse einfügen — der Weg ergibt sich daraus.</span>
+          <Eyebrow>Herunterladen</Eyebrow>
+          <span className="text-[12px] text-muted">Adresse einfügen — der Weg wird automatisch gewählt.</span>
         </div>
 
         <div className="mt-[14px] flex flex-col gap-[14px]">
@@ -854,7 +874,7 @@ export function DownloaderPanel() {
 
           {/* ---- path chips and the action share one row ------------------- */}
           <div className="flex flex-wrap items-center gap-[9px]">
-            <div role="radiogroup" aria-label="Weg" className="flex gap-[4px] rounded-pill bg-raised p-[3px]">
+            <div role="radiogroup" aria-label="Weg" className="flex gap-[4px] rounded-pill bg-panel-soft p-[3px]">
               {PATHS.map((path) => {
                 const active = path.id === effectiveMode
                 return (
@@ -946,7 +966,7 @@ export function DownloaderPanel() {
               {items.map((item) => (
                 <li
                   key={item.url}
-                  className="flex flex-wrap items-center gap-[9px] rounded-nav bg-raised px-[14px] py-[9px]"
+                  className="flex flex-wrap items-center gap-[9px] rounded-nav bg-panel-soft px-[14px] py-[9px]"
                 >
                   <span className="min-w-0 flex-1 truncate text-[13px] text-ink">{item.filename}</span>
                   <Badge>{item.kind}</Badge>
@@ -973,7 +993,7 @@ export function DownloaderPanel() {
           ) : null}
 
           {fetched ? (
-            <div className="flex flex-wrap items-center gap-[11px] rounded-card bg-raised px-[18px] py-[14px]">
+            <div className="flex flex-wrap items-center gap-[11px] rounded-card bg-panel-soft px-[18px] py-[14px]">
               <div className="min-w-0 flex-1">
                 <p className="truncate text-body text-ink">{fetched.name}</p>
                 <p className="numeric text-[12px] text-muted">{formatBytes(fetched.bytes.byteLength)} · in der Sitzung</p>
@@ -1034,7 +1054,7 @@ export function DownloaderPanel() {
               {/* What is true right now, stated before anything else. Someone
                   who just switched this on wants one answer — does YouTube work
                   yet — and that is a sentence, not a form. */}
-              <div className="flex flex-wrap items-center gap-[9px] rounded-card bg-raised px-[14px] py-[11px]">
+              <div className="flex flex-wrap items-center gap-[9px] rounded-card bg-panel-soft px-[14px] py-[11px]">
                 <span
                   aria-hidden
                   className={`size-[9px] shrink-0 rounded-full ${connected ? 'bg-ink' : 'bg-ink/25'}`}
@@ -1116,7 +1136,7 @@ export function DownloaderPanel() {
               </div>
 
               {probe ? (
-                <div className="rounded-card bg-raised p-[21px]">
+                <div className="rounded-card bg-panel-soft p-[21px]">
                   <div className="flex items-baseline justify-between gap-[11px]">
                     <p className="text-[12px] font-semibold text-ink">Ergebnis der Prüfung</p>
                     <button
@@ -1677,11 +1697,7 @@ export function DownloaderPanel() {
         </div>
       </Card>
 
-      <aside>
-        <Card tone="mint" size="compact">
-          <AssetList />
-        </Card>
-      </aside>
+      <SessionAside />
     </div>
   )
 }

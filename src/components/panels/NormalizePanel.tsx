@@ -16,7 +16,7 @@ import { measureLoudnessInWorker, normalizeInWorker } from '../../lib/workerClie
 import { withExtension } from '../../lib/format'
 import { useDecodedAudio } from '../../hooks/useDecodedAudio'
 import { useActiveAsset, useSession } from '../../state/store'
-import { AssetList } from '../AssetList'
+import { SessionCard } from '../AssetList'
 import { AudioPreview } from '../AudioPreview'
 import { FileDrop } from '../FileDrop'
 import { Waveform } from '../Waveform'
@@ -188,8 +188,8 @@ export function NormalizePanel() {
     <div className="grid gap-[21px] lg:grid-cols-[minmax(0,1fr)_360px]">
       <div className="flex flex-col gap-[21px]">
         <Card tone="keylime">
-          <Eyebrow>Lautheit</Eyebrow>
-          <h2 className="display-md mt-[11px] mb-[14px]">Nach EBU R128 normalisieren</h2>
+          <Eyebrow>Lautstärke</Eyebrow>
+          <h2 className="display-md mt-[8px] mb-[12px]">So laut wie im Radio</h2>
           <details className="max-w-[60ch]">
             <summary className="cursor-pointer list-none text-[13px] text-muted underline underline-offset-2 hover:text-ink">
               Wie gemessen wird
@@ -207,7 +207,7 @@ export function NormalizePanel() {
             </div>
           ) : (
             <>
-              <div className="mt-[28px] rounded-card bg-raised p-[21px]">
+              <div className="mt-[28px] rounded-card bg-panel-soft p-[21px]">
                 <Waveform audio={audio} height={84} />
               </div>
 
@@ -255,7 +255,7 @@ export function NormalizePanel() {
                 {/* The method and the preset are real choices; these refine
                    them. Folded, because a preset that is about to be adjusted
                    by hand is not much of a preset. */}
-                <details className="sm:col-span-2 rounded-card bg-raised p-[18px]">
+                <details className="sm:col-span-2 rounded-card bg-panel-soft p-[18px]">
                   <summary className="cursor-pointer list-none text-[13px] font-semibold text-ink">
                     Feineinstellungen
                     <span className="ml-[7px] font-normal text-muted">
@@ -426,10 +426,8 @@ export function NormalizePanel() {
       </div>
 
       <aside className="flex flex-col gap-[21px]">
-        <Card tone="mint">
-          <AssetList />
-        </Card>
-        <Card tone="cream" className="ring-1 ring-inset ring-line">
+        <SessionCard />
+        <Card tone="cream">
           <Eyebrow>Zielwerte</Eyebrow>
           <dl className="mt-[14px] flex flex-col gap-[11px] text-[13px]">
             {LOUDNESS_PRESETS.map((preset) => (

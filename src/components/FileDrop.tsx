@@ -1,47 +1,20 @@
 /**
  * Drop target and file picker.
  *
- * `File` objects are read with `arrayBuffer()` and kept in memory. There is no
- * upload step because there is nowhere to upload to.
+ * The whole window already accepts a drop, so this exists for the case where
+ * someone is looking for the button rather than guessing that the page is a
+ * target. Ingestion itself is shared with every other door in `useIngest`.
  */
 
-import { useCallback, useRef, useState } from 'react'
+import { useState } from 'react'
 
-import { formatBytes } from '../lib/format'
-import { kindFromMime, useSession } from '../state/store'
+import { useFilePicker, useIngestFiles } from '../hooks/useIngest'
 import { ArrowRight, Button } from './ui/primitives'
 
 export function FileDrop({ compact = false }: { compact?: boolean }) {
-  const addAsset = useSession((state) => state.addAsset)
-  const log = useSession((state) => state.log)
-  const inputRef = useRef<HTMLInputElement>(null)
+  const { ingest } = useIngestFiles()
+  const { input, open, busy } = useFilePicker('geöffnet')
   const [dragging, setDragging] = useState(false)
-  const [busy, setBusy] = useState(false)
-
-  const ingest = useCallback(
-    async (files: FileList | File[]) => {
-      setBusy(true)
-      try {
-        for (const file of Array.from(files)) {
-          const bytes = new Uint8Array(await file.arrayBuffer())
-          addAsset({
-            name: file.name,
-            bytes,
-            mime: file.type || 'application/octet-stream',
-            sizeBytes: bytes.byteLength,
-            kind: kindFromMime(file.type, file.name),
-            audio: null,
-            durationSeconds: null,
-            origin: 'file',
-          })
-          log('bibliothek', `${file.name} geladen (${formatBytes(bytes.byteLength)}) — verbleibt lokal`)
-        }
-      } finally {
-        setBusy(false)
-      }
-    },
-    [addAsset, log],
-  )
 
   return (
     <div
@@ -53,31 +26,20 @@ export function FileDrop({ compact = false }: { compact?: boolean }) {
       onDrop={(event) => {
         event.preventDefault()
         setDragging(false)
-        if (event.dataTransfer.files.length) void ingest(event.dataTransfer.files)
+        if (event.dataTransfer.files.length) void ingest(event.dataTransfer.files, 'hierher gezogen')
       }}
-      className={`rounded-card bg-raised text-center ring-1 ring-inset transition-colors ${
-        dragging ? 'ring-ink' : 'ring-line'
-      } ${compact ? 'p-[21px]' : 'p-[42px]'}`}
+      className={`flex flex-col items-center gap-[12px] rounded-card text-center transition-colors duration-[var(--dur-fast)] ${
+        dragging
+          ? 'bg-panel-mid ring-2 ring-inset ring-ink'
+          : 'bg-panel-soft ring-1 ring-inset ring-line'
+      } ${compact ? 'p-[18px]' : 'p-[28px]'}`}
     >
-      <input
-        ref={inputRef}
-        type="file"
-        multiple
-        accept="audio/*,video/*,.mkv,.flac,.opus,.m4a,.ts"
-        className="sr-only"
-        onChange={(event) => {
-          if (event.target.files?.length) void ingest(event.target.files)
-          event.target.value = ''
-        }}
-      />
+      {input}
       {!compact ? (
-        <p className="display-sm mb-[7px]">Dateien hierher ziehen</p>
+        <p className="text-body text-prose">Datei hierher ziehen — Ton oder Video, beliebig viele</p>
       ) : null}
-      <p className="mx-auto mb-[18px] max-w-[42ch] text-[13px] leading-[1.55] text-muted">
-        Audio oder Video, beliebig viele. Die Dateien bleiben im Arbeitsspeicher dieses Tabs.
-      </p>
-      <Button size={compact ? 'sm' : 'md'} onClick={() => inputRef.current?.click()} disabled={busy}>
-        {busy ? 'Wird gelesen…' : 'Dateien auswählen'}
+      <Button size={compact ? 'sm' : 'md'} onClick={open} disabled={busy}>
+        {busy ? 'Wird gelesen…' : 'Datei auswählen'}
         <ArrowRight />
       </Button>
     </div>

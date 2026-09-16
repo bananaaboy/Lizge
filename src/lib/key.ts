@@ -56,7 +56,8 @@ export function camelotOf(tonic: number, mode: Mode): string {
 }
 
 export function keyLabel(tonic: number, mode: Mode): string {
-  return `${KEY_NAMES[tonic]}-${mode}`
+  // German capitalises the mode as a noun: "C-Dur", not "C-dur".
+  return `${KEY_NAMES[tonic]}-${mode === 'dur' ? 'Dur' : 'Moll'}`
 }
 
 /** Pearson correlation between a rotated profile and the chroma vector. */

@@ -165,7 +165,11 @@ export interface SegmentOptions {
 }
 
 export const DEFAULT_SEGMENTATION: SegmentOptions = {
-  minimumClarity: 0.55,
+  // A clean sine gives YIN a clarity near 1.0, which makes a high gate look
+  // safe. Real material — anything with harmonics, vibrato or a noise floor —
+  // sits around 0.45–0.61, so a gate at 0.55 landed on the median and dropped
+  // most of the melody. At 0.4 the files that already passed are unchanged.
+  minimumClarity: 0.4,
   minimumSeconds: 0.06,
   quantizeSeconds: 0,
 }

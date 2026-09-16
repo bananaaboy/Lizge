@@ -2,33 +2,89 @@
  * The frame around the tools: a header bar and a footer, nothing else.
  *
  * There is no landing page. Someone who opens this has a file to deal with, and
- * making them scroll past a pitch first would be rude. The one claim worth
- * stating up front — that nothing leaves the machine — is a chip in the header,
- * where it stays visible while they work rather than being read once and lost.
+ * making them scroll past a pitch first would be rude. What the header owes them
+ * instead is the two things they need in the first three seconds: a way to open
+ * a file, and the claim that the file is not going anywhere.
  */
 
 import { useState } from 'react'
 
 import type { InstallState } from '../hooks/useInstallPrompt'
+import { useFilePicker } from '../hooks/useIngest'
 import type { ThemeChoice } from '../lib/theme'
 import { useSession } from '../state/store'
 import { ThemeToggle } from './ThemeToggle'
 import { Button } from './ui/primitives'
 
+/**
+ * The mark: one sound, sliced into layers that no longer line up.
+ *
+ * The bars follow the chords of a circle, so the silhouette is round, and the
+ * middle ones are pushed sideways — the shape of something taken apart, which
+ * is what every tool here does. Deliberately not a signal-strength fan or a
+ * play triangle: this app never reaches for a network, and it is not a player.
+ */
+export function Mark({ className = 'h-[26px] w-[26px]' }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 32 32" className={`shrink-0 fill-current ${className}`} aria-hidden>
+      <rect x="9" y="5.35" width="13.99" height="3.3" rx="1.65" />
+      <rect x="7.73" y="9.85" width="20.95" height="3.3" rx="1.65" />
+      <rect x="4.6" y="14.35" width="22.8" height="3.3" rx="1.65" />
+      <rect x="3.33" y="18.85" width="20.95" height="3.3" rx="1.65" />
+      <rect x="9" y="23.35" width="13.99" height="3.3" rx="1.65" />
+    </svg>
+  )
+}
+
 export function Logo() {
   return (
-    <span className="flex items-center gap-[11px]">
-      <svg viewBox="0 0 32 32" className="h-7 w-7 shrink-0" aria-hidden>
-        <rect width="32" height="32" rx="7" className="fill-ink" />
-        <g className="stroke-canvas" strokeWidth="2.4" strokeLinecap="round">
-          <path d="M12 12v8" />
-          <path d="M16 8v16" />
-          <path d="M20 11v10" />
-          <path d="M24 14v4" />
-        </g>
-      </svg>
-      <span className="font-display text-[23px] font-light tracking-[-0.01em] text-ink">Sondra</span>
+    <span className="flex items-center gap-[10px] text-ink">
+      <Mark />
+      <span className="font-display text-[24px] font-light tracking-[-0.01em]">Sondra</span>
     </span>
+  )
+}
+
+/** Opens the system file picker. Rendered wherever a file can be started from. */
+export function OpenFileButton({
+  variant = 'primary',
+  size = 'sm',
+  label = 'Datei öffnen',
+  /** Drops the label below `sm`, where the header has no room for it. */
+  collapse = false,
+  className = '',
+}: {
+  variant?: 'primary' | 'quiet' | 'ghost'
+  size?: 'sm' | 'md'
+  label?: string
+  collapse?: boolean
+  className?: string
+}) {
+  const { input, open, busy } = useFilePicker('geöffnet')
+  return (
+    <>
+      {input}
+      <Button
+        variant={variant}
+        size={size}
+        onClick={open}
+        disabled={busy}
+        aria-label={label}
+        className={className}
+      >
+        <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" aria-hidden>
+          <path
+            d="M2 5.2c0-.9.7-1.6 1.6-1.6h2.2L7.2 5h5.2c.9 0 1.6.7 1.6 1.6v4.6c0 .9-.7 1.6-1.6 1.6H3.6c-.9 0-1.6-.7-1.6-1.6z"
+            stroke="currentColor"
+            strokeWidth="1.3"
+            strokeLinejoin="round"
+          />
+        </svg>
+        <span className={collapse ? 'hidden sm:inline' : undefined}>
+          {busy ? 'Wird gelesen…' : label}
+        </span>
+      </Button>
+    </>
   )
 }
 
@@ -42,14 +98,17 @@ function PrivacyChip() {
         type="button"
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
-        className="flex items-center gap-[7px] rounded-pill bg-panel-soft px-[14px] py-[7px] text-[12px] text-ink transition-colors hover:bg-panel-mid"
+        className="press flex items-center gap-[7px] rounded-pill bg-panel-soft px-[12px] py-[7px] text-[12px] text-ink hover:bg-panel-mid"
       >
-        <span className="h-[6px] w-[6px] rounded-pill bg-ink" aria-hidden />
-        Läuft lokal
+        <span className="pulse-dot h-[6px] w-[6px] rounded-pill bg-ink" aria-hidden />
+        {/* A lone green dot says nothing. On a phone the claim shortens, it
+            does not disappear — this is the one place the promise is made. */}
+        <span className="hidden sm:inline">Läuft lokal</span>
+        <span className="sm:hidden">Lokal</span>
       </button>
 
       {open ? (
-        <div className="absolute right-0 top-[calc(100%+7px)] z-20 w-[320px] rounded-card bg-raised p-[21px] text-[13px] leading-[1.55] text-prose/85 ring-1 ring-inset ring-line">
+        <div className="rise elevate-lift absolute right-0 top-[calc(100%+9px)] z-20 w-[min(340px,calc(100vw-32px))] rounded-card bg-raised p-[21px] text-[13px] leading-[1.55] text-prose/85 ring-1 ring-inset ring-line">
           <p className="mb-[11px] font-semibold text-ink">Wo Ihre Dateien bleiben</p>
           <p className="mb-[11px]">
             Der Server liefert einmal HTML, JavaScript und WebAssembly aus. Danach rechnet nur noch
@@ -76,18 +135,20 @@ export function Header({
   onThemeChange: (choice: ThemeChoice) => void
   install: InstallState
 }) {
+  const hasAssets = useSession((state) => state.assets.length > 0)
   return (
-    <header className="sticky top-0 z-30 border-b border-line bg-canvas/95 backdrop-blur-sm">
-      <div className="shell flex flex-wrap items-center justify-between gap-[14px] py-[14px]">
+    <header className="sticky top-0 z-30 border-b border-line bg-canvas/90 backdrop-blur-md">
+      <div className="shell flex items-center justify-between gap-[14px] py-[13px]">
         <Logo />
         <div className="flex items-center gap-[9px]">
           {install.available ? (
-            <Button size="sm" variant="quiet" onClick={() => void install.install()}>
+            <Button size="sm" variant="ghost" onClick={() => void install.install()} className="hidden md:inline-flex">
               Installieren
             </Button>
           ) : null}
           <PrivacyChip />
           <ThemeToggle choice={themeChoice} onChange={onThemeChange} />
+          {hasAssets ? <OpenFileButton label="Weitere Datei" collapse /> : null}
         </div>
       </div>
     </header>
@@ -100,11 +161,12 @@ export function DropOverlay({ visible }: { visible: boolean }) {
   return (
     <div
       aria-hidden
-      className="pointer-events-none fixed inset-0 z-40 flex items-center justify-center bg-canvas/80 backdrop-blur-sm"
+      className="pointer-events-none fixed inset-0 z-40 flex items-center justify-center bg-canvas/85 backdrop-blur-sm"
     >
-      <div className="rounded-card bg-panel-soft px-[42px] py-[35px] text-center ring-2 ring-inset ring-ink">
-        <p className="display-sm">Loslassen zum Laden</p>
-        <p className="mt-[7px] text-[13px] text-muted">Die Datei bleibt in diesem Tab.</p>
+      <div className="pop elevate-lift rounded-card bg-raised px-[48px] py-[38px] text-center ring-2 ring-inset ring-ink">
+        <Mark className="mx-auto mb-[14px] h-[36px] w-[36px] text-ink" />
+        <p className="display-sm">Loslassen zum Öffnen</p>
+        <p className="mt-[6px] text-[13px] text-muted">Die Datei bleibt in diesem Tab.</p>
       </div>
     </div>
   )
@@ -119,14 +181,20 @@ export function SessionBar() {
   const totalBytes = assets.reduce((sum, asset) => sum + asset.sizeBytes, 0)
   return (
     <div className="shell pt-[14px]">
-      <div className="flex flex-wrap items-center justify-between gap-[11px] rounded-card bg-panel-mid px-[18px] py-[11px]">
-        <p className="text-[13px] text-prose/85">
-          {assets.length} {assets.length === 1 ? 'Datei' : 'Dateien'} im Arbeitsspeicher dieses Tabs ·{' '}
-          {(totalBytes / 1024 / 1024).toFixed(1)} MB. Nichts davon wurde gesendet.
+      <div className="rise flex flex-wrap items-center justify-between gap-[11px] rounded-card bg-panel-soft px-[16px] py-[9px] text-[12px]">
+        <p className="text-muted">
+          <span className="numeric text-ink">{assets.length}</span>{' '}
+          {assets.length === 1 ? 'Datei' : 'Dateien'} im Arbeitsspeicher dieses Tabs ·{' '}
+          <span className="numeric">{(totalBytes / 1024 / 1024).toFixed(1)} MB</span> · nichts davon
+          wurde gesendet
         </p>
-        <Button size="sm" variant="quiet" onClick={clearAssets}>
+        <button
+          type="button"
+          onClick={clearAssets}
+          className="press rounded-nav text-muted underline-offset-2 hover:text-ink hover:underline"
+        >
           Speicher freigeben
-        </Button>
+        </button>
       </div>
     </div>
   )
@@ -134,7 +202,7 @@ export function SessionBar() {
 
 export function Footer() {
   return (
-    <footer className="shell mt-[42px] flex flex-wrap items-center justify-between gap-[14px] border-t border-line py-[28px] text-[12px] text-muted">
+    <footer className="shell mt-[36px] flex flex-wrap items-center justify-between gap-[14px] border-t border-line py-[24px] text-[12px] text-muted">
       <p className="max-w-[60ch] leading-[1.6]">
         Statisch ausgeliefert, lokal gerechnet. Quelloffene Bausteine: FFmpeg (WebAssembly), ONNX
         Runtime Web, Wavesurfer, Tone.js.

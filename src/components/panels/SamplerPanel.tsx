@@ -40,7 +40,7 @@ import { renderSliceInWorker } from '../../lib/workerClient'
 import { createZip } from '../../lib/zip'
 import { useDecodedAudio } from '../../hooks/useDecodedAudio'
 import { useActiveAsset, useSession } from '../../state/store'
-import { AssetList } from '../AssetList'
+import { SessionCard } from '../AssetList'
 import { AudioPreview } from '../AudioPreview'
 import { FileDrop } from '../FileDrop'
 import {
@@ -543,7 +543,7 @@ export function SamplerPanel({ theme }: { theme: ResolvedTheme }) {
       <div className="flex flex-col gap-[18px]">
         <Card tone="keylime" size="compact">
           <div className="flex flex-wrap items-baseline justify-between gap-x-[14px] gap-y-[4px]">
-            <Eyebrow>Chopper</Eyebrow>
+            <Eyebrow>Zerschneiden</Eyebrow>
             <span className="text-[12px] text-muted">
               Ziehen für einen eigenen Bereich, Tasten 1–4 · Q–R · A–F · Y–V zum Spielen.
             </span>
@@ -555,7 +555,7 @@ export function SamplerPanel({ theme }: { theme: ResolvedTheme }) {
             </div>
           ) : (
             <>
-              <div className="sondra-wave mt-[14px] overflow-x-auto rounded-card bg-raised p-[14px]">
+              <div className="sondra-wave mt-[14px] overflow-x-auto rounded-card bg-panel-soft p-[14px]">
                 <div ref={containerRef} />
                 {!audio ? (
                   <p className="py-[28px] text-center text-[13px] text-muted">
@@ -566,20 +566,22 @@ export function SamplerPanel({ theme }: { theme: ResolvedTheme }) {
 
               {/* ---- chop controls ------------------------------------------ */}
               <div className="mt-[14px] grid gap-[11px] sm:grid-cols-3">
-                <div className="flex flex-col gap-[7px] rounded-card bg-raised p-[14px]">
+                <div className="flex flex-col gap-[7px] rounded-card bg-panel-soft p-[14px] ring-1 ring-inset ring-ink/20">
                   <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink">
-                    Transienten
+                    Nach Anschlägen
                   </span>
-                  <p className="text-[12px] leading-[1.4] text-muted">Schneidet, wo etwas anfängt.</p>
-                  <Button size="sm" onClick={chopTransients} disabled={!audio}>
-                    Chop
+                  <p className="text-[12px] leading-[1.4] text-muted">
+                    Schneidet, wo etwas anfängt. Meistens die richtige Wahl.
+                  </p>
+                  <Button size="sm" onClick={chopTransients} disabled={!audio} className="mt-auto">
+                    Schneiden
                   </Button>
                 </div>
 
-                <div className="flex flex-col gap-[7px] rounded-card bg-raised p-[14px]">
+                <div className="flex flex-col gap-[7px] rounded-card bg-panel-soft p-[14px]">
                   <div className="flex items-baseline justify-between gap-2">
                     <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink">
-                      Raster
+                      Nach Takt
                     </span>
                     {tempo ? (
                       <span className="numeric text-[11px] text-muted">
@@ -627,14 +629,14 @@ export function SamplerPanel({ theme }: { theme: ResolvedTheme }) {
                       </option>
                     ))}
                   </Select>
-                  <Button size="sm" onClick={chopGrid} disabled={!audio}>
-                    Chop
+                  <Button size="sm" variant="quiet" onClick={chopGrid} disabled={!audio}>
+                    Schneiden
                   </Button>
                 </div>
 
-                <div className="flex flex-col gap-[7px] rounded-card bg-raised p-[14px]">
+                <div className="flex flex-col gap-[7px] rounded-card bg-panel-soft p-[14px]">
                   <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink">
-                    Gleichmäßig
+                    Gleiche Teile
                   </span>
                   <Select
                     value={sliceCount}
@@ -648,8 +650,8 @@ export function SamplerPanel({ theme }: { theme: ResolvedTheme }) {
                       </option>
                     ))}
                   </Select>
-                  <Button size="sm" onClick={chopEven} disabled={!audio}>
-                    Chop
+                  <Button size="sm" variant="quiet" onClick={chopEven} disabled={!audio} className="mt-auto">
+                    Schneiden
                   </Button>
                 </div>
               </div>
@@ -758,7 +760,7 @@ export function SamplerPanel({ theme }: { theme: ResolvedTheme }) {
         ) : null}
 
         {audio && slices.length === 0 ? (
-          <Notice title="Noch nichts gechoppt">
+          <Notice title="Noch nichts zerschnitten">
             Wählen Sie oben ein Verfahren, oder ziehen Sie mit der Maus über die Wellenform, um einen
             Bereich von Hand aufzuziehen.
           </Notice>
@@ -860,7 +862,7 @@ export function SamplerPanel({ theme }: { theme: ResolvedTheme }) {
           )}
         </Card>
 
-        <Card tone="cream" size="compact" className="ring-1 ring-inset ring-line">
+        <Card tone="cream" size="compact">
           <Eyebrow>Voreinstellungen</Eyebrow>
           <div className="mt-[11px] flex flex-col gap-[14px]">
             <Field label="Neue Pads spielen als">
@@ -902,9 +904,7 @@ export function SamplerPanel({ theme }: { theme: ResolvedTheme }) {
           </div>
         </Card>
 
-        <Card tone="cream" size="compact" className="ring-1 ring-inset ring-line">
-          <AssetList />
-        </Card>
+        <SessionCard />
       </aside>
     </div>
   )

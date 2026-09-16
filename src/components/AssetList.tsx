@@ -9,7 +9,7 @@ import { formatBytes, formatDuration } from '../lib/format'
 import { useDecodedAudio } from '../hooks/useDecodedAudio'
 import { useActiveAsset, useSession } from '../state/store'
 import { AudioPreview } from './AudioPreview'
-import { Badge } from './ui/primitives'
+import { Badge, Card } from './ui/primitives'
 
 /**
  * A player for whichever file is selected.
@@ -39,6 +39,37 @@ function SelectedPlayer() {
   }
 
   return <AudioPreview sources={[{ id: asset.id, label: asset.name, audio }]} waveHeight={40} />
+}
+
+/**
+ * The session column as every panel renders it.
+ *
+ * Both return nothing when the session is empty. A card reading "nothing
+ * loaded" beside a tool that is itself explaining that it needs a file is the
+ * same sentence twice, and on the opening screen it left a dead 320px column
+ * next to the only thing there was to do.
+ *
+ * `SessionCard` is for panels that already have a sidebar of their own;
+ * `SessionAside` is for the two where the session is the whole sidebar.
+ */
+export function SessionCard() {
+  const count = useSession((state) => state.assets.length)
+  if (count === 0) return null
+  return (
+    <Card tone="cream" size="compact">
+      <AssetList />
+    </Card>
+  )
+}
+
+export function SessionAside() {
+  const count = useSession((state) => state.assets.length)
+  if (count === 0) return null
+  return (
+    <aside>
+      <SessionCard />
+    </aside>
+  )
 }
 
 export function AssetList() {

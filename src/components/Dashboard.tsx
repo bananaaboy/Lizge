@@ -1,8 +1,10 @@
 /**
- * The working surface: panel switcher, capability readout and activity log.
+ * The working surface: tool switcher, the tool, and the machine readout folded
+ * away underneath it.
  */
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import type { ReactNode } from 'react'
 
 import { detectCapabilities, hasWebGpuAdapter, suggestedThreads } from '../lib/capabilities'
 import { onServiceConnection, serviceConnection, type ServiceConnection } from '../lib/serviceState'
@@ -16,61 +18,196 @@ import { NormalizePanel } from './panels/NormalizePanel'
 import { SamplerPanel } from './panels/SamplerPanel'
 import { StemsPanel } from './panels/StemsPanel'
 import { FileDrop } from './FileDrop'
-import { Badge, Button, Card, Eyebrow } from './ui/primitives'
+import { OpenFileButton } from './AppShell'
+import { Button, Card, Eyebrow } from './ui/primitives'
 
-const PANELS: { id: PanelId; label: string; summary: string }[] = [
-  { id: 'downloader', label: 'Downloader', summary: 'Direkte Links und HLS-Streams' },
-  { id: 'converter', label: 'Konverter', summary: 'Formate über FFmpeg WASM' },
-  { id: 'stems', label: 'Spuren', summary: 'Gesang, Schlagzeug, Bass, Rest' },
-  { id: 'normalize', label: 'Lautheit', summary: 'EBU R128 messen und angleichen' },
-  { id: 'sampler', label: 'Chopper', summary: 'An Transienten oder im Raster zerlegen' },
-  { id: 'harmony', label: 'Harmonie', summary: 'Tonart, Akkorde und Melodie als MIDI' },
+/* -------------------------------------------------------------------------- */
+/* Tools                                                                       */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Every tool is named for the result, not for the technique.
+ *
+ * "Spuren", "Lautheit" and "Harmonie" are what these things are called by
+ * people who already know what they are. Someone arriving with a recording and
+ * a question does not know that yet, and a tab bar is the worst possible place
+ * to learn vocabulary: it is the one control you have to use before you have
+ * seen anything. So the label answers "what will this do for me" and the line
+ * underneath it says it again in a full sentence.
+ */
+const PANELS: { id: PanelId; label: string; summary: string; icon: ReactNode }[] = [
+  {
+    id: 'downloader',
+    label: 'Herunterladen',
+    summary: 'Ein Video oder Lied von einer Adresse holen',
+    icon: (
+      <path d="M8 2.6v7.2m0 0L5.2 7M8 9.8L10.8 7M2.8 12.2h10.4" />
+    ),
+  },
+  {
+    id: 'converter',
+    label: 'Umwandeln',
+    summary: 'In ein anderes Dateiformat bringen — etwa Video zu MP3',
+    icon: <path d="M2.6 5.4h9.2m0 0L9.4 3.1m2.4 2.3L9.4 7.7M13.4 10.6H4.2m0 0l2.4-2.3m-2.4 2.3l2.4 2.3" />,
+  },
+  {
+    id: 'stems',
+    label: 'Spuren trennen',
+    summary: 'Gesang, Schlagzeug und Bass als einzelne Dateien',
+    icon: <path d="M8 1.8L14 5 8 8.2 2 5zM2 8l6 3.2L14 8M2 11l6 3.2L14 11" />,
+  },
+  {
+    id: 'normalize',
+    label: 'Lautstärke',
+    summary: 'So laut machen wie im Radio, ohne zu übersteuern',
+    icon: <path d="M3.4 9.6V6.4M6.5 12V4M9.5 10.8V5.2M12.6 8.6V7.4" />,
+  },
+  {
+    id: 'sampler',
+    label: 'Zerschneiden',
+    summary: 'In einzelne Schläge zerlegen und auf Tasten legen',
+    icon: <path d="M3.4 2.8l7.4 9.2M12.6 2.8L5.2 12M4.3 13.2a1.5 1.5 0 100-3 1.5 1.5 0 000 3zM11.7 13.2a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" />,
+  },
+  {
+    id: 'harmony',
+    label: 'Tonart',
+    summary: 'Tonart, Tempo, Akkorde und die Melodie als MIDI',
+    icon: <path d="M6 11.6V3.4l7-1.2v8.2M6 11.6a1.8 1.8 0 11-3.6 0 1.8 1.8 0 013.6 0zM13 10.4a1.8 1.8 0 11-3.6 0 1.8 1.8 0 013.6 0z" />,
+  },
 ]
+
+function ToolIcon({ children }: { children: ReactNode }) {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      className="h-4 w-4 shrink-0"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.35"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      {children}
+    </svg>
+  )
+}
 
 function PanelTabs() {
   const panel = useSession((state) => state.panel)
   const setPanel = useSession((state) => state.setPanel)
+  const listRef = useRef<HTMLDivElement>(null)
+  // Which edges still have tabs behind them, so the fades only appear where
+  // there is something to scroll to.
+  const [edges, setEdges] = useState({ start: false, end: false })
+
+  useEffect(() => {
+    const node = listRef.current
+    if (!node) return
+    const measure = () => {
+      const slack = node.scrollWidth - node.clientWidth
+      setEdges({ start: node.scrollLeft > 4, end: slack > 4 && node.scrollLeft < slack - 4 })
+    }
+    measure()
+    node.addEventListener('scroll', measure, { passive: true })
+    const observer = new ResizeObserver(measure)
+    observer.observe(node)
+    return () => {
+      node.removeEventListener('scroll', measure)
+      observer.disconnect()
+    }
+  }, [])
+
+  // Keep the selected tab in view when it changes from the keyboard.
+  useEffect(() => {
+    listRef.current
+      ?.querySelector<HTMLElement>(`[data-panel="${panel}"]`)
+      ?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+  }, [panel])
+
+  // Switching tools with the keyboard should not require tabbing through six
+  // buttons; the arrow keys are what a tablist is expected to answer to.
+  const onKeyDown = (event: React.KeyboardEvent) => {
+    const delta = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0
+    if (!delta) return
+    event.preventDefault()
+    const index = PANELS.findIndex((entry) => entry.id === panel)
+    const next = PANELS[(index + delta + PANELS.length) % PANELS.length]
+    setPanel(next.id)
+    listRef.current?.querySelector<HTMLElement>(`[data-panel="${next.id}"]`)?.focus()
+  }
 
   return (
-    <div
-      role="tablist"
-      aria-label="Werkzeuge"
-      className="flex gap-[7px] overflow-x-auto rounded-card bg-raised p-[7px] ring-1 ring-inset ring-line"
-    >
-      {PANELS.map((entry) => {
-        const active = entry.id === panel
-        return (
-          <button
-            key={entry.id}
-            role="tab"
-            aria-selected={active}
-            onClick={() => setPanel(entry.id)}
-            className={`shrink-0 rounded-nav px-[18px] py-[11px] text-body transition-colors ${
-              active ? 'bg-ink text-on-ink' : 'text-prose hover:bg-panel-soft'
-            }`}
-            title={entry.summary}
-          >
-            {entry.label}
-          </button>
-        )
-      })}
+    <div className="relative">
+      <div
+        aria-hidden
+        className={`pointer-events-none absolute inset-y-[6px] left-[6px] z-10 w-[28px] rounded-l-card bg-gradient-to-r from-raised to-transparent transition-opacity duration-[var(--dur-fast)] ${
+          edges.start ? 'opacity-100' : 'opacity-0'
+        }`}
+      />
+      <div
+        aria-hidden
+        className={`pointer-events-none absolute inset-y-[6px] right-[6px] z-10 w-[28px] rounded-r-card bg-gradient-to-l from-raised to-transparent transition-opacity duration-[var(--dur-fast)] ${
+          edges.end ? 'opacity-100' : 'opacity-0'
+        }`}
+      />
+      <div
+        ref={listRef}
+        role="tablist"
+        aria-label="Werkzeuge"
+        onKeyDown={onKeyDown}
+        className="elevate flex gap-[4px] overflow-x-auto rounded-card bg-raised p-[6px] ring-1 ring-inset ring-line [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
+        {PANELS.map((entry) => {
+          const active = entry.id === panel
+          return (
+            <button
+              key={entry.id}
+              data-panel={entry.id}
+              role="tab"
+              aria-selected={active}
+              tabIndex={active ? 0 : -1}
+              onClick={() => setPanel(entry.id)}
+              className={`press flex shrink-0 items-center gap-[8px] rounded-nav px-[14px] py-[10px] text-body ${
+                active ? 'bg-ink text-on-ink' : 'text-prose hover:bg-panel-soft'
+              }`}
+              title={entry.summary}
+            >
+              <ToolIcon>{entry.icon}</ToolIcon>
+              {entry.label}
+            </button>
+          )
+        })}
+      </div>
     </div>
   )
 }
 
-/** What this particular browser can and cannot do, stated plainly. */
-function CapabilityStrip() {
+/* -------------------------------------------------------------------------- */
+/* Machine readout                                                             */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * What this browser can do, and what the app has been doing.
+ *
+ * Both of these used to be full-width cards sitting under every tool on every
+ * screen — a permanent reference table and an empty log, between the work and
+ * the bottom of the page. Neither is needed while working and both are needed
+ * when something goes wrong, which is the definition of a disclosure.
+ */
+function MachineRow() {
+  const [open, setOpen] = useState<'system' | 'log' | null>(null)
   const [webgpu, setWebgpu] = useState<boolean | null>(null)
   const [service, setService] = useState<ServiceConnection>(serviceConnection)
-  const [details, setDetails] = useState(false)
   const [ffmpeg, setFfmpeg] = useState<FfmpegStatus>({ loaded: false, multiThreaded: false, threads: 1 })
+  const logs = useSession((state) => state.logs)
+  const clearLogs = useSession((state) => state.clearLogs)
   const caps = detectCapabilities()
 
   useEffect(() => {
     void hasWebGpuAdapter().then(setWebgpu)
   }, [])
-
-  // The core can be loaded from any panel, so the strip listens rather than polls.
+  // The core can be loaded from any panel, so the row listens rather than polls.
   useEffect(() => onFfmpegStatus(setFfmpeg), [])
   // Same for the extraction service: answered here, on every tab, rather than
   // only inside the panel that happens to own the connection.
@@ -78,25 +215,26 @@ function CapabilityStrip() {
 
   const entries = [
     {
-      label: 'Isolation',
-      value: caps.crossOriginIsolated ? 'aktiv' : 'fehlt',
+      label: 'Mehrkern-Rechnen',
+      value: caps.crossOriginIsolated ? 'aktiv' : 'aus',
       note: caps.crossOriginIsolated
-        ? 'SharedArrayBuffer verfügbar, FFmpeg läuft mehrfädig'
-        : 'FFmpeg läuft einfädig und damit langsamer',
-    },
-    { label: 'Kerne', value: String(caps.cores), note: `${suggestedThreads(caps)} für Rechenarbeit` },
-    {
-      label: 'WebGPU',
-      value: webgpu === null ? 'wird geprüft' : webgpu ? 'vorhanden' : 'nicht vorhanden',
-      note: 'Für neuronale Spurentrennung',
+        ? `FFmpeg darf ${suggestedThreads(caps)} von ${caps.cores} Kernen nutzen`
+        : 'FFmpeg läuft auf einem Kern und ist damit langsamer',
     },
     {
-      label: 'Dateisystem',
-      value: caps.fileSystemAccess ? 'vorhanden' : 'nicht vorhanden',
-      note: caps.fileSystemAccess ? 'Downloads gehen direkt auf die Platte' : 'Downloads laufen über den Speicher',
+      label: 'Grafikkarte',
+      value: webgpu === null ? 'wird geprüft' : webgpu ? 'nutzbar' : 'nicht nutzbar',
+      note: 'Beschleunigt das Trennen von Spuren',
     },
     {
-      label: 'Dienst',
+      label: 'Direkt speichern',
+      value: caps.fileSystemAccess ? 'möglich' : 'nicht möglich',
+      note: caps.fileSystemAccess
+        ? 'Große Downloads gehen direkt auf die Festplatte'
+        : 'Downloads laufen erst durch den Arbeitsspeicher',
+    },
+    {
+      label: 'Dienst für Portale',
       value: service.info ? 'verbunden' : service.searching ? 'wird gesucht' : 'aus',
       note: service.info
         ? `${(service.endpoint ?? '').replace(/^https?:\/\//, '').replace(/\/$/, '')} · ${
@@ -104,126 +242,135 @@ function CapabilityStrip() {
           }`
         : service.searching
           ? 'wartet auf eine Instanz auf diesem Rechner'
-          : 'nur für YouTube und Portale nötig',
+          : 'nur für YouTube und ähnliche Portale nötig',
     },
     {
       label: 'FFmpeg',
-      value: ffmpeg.loaded ? 'geladen' : 'nicht geladen',
+      value: ffmpeg.loaded ? 'geladen' : 'noch nicht geladen',
       note: ffmpeg.loaded
-        ? `${ffmpeg.multiThreaded ? `mehrfädig, ${ffmpeg.threads} Threads` : 'einfädig'}`
-        : 'wird bei Bedarf geholt',
+        ? ffmpeg.multiThreaded
+          ? `mehrfädig, ${ffmpeg.threads} Threads`
+          : 'einfädig'
+        : 'wird beim ersten Umwandeln geholt',
     },
   ]
 
+  const tab = (id: 'system' | 'log', label: string, count?: number) => (
+    <button
+      type="button"
+      onClick={() => setOpen((value) => (value === id ? null : id))}
+      aria-expanded={open === id}
+      className={`press flex items-center gap-[7px] rounded-pill px-[12px] py-[6px] text-[12px] ${
+        open === id ? 'bg-ink text-on-ink' : 'text-muted hover:bg-panel-soft hover:text-ink'
+      }`}
+    >
+      {label}
+      {count ? (
+        <span
+          className={`numeric rounded-pill px-[6px] text-[11px] ${
+            open === id ? 'bg-on-ink/20' : 'bg-panel-mid text-ink'
+          }`}
+        >
+          {count}
+        </span>
+      ) : null}
+    </button>
+  )
+
   return (
-    <Card tone="sage" size="compact">
-      {/* One line by default. Six figures with a sentence each is a reference
-          card, and a reference card does not belong permanently between the
-          tools and the log — it belongs one click away. */}
-      <div className="flex flex-wrap items-center gap-x-[14px] gap-y-[9px]">
-        <Eyebrow className="shrink-0">Dieser Browser</Eyebrow>
-        <dl className="flex min-w-0 flex-1 flex-wrap items-center gap-x-[9px] gap-y-[7px]">
-          {entries.map((entry) => (
-            <div
-              key={entry.label}
-              className="flex items-baseline gap-[6px] rounded-pill bg-raised px-[11px] py-[5px]"
-              title={entry.note}
-            >
-              <dt className="text-[11px] uppercase tracking-[0.06em] text-ink/60">{entry.label}</dt>
-              <dd className="text-[12px] text-ink">{entry.value}</dd>
-            </div>
-          ))}
-        </dl>
-        <div className="flex shrink-0 items-center gap-[7px]">
-          {!ffmpeg.loaded ? (
-            <Button size="sm" variant="quiet" onClick={() => void loadFfmpeg()}>
-              FFmpeg laden
-            </Button>
-          ) : null}
-          <button
-            type="button"
-            onClick={() => setDetails((value) => !value)}
-            aria-expanded={details}
-            className="rounded-nav text-[12px] text-ink/70 underline underline-offset-2 hover:text-ink"
-          >
-            {details ? 'Weniger' : 'Was heißt das?'}
-          </button>
-        </div>
+    <div className="mt-[4px]">
+      <div className="flex flex-wrap items-center gap-[6px] border-t border-line pt-[12px]">
+        <span className="mr-[4px] text-[12px] text-muted">Unter der Haube</span>
+        {tab('system', 'Dieses Gerät')}
+        {tab('log', 'Protokoll', logs.length)}
+        {!ffmpeg.loaded ? (
+          <Button size="sm" variant="ghost" className="ml-auto" onClick={() => void loadFfmpeg()}>
+            FFmpeg jetzt laden
+          </Button>
+        ) : null}
       </div>
 
-      {details ? (
-        <dl className="mt-[14px] grid gap-[14px] border-t border-ink/10 pt-[14px] sm:grid-cols-2 lg:grid-cols-3">
+      {open === 'system' ? (
+        <dl className="rise mt-[12px] grid gap-[16px] rounded-card bg-raised p-[18px] ring-1 ring-inset ring-line sm:grid-cols-2 lg:grid-cols-3">
           {entries.map((entry) => (
             <div key={entry.label} className="flex flex-col gap-[2px]">
-              <dt className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink/70">
+              <dt className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">
                 {entry.label}
               </dt>
-              <dd className="text-[13px] text-ink">{entry.value}</dd>
-              <p className="text-[12px] leading-[1.4] text-muted">{entry.note}</p>
+              <dd className="text-[14px] text-ink">{entry.value}</dd>
+              <p className="text-[12px] leading-[1.45] text-muted">{entry.note}</p>
             </div>
           ))}
         </dl>
       ) : null}
-    </Card>
-  )
-}
 
-function ActivityLog() {
-  const logs = useSession((state) => state.logs)
-  const clearLogs = useSession((state) => state.clearLogs)
-  const [open, setOpen] = useState(false)
-
-  return (
-    <Card tone="cream" className="ring-1 ring-inset ring-line">
-      <div className="flex flex-wrap items-center justify-between gap-[14px]">
-        <div className="flex items-center gap-[11px]">
-          <Eyebrow>Protokoll</Eyebrow>
-          <Badge>{logs.length}</Badge>
-        </div>
-        <div className="flex gap-[7px]">
-          <Button size="sm" variant="ghost" onClick={() => setOpen((value) => !value)}>
-            {open ? 'Einklappen' : 'Anzeigen'}
-          </Button>
-          {logs.length ? (
-            <Button size="sm" variant="ghost" onClick={clearLogs}>
-              Leeren
-            </Button>
-          ) : null}
-        </div>
-      </div>
-
-      {open ? (
-        <div className="mt-[18px] max-h-[260px] overflow-y-auto rounded-card bg-panel-soft p-[18px]">
+      {open === 'log' ? (
+        <div className="rise mt-[12px] rounded-card bg-raised p-[18px] ring-1 ring-inset ring-line">
           {logs.length === 0 ? (
             <p className="text-[13px] text-muted">Noch keine Einträge.</p>
           ) : (
-            <ol className="flex flex-col gap-[7px] font-mono text-[12px] leading-[1.5]">
-              {logs
-                .slice()
-                .reverse()
-                .map((line) => (
-                  <li key={line.id} className="flex gap-[11px]">
-                    <span className="numeric shrink-0 text-muted">
-                      {new Date(line.at).toLocaleTimeString('de-DE')}
-                    </span>
-                    <span className="shrink-0 text-ink">{line.scope}</span>
-                    <span
-                      className={
-                        line.level === 'error'
-                          ? 'text-ink'
-                          : line.level === 'warn'
-                            ? 'text-prose'
-                            : 'text-prose/85'
-                      }
-                    >
-                      {line.message}
-                    </span>
-                  </li>
-                ))}
-            </ol>
+            <>
+              <div className="mb-[12px] flex justify-end">
+                <button
+                  type="button"
+                  onClick={clearLogs}
+                  className="press rounded-nav text-[12px] text-muted underline-offset-2 hover:text-ink hover:underline"
+                >
+                  Leeren
+                </button>
+              </div>
+              <ol className="flex max-h-[260px] flex-col gap-[6px] overflow-y-auto font-mono text-[12px] leading-[1.5]">
+                {logs
+                  .slice()
+                  .reverse()
+                  .map((line) => (
+                    <li key={line.id} className="flex gap-[11px]">
+                      <span className="numeric shrink-0 text-muted">
+                        {new Date(line.at).toLocaleTimeString('de-DE')}
+                      </span>
+                      <span className="shrink-0 text-ink">{line.scope}</span>
+                      <span className={line.level === 'error' ? 'text-ink' : 'text-prose/85'}>
+                        {line.message}
+                      </span>
+                    </li>
+                  ))}
+              </ol>
+            </>
           )}
         </div>
       ) : null}
+    </div>
+  )
+}
+
+/* -------------------------------------------------------------------------- */
+/* Empty states                                                                */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * The first thing a first-time visitor sees.
+ *
+ * The downloader used to own this screen alone, which meant the opening move
+ * the app offered was "paste a link" — and someone who already has the file on
+ * their desk had no visible way in at all. The file picker was real, but it
+ * lived inside a card that only rendered on the other five tabs.
+ */
+function FirstRun() {
+  return (
+    <Card tone="cream" className="rise">
+      <div className="flex flex-col items-start gap-[18px] sm:flex-row sm:items-center sm:gap-[28px]">
+        <div className="min-w-0 flex-1">
+          <p className="display-sm">Womit fangen wir an?</p>
+          <p className="mt-[6px] max-w-[52ch] text-body leading-[1.55] text-prose/85">
+            Öffnen Sie eine Datei von Ihrem Gerät — oder holen Sie sie unten über eine Adresse.
+            Gerechnet wird auf Ihrem Gerät; hochgeladen wird nichts.
+          </p>
+        </div>
+        <div className="flex shrink-0 flex-col items-start gap-[6px]">
+          <OpenFileButton size="md" />
+          <span className="text-[12px] text-muted">oder Datei ins Fenster ziehen</span>
+        </div>
+      </div>
     </Card>
   )
 }
@@ -234,26 +381,19 @@ function ActivityLog() {
  * Five panels used to answer this question five times over, and each of them
  * twice on the same screen: a drop zone in the middle, a second one in the
  * sidebar, and the library saying "nothing loaded" underneath. Three ways to do
- * one thing, surrounded by settings for material that did not exist — fade
- * lengths, model choices, output formats, all of it decided in advance of the
- * file they apply to.
- *
- * So the question is answered once, here, and the panel itself only renders when
- * there is something for it to render about. The downloader is exempt: it is not
- * a tool that needs a file, it is one of the two ways to get one.
+ * one thing, surrounded by settings for material that did not exist.
  */
 function NothingLoaded({ label, summary }: { label: string; summary: string }) {
   const setPanel = useSession((state) => state.setPanel)
 
   return (
-    <Card tone="keylime">
-      <div className="mx-auto flex max-w-[480px] flex-col items-center gap-[16px] text-center">
+    <Card tone="cream" className="rise">
+      <div className="mx-auto flex max-w-[460px] flex-col items-center gap-[18px] text-center">
         <div>
           <Eyebrow>{label}</Eyebrow>
           <p className="mt-[7px] text-subheading text-ink">{summary}</p>
-          <p className="mt-[9px] text-body leading-[1.55] text-prose/85">
-            Dafür braucht es erst eine Datei. Alles, was Sie hinzufügen, bleibt in diesem Tab —
-            gerechnet wird auf Ihrem Gerät, hochgeladen wird nichts.
+          <p className="mt-[8px] text-body leading-[1.55] text-prose/85">
+            Dafür braucht es erst eine Datei. Alles, was Sie hinzufügen, bleibt in diesem Tab.
           </p>
         </div>
 
@@ -266,16 +406,17 @@ function NothingLoaded({ label, summary }: { label: string; summary: string }) {
           <button
             type="button"
             onClick={() => setPanel('downloader')}
-            className="rounded-nav underline underline-offset-2 hover:text-ink"
+            className="press rounded-nav text-ink underline underline-offset-2"
           >
-            Im Downloader eine Adresse einfügen
+            Über eine Adresse herunterladen
           </button>
-          .
         </p>
       </div>
     </Card>
   )
 }
+
+/* -------------------------------------------------------------------------- */
 
 export function Dashboard({ theme }: { theme: ResolvedTheme }) {
   const panel = useSession((state) => state.panel)
@@ -285,10 +426,13 @@ export function Dashboard({ theme }: { theme: ResolvedTheme }) {
   const ready = hasAssets || panel === 'downloader'
 
   return (
-    <section id="studio" className="shell flex flex-col gap-[18px] py-[21px]">
+    <section id="studio" className="shell flex flex-col gap-[16px] py-[18px]">
       <PanelTabs />
 
-      <div role="tabpanel" aria-label={current?.label}>
+      {/* Keyed on the panel so every switch replays the entrance rather than
+          swapping content in place, which reads as a jump. */}
+      <div key={panel} role="tabpanel" aria-label={current?.label} className="rise flex flex-col gap-[16px]">
+        {!hasAssets && panel === 'downloader' ? <FirstRun /> : null}
         {!ready ? (
           <NothingLoaded label={current?.label ?? ''} summary={current?.summary ?? ''} />
         ) : (
@@ -303,8 +447,7 @@ export function Dashboard({ theme }: { theme: ResolvedTheme }) {
         )}
       </div>
 
-      <CapabilityStrip />
-      <ActivityLog />
+      <MachineRow />
     </section>
   )
 }
