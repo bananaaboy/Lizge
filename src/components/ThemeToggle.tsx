@@ -68,12 +68,15 @@ export function ThemeToggle({
             aria-checked={active}
             title={option.title}
             onClick={() => onChange(option.value)}
-            className={`flex items-center gap-1.5 rounded-pill px-[11px] py-[6px] text-[12px] transition-colors ${
+            className={`press flex items-center justify-center rounded-pill p-[7px] ${
               active ? 'bg-ink text-on-ink' : 'text-ink hover:bg-panel-mid'
             }`}
           >
             <Icon choice={option.value} />
-            <span className="sr-only sm:not-sr-only">{option.label}</span>
+            {/* Icon-only: three words of chrome next to the one button that
+                actually starts work is three words too many. The title and the
+                label below still name each state for a screen reader. */}
+            <span className="sr-only">{option.label}</span>
           </button>
         )
       })}

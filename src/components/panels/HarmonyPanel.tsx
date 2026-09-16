@@ -23,7 +23,7 @@ import { estimateTempo } from '../../lib/tempo'
 import { analyseHarmonyInWorker, type HarmonyOutcome } from '../../lib/workerClient'
 import { useDecodedAudio } from '../../hooks/useDecodedAudio'
 import { useActiveAsset, useSession } from '../../state/store'
-import { AssetList } from '../AssetList'
+import { SessionCard } from '../AssetList'
 import { AudioPreview } from '../AudioPreview'
 import { FileDrop } from '../FileDrop'
 import {
@@ -114,14 +114,19 @@ export function HarmonyPanel() {
   const [mode, setMode] = useState<ViewMode>('einfach')
   const [transcribe, setTranscribe] = useState(true)
   const [chordWindow, setChordWindow] = useState(0.5)
-  const [clarity, setClarity] = useState(0.55)
-  const [minimumNote, setMinimumNote] = useState(0.08)
+  const [clarity, setClarity] = useState(0.4)
+  const [minimumNote, setMinimumNote] = useState(0.06)
   const [quantize, setQuantize] = useState(0)
 
   const [running, setRunning] = useState(false)
   const [progress, setProgress] = useState<number | null>(null)
   const [note, setNote] = useState<string | null>(null)
   const [result, setResult] = useState<HarmonyOutcome | null>(null)
+  // Simple mode skips the pitch tracker, so a result from it has no notes —
+  // which is not the same thing as a file with no melody in it. Without this
+  // flag, switching to the detailed view after a simple run reported "no melody
+  // found" for something that was never looked for.
+  const [transcribed, setTranscribed] = useState(false)
   const [bpm, setBpm] = useState(120)
   const [error, setError] = useState<string | null>(null)
   const abortRef = useRef<AbortController | null>(null)
@@ -133,6 +138,7 @@ export function HarmonyPanel() {
     setRunning(true)
     setError(null)
     setResult(null)
+    setTranscribed(mode === 'detail' && transcribe)
 
     try {
       const decoded = audio ?? (await decode())
@@ -195,8 +201,8 @@ export function HarmonyPanel() {
       <div className="flex flex-col gap-[18px]">
         <Card tone="keylime" size="compact">
           <div className="flex flex-wrap items-center justify-between gap-x-[14px] gap-y-[9px]">
-            <Eyebrow>Harmonie</Eyebrow>
-            <div role="radiogroup" aria-label="Ansicht" className="flex gap-[3px] rounded-pill bg-raised p-[3px]">
+            <Eyebrow>Tonart</Eyebrow>
+            <div role="radiogroup" aria-label="Ansicht" className="flex gap-[3px] rounded-pill bg-panel-soft p-[3px]">
               {(['einfach', 'detail'] as ViewMode[]).map((entry) => (
                 <button
                   key={entry}
@@ -368,6 +374,11 @@ export function HarmonyPanel() {
                   </Button>
                 </div>
               </Card>
+            ) : !transcribed ? (
+              <Notice title="Melodie noch nicht analysiert">
+                Die einfache Ansicht überspringt die Melodieerkennung, weil sie der aufwendige Teil
+                ist. Noch einmal auf „Analysieren“ tippen, dann wird sie mitgerechnet.
+              </Notice>
             ) : transcribe ? (
               <Notice title="Keine Melodie gefunden">
                 Der Tonhöhenverfolger arbeitet einstimmig. Auf einem vollen Mix findet er selten
@@ -405,7 +416,7 @@ export function HarmonyPanel() {
                 <Slider
                   label="Geforderte Klarheit"
                   display={clarity.toFixed(2)}
-                  min={0.3}
+                  min={0.2}
                   max={0.9}
                   step={0.05}
                   value={clarity}
@@ -435,7 +446,7 @@ export function HarmonyPanel() {
         ) : null}
 
         {result && mode === 'detail' ? (
-          <Card tone="cream" size="compact" className="ring-1 ring-inset ring-line">
+          <Card tone="cream" size="compact">
             <Eyebrow>Nächstbeste</Eyebrow>
             <ul className="mt-[11px] flex flex-col gap-[7px] text-[13px]">
               {result.key.scores.map((entry) => (
@@ -450,9 +461,7 @@ export function HarmonyPanel() {
           </Card>
         ) : null}
 
-        <Card tone="cream" size="compact" className="ring-1 ring-inset ring-line">
-          <AssetList />
-        </Card>
+        <SessionCard />
       </aside>
     </div>
   )

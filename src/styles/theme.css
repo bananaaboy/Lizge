@@ -1,8 +1,7 @@
 @import 'tailwindcss';
 
 /* ---------------------------------------------------------------------------
-   Ease Health — botanical greenhouse on cream paper, and the same greenhouse
-   after dark.
+   Sondra — a studio on warm paper, and the same studio after dark.
 
    Colours are named for their role rather than their hue, because the hue is
    exactly what changes between themes: "cream paper" would be a lie in dark
@@ -10,23 +9,40 @@
    `var(--color-…)`, so redefining those variables under a theme selector
    re-skins the whole app without touching a single component.
 
+   The one relationship that carries the whole layout: `canvas` is the page and
+   `raised` is a card, and the two are never the same value. Cards then read as
+   objects lying on a surface without needing a border to say so. Green is the
+   accent — active tab, filled button, heading, focus ring — and never the
+   ground under a whole screen, so the eye lands on what can be clicked.
+
    Faire Octave and Suisse Intl are licensed faces; Cormorant Garamond and
    Inter stand in for them and are self-hosted under /public/fonts.
    --------------------------------------------------------------------------- */
 @theme {
   /* Light palette — the values below double as the defaults. */
-  --color-canvas: #fffefc;
-  --color-raised: #fffefc;
-  --color-panel-soft: #e1f4df;
-  --color-panel-mid: #cfe7d3;
-  --color-panel-strong: #b1dbb8;
-  --color-panel-cool: #b6ced5;
-  --color-ink: #0f3e17;
-  --color-ink-hover: #0c2f10;
-  --color-on-ink: #fffefc;
-  --color-prose: #222222;
-  --color-muted: #5b6b5e;
-  --color-line: #efeeeb;
+  --color-canvas: #f4f3ee;
+  --color-raised: #ffffff;
+  --color-panel-soft: #eaf2e9;
+  --color-panel-mid: #e2ebe1;
+  --color-panel-strong: #d2e4d1;
+  --color-panel-cool: #e4edef;
+  --color-ink: #0f3e1c;
+  --color-ink-hover: #0a2b13;
+  --color-on-ink: #ffffff;
+  --color-prose: #1b231d;
+  --color-muted: #5d6c61;
+  --color-line: #e3e2dc;
+
+  /* Elevation. One soft shadow, used only to lift a card off the canvas. */
+  --shadow-card: 0 1px 2px rgb(20 35 25 / 0.04), 0 4px 16px -8px rgb(20 35 25 / 0.1);
+  --shadow-lift: 0 2px 6px rgb(20 35 25 / 0.06), 0 12px 30px -12px rgb(20 35 25 / 0.18);
+
+  /* Motion. Every duration in the app comes from one of these three. */
+  --ease-out: cubic-bezier(0.22, 0.72, 0.28, 1);
+  --ease-spring: cubic-bezier(0.34, 1.32, 0.5, 1);
+  --dur-fast: 130ms;
+  --dur-base: 240ms;
+  --dur-slow: 420ms;
 
   --font-display: 'Faire Octave', 'Cormorant Garamond', ui-serif, Georgia, serif;
   --font-sans: 'Suisse Intl', 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
@@ -61,38 +77,44 @@
   :root:not([data-theme='light']) {
     color-scheme: dark;
 
-    --color-canvas: #0a120d;
-    --color-raised: #131f18;
-    --color-panel-soft: #17271c;
-    --color-panel-mid: #1d3123;
-    --color-panel-strong: #243c2d;
-    --color-panel-cool: #1d2e35;
+    --color-canvas: #090d0b;
+    --color-raised: #141a16;
+    --color-panel-soft: #1a221d;
+    --color-panel-mid: #202b23;
+    --color-panel-strong: #2a3830;
+    --color-panel-cool: #1c282c;
     /* Ink and its backdrop swap roles: the single saturated colour has to be
        the light one now, or headings and filled buttons would vanish. */
-    --color-ink: #b7e4bd;
-    --color-ink-hover: #d2f2d6;
-    --color-on-ink: #08150b;
-    --color-prose: #dbe6dc;
-    --color-muted: #9fb3a3;
-    --color-line: #253429;
+    --color-ink: #7fd394;
+    --color-ink-hover: #a3e5b3;
+    --color-on-ink: #06110a;
+    --color-prose: #e0e8e2;
+    --color-muted: #94a898;
+    --color-line: #25302a;
+
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.5), 0 4px 16px -8px rgb(0 0 0 / 0.6);
+    --shadow-lift: 0 2px 6px rgb(0 0 0 / 0.55), 0 12px 30px -12px rgb(0 0 0 / 0.72);
   }
 }
 
 :root[data-theme='dark'] {
   color-scheme: dark;
 
-  --color-canvas: #0a120d;
-  --color-raised: #131f18;
-  --color-panel-soft: #17271c;
-  --color-panel-mid: #1d3123;
-  --color-panel-strong: #243c2d;
-  --color-panel-cool: #1d2e35;
-  --color-ink: #b7e4bd;
-  --color-ink-hover: #d2f2d6;
-  --color-on-ink: #08150b;
-  --color-prose: #dbe6dc;
-  --color-muted: #9fb3a3;
-  --color-line: #253429;
+  --color-canvas: #090d0b;
+  --color-raised: #141a16;
+  --color-panel-soft: #1a221d;
+  --color-panel-mid: #202b23;
+  --color-panel-strong: #2a3830;
+  --color-panel-cool: #1c282c;
+  --color-ink: #7fd394;
+  --color-ink-hover: #a3e5b3;
+  --color-on-ink: #06110a;
+  --color-prose: #e0e8e2;
+  --color-muted: #94a898;
+  --color-line: #25302a;
+
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.5), 0 4px 16px -8px rgb(0 0 0 / 0.6);
+  --shadow-lift: 0 2px 6px rgb(0 0 0 / 0.55), 0 12px 30px -12px rgb(0 0 0 / 0.72);
 }
 
 :root {
@@ -278,5 +300,95 @@ select option {
   .sondra-drift {
     animation: none;
     width: 100%;
+  }
+}
+
+/* --- motion ----------------------------------------------------------------
+   Four movements, and nothing else in the app invents a fifth.
+
+   `rise` is how anything new arrives — a panel after a tab click, a result
+   after a computation. `pop` is for a figure that was just calculated and
+   wants to be noticed once. `sweep` fills a bar. `breathe` marks a process
+   that is running but cannot report progress.
+
+   Everything here is opacity and transform only, so none of it forces layout,
+   and the reduced-motion block above already neutralises all of it.
+   --------------------------------------------------------------------------- */
+@keyframes sondra-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes sondra-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.012);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes sondra-sweep {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* Anything mounting for the first time. `--delay` staggers a list without a
+   separate class per position. */
+@utility rise {
+  animation: sondra-rise var(--dur-base) var(--ease-out) both;
+  animation-delay: var(--delay, 0ms);
+}
+
+@utility pop {
+  animation: sondra-pop var(--dur-base) var(--ease-spring) both;
+  animation-delay: var(--delay, 0ms);
+}
+
+/* Cards lie on the canvas; only the thing being dragged or hovered lifts. */
+@utility elevate {
+  box-shadow: var(--shadow-card);
+}
+
+@utility elevate-lift {
+  box-shadow: var(--shadow-lift);
+}
+
+/* A press that answers immediately. The nudge is pointer-only — a touch tap
+   already has the platform's own feedback, and a keyboard press has the focus
+   ring — but the colour transition applies everywhere. */
+@utility press {
+  transition:
+    transform var(--dur-fast) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .press:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .press:active:not(:disabled) {
+    transform: none;
   }
 }

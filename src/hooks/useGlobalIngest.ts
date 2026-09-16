@@ -13,12 +13,9 @@
  * straight from the file manager, or pushed into it from a phone's share sheet.
  */
 
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 
-import { formatBytes } from '../lib/format'
-import { kindFromMime, useSession } from '../state/store'
-
-const MEDIA_PATTERN = /^(audio|video)\//
+import { useIngestFiles } from './useIngest'
 
 /** The slice of the File Handling API this app uses. */
 interface LaunchParams {
@@ -29,34 +26,8 @@ interface LaunchQueue {
 }
 
 export function useGlobalIngest(): { dragging: boolean } {
-  const addAsset = useSession((state) => state.addAsset)
-  const log = useSession((state) => state.log)
+  const { ingest } = useIngestFiles()
   const [dragging, setDragging] = useState(false)
-
-  const ingest = useCallback(
-    async (files: File[], source: string) => {
-      const usable = files.filter(
-        (file) => MEDIA_PATTERN.test(file.type) || kindFromMime(file.type, file.name) !== 'unknown',
-      )
-      if (usable.length === 0) return
-
-      for (const file of usable) {
-        const bytes = new Uint8Array(await file.arrayBuffer())
-        addAsset({
-          name: file.name || 'eingefügt',
-          bytes,
-          mime: file.type || 'application/octet-stream',
-          sizeBytes: bytes.byteLength,
-          kind: kindFromMime(file.type, file.name),
-          audio: null,
-          durationSeconds: null,
-          origin: 'file',
-        })
-        log('bibliothek', `${file.name || 'eingefügt'} ${source} (${formatBytes(bytes.byteLength)})`)
-      }
-    },
-    [addAsset, log],
-  )
 
   useEffect(() => {
     // Depth counting, because dragenter/dragleave fire for every child element

@@ -1,10 +1,11 @@
 /**
  * The component vocabulary for the whole app.
  *
- * The design system it implements is flat by rule: depth comes from stacking
- * tinted panels (cream → keylime → mint → sage → slate), never from shadows, and
- * Forest Ink is reserved for text and filled actions so it stays the only
- * saturated colour on the page.
+ * Two rules hold the system together. Depth is one step deep: a cream card
+ * lifts off the canvas with a single soft shadow, and everything tinted
+ * (keylime → mint → sage → slate) nests inside it flat. And Forest Ink is
+ * reserved for text, filled actions and the focus ring, so the one saturated
+ * colour on the page is always pointing at something you can do.
  */
 
 import { useEffect, useRef } from 'react'
@@ -12,11 +13,20 @@ import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, SelectHTMLAt
 
 type Tone = 'cream' | 'keylime' | 'mint' | 'sage' | 'slate'
 
+/**
+ * Two kinds of surface, and the tone says which.
+ *
+ * `cream` and `keylime` are cards: white, hairlined, lifted, sitting directly
+ * on the canvas. The other three are blocks nested inside a card — tinted, flat,
+ * no border — and are never the outermost thing on a screen. The previous
+ * arrangement made the tool card a pale green almost exactly the value of the
+ * canvas behind it, so the main working surface had no edge at all.
+ */
 const TONE_CLASS: Record<Tone, string> = {
-  cream: 'bg-raised',
-  keylime: 'bg-panel-soft',
-  mint: 'bg-panel-mid',
-  sage: 'bg-panel-strong',
+  cream: 'bg-raised ring-1 ring-inset ring-line elevate',
+  keylime: 'bg-raised ring-1 ring-inset ring-line elevate',
+  mint: 'bg-panel-soft',
+  sage: 'bg-panel-mid',
   slate: 'bg-panel-cool',
 }
 
@@ -34,7 +44,7 @@ export function Card({
   className?: string
   children: ReactNode
 }) {
-  const padding = !padded ? '' : size === 'compact' ? 'p-[18px] sm:p-[21px]' : 'p-7 sm:p-[28px]'
+  const padding = !padded ? '' : size === 'compact' ? 'p-[16px] sm:p-[20px]' : 'p-[22px] sm:p-[26px]'
   return <div className={`rounded-card ${TONE_CLASS[tone]} ${padding} ${className}`}>{children}</div>
 }
 
@@ -69,12 +79,12 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 
 export function Button({ variant = 'primary', size = 'md', className = '', ...props }: ButtonProps) {
   const base =
-    'inline-flex items-center justify-center gap-2 rounded-card font-sans transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-40'
-  const sizes = size === 'sm' ? 'px-[14px] py-[9px] text-[13px]' : 'px-[21px] py-[14px] text-body'
+    'press inline-flex items-center justify-center gap-2 rounded-card font-sans disabled:cursor-not-allowed disabled:opacity-40'
+  const sizes = size === 'sm' ? 'px-[14px] py-[9px] text-[13px]' : 'px-[20px] py-[13px] text-body'
   const variants = {
-    primary: 'bg-ink text-on-ink hover:bg-ink-hover',
-    quiet: 'bg-raised text-ink hover:bg-panel-mid',
-    ghost: 'bg-transparent text-ink hover:bg-raised',
+    primary: 'bg-ink text-on-ink hover:bg-ink-hover elevate',
+    quiet: 'bg-raised text-ink ring-1 ring-inset ring-line hover:bg-panel-soft',
+    ghost: 'bg-transparent text-ink hover:bg-panel-soft',
   }[variant]
 
   return <button className={`${base} ${sizes} ${variants} ${className}`} {...props} />
@@ -148,15 +158,15 @@ export function Toggle({
       aria-checked={checked}
       disabled={disabled}
       onClick={() => onChange(!checked)}
-      className="flex w-full items-start gap-[14px] rounded-nav text-left disabled:opacity-40"
+      className="press group flex w-full items-start gap-[14px] rounded-nav text-left disabled:opacity-40"
     >
       <span
-        className={`mt-0.5 flex h-[20px] w-[34px] shrink-0 items-center rounded-pill p-[3px] transition-colors ${
-          checked ? 'bg-ink' : 'bg-ink/20'
+        className={`mt-0.5 flex h-[20px] w-[34px] shrink-0 items-center rounded-pill p-[3px] transition-colors duration-[var(--dur-fast)] ${
+          checked ? 'bg-ink' : 'bg-muted/35 group-hover:bg-muted/50'
         }`}
       >
         <span
-          className={`h-[14px] w-[14px] rounded-pill bg-raised transition-transform ${
+          className={`h-[14px] w-[14px] rounded-pill bg-raised shadow-sm transition-transform duration-[var(--dur-base)] ease-[var(--ease-spring)] ${
             checked ? 'translate-x-[14px]' : 'translate-x-0'
           }`}
         />
@@ -180,15 +190,15 @@ export function Progress({ value, label }: { value: number | null; label?: strin
         </div>
       ) : null}
       <div
-        className="h-[3px] w-full overflow-hidden rounded-pill bg-ink/15"
+        className="h-[4px] w-full overflow-hidden rounded-pill bg-ink/12"
         role="progressbar"
         aria-valuenow={percent ?? undefined}
         aria-valuemin={0}
         aria-valuemax={100}
       >
         <div
-          className={`h-full rounded-pill bg-ink transition-[width] duration-200 ${
-            percent === null ? 'w-1/3 pulse-dot' : ''
+          className={`h-full rounded-pill bg-ink transition-[width] duration-[var(--dur-base)] ease-[var(--ease-out)] ${
+            percent === null ? 'sondra-drift w-1/3' : ''
           }`}
           style={percent === null ? undefined : { width: `${percent}%` }}
         />
@@ -213,7 +223,7 @@ export function Stat({
     <div className="flex flex-col gap-[4px]">
       <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink/70">{label}</span>
       <span
-        className={`numeric ${emphasis ? 'font-display text-[28px] font-light leading-none' : 'text-subheading'} text-ink`}
+        className={`numeric pop ${emphasis ? 'font-display text-[30px] font-light leading-none' : 'text-subheading'} text-ink`}
       >
         {value}
       </span>
@@ -233,14 +243,55 @@ export function Notice({
 }) {
   const ring = {
     info: 'ring-line',
-    warn: 'ring-ink/25',
-    error: 'ring-ink/45',
+    warn: 'ring-ink/30',
+    error: 'ring-ink/55',
   }[tone]
   return (
-    <div className={`rounded-card bg-raised p-[21px] text-[13px] leading-[1.55] ring-1 ring-inset ${ring}`}>
+    <div
+      className={`rise rounded-card bg-raised p-[18px] text-[13px] leading-[1.55] ring-1 ring-inset ${ring}`}
+    >
       {title ? <p className="mb-1.5 font-semibold text-ink">{title}</p> : null}
       <div className="text-prose/85">{children}</div>
     </div>
+  )
+}
+
+/**
+ * Expert detail, folded away.
+ *
+ * Every tool here has a layer underneath it that the person who knows what
+ * they are doing will want — the exact FFmpeg command, the analysis window,
+ * the runner-up key. Showing it by default taxes everyone else for the whole
+ * life of the app; hiding it behind a word costs one click, once.
+ */
+export function Reveal({
+  label,
+  children,
+  className = '',
+}: {
+  label: string
+  children: ReactNode
+  className?: string
+}) {
+  return (
+    <details className={`group ${className}`}>
+      <summary className="press inline-flex cursor-pointer list-none items-center gap-[6px] rounded-nav text-[12px] text-muted hover:text-ink">
+        <svg
+          viewBox="0 0 12 12"
+          className="h-3 w-3 transition-transform duration-[var(--dur-fast)] group-open:rotate-90"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden
+        >
+          <path d="M4.5 2.5L8 6l-3.5 3.5" />
+        </svg>
+        {label}
+      </summary>
+      <div className="rise mt-[10px]">{children}</div>
+    </details>
   )
 }
 

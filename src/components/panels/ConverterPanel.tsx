@@ -26,7 +26,7 @@ import { formatTimecode } from '../../lib/format'
 import { decodeWithBrowser } from '../../lib/audio'
 import { useDecodedAudio } from '../../hooks/useDecodedAudio'
 import { kindFromMime, useActiveAsset, useSession } from '../../state/store'
-import { AssetList } from '../AssetList'
+import { SessionAside } from '../AssetList'
 import { AudioPreview } from '../AudioPreview'
 import { FileDrop } from '../FileDrop'
 import {
@@ -37,6 +37,7 @@ import {
   Field,
   Notice,
   Progress,
+  Reveal,
   Select,
   Slider,
   Stat,
@@ -242,8 +243,8 @@ export function ConverterPanel() {
     <div className="grid gap-[21px] lg:grid-cols-[minmax(0,1fr)_360px]">
       <div className="flex flex-col gap-[21px]">
         <Card tone="keylime">
-          <Eyebrow>Konverter</Eyebrow>
-          <h2 className="display-md mt-[11px] mb-[14px]">Format umwandeln</h2>
+          <Eyebrow>Umwandeln</Eyebrow>
+          <h2 className="display-md mt-[8px] mb-[12px]">In ein anderes Format bringen</h2>
           <details className="max-w-[56ch]">
             <summary className="cursor-pointer list-none text-[13px] text-muted underline underline-offset-2 hover:text-ink">
               Wie das funktioniert
@@ -493,12 +494,11 @@ export function ConverterPanel() {
               </div>
 
               {command ? (
-                <div className="mt-[28px]">
-                  <Eyebrow>Befehl</Eyebrow>
-                  <pre className="mt-[11px] overflow-x-auto rounded-card bg-raised p-[18px] font-mono text-[12px] leading-[1.6] text-prose ring-1 ring-inset ring-line">
+                <Reveal label="Welcher Befehl dabei läuft" className="mt-[21px]">
+                  <pre className="overflow-x-auto rounded-card bg-panel-soft p-[16px] font-mono text-[12px] leading-[1.6] text-prose">
                     <code>{command}</code>
                   </pre>
-                </div>
+                </Reveal>
               ) : null}
 
               <div className="mt-[21px]">
@@ -651,11 +651,7 @@ export function ConverterPanel() {
         ) : null}
       </div>
 
-      <aside className="flex flex-col gap-[21px]">
-        <Card tone="mint">
-          <AssetList />
-        </Card>
-      </aside>
+      <SessionAside />
     </div>
   )
 }

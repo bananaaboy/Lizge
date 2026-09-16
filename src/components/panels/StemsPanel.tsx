@@ -18,7 +18,7 @@ import { separateInWorker } from '../../lib/workerClient'
 import { createZip } from '../../lib/zip'
 import { useDecodedAudio } from '../../hooks/useDecodedAudio'
 import { useActiveAsset, useSession } from '../../state/store'
-import { AssetList } from '../AssetList'
+import { SessionCard } from '../AssetList'
 import { AudioPreview } from '../AudioPreview'
 import { FileDrop } from '../FileDrop'
 import {
@@ -155,8 +155,8 @@ export function StemsPanel() {
     <div className="grid gap-[21px] lg:grid-cols-[minmax(0,1fr)_360px]">
       <div className="flex flex-col gap-[21px]">
         <Card tone="keylime">
-          <Eyebrow>Spurentrennung</Eyebrow>
-          <h2 className="display-md mt-[11px] mb-[14px]">Gesang, Schlagzeug, Bass, Rest</h2>
+          <Eyebrow>Spuren trennen</Eyebrow>
+          <h2 className="display-md mt-[8px] mb-[12px]">Gesang, Schlagzeug, Bass und Rest</h2>
           <details className="max-w-[60ch]">
             <summary className="cursor-pointer list-none text-[13px] text-muted underline underline-offset-2 hover:text-ink">
               Wie die Trennung rechnet
@@ -188,7 +188,7 @@ export function StemsPanel() {
                   used to be the first thing on screen, ahead of the button
                   that uses them — which puts a decision in front of anyone
                   who only wanted the thing to run. */}
-              <details className="mt-[21px] rounded-card bg-raised p-[18px]">
+              <details className="mt-[21px] rounded-card bg-panel-soft p-[18px]">
                 <summary className="cursor-pointer list-none text-[13px] font-semibold text-ink">
                   Feineinstellungen
                   <span className="ml-[7px] font-normal text-muted">
@@ -347,11 +347,9 @@ export function StemsPanel() {
       </div>
 
       <aside className="flex flex-col gap-[21px]">
-        <Card tone="mint">
-          <AssetList />
-        </Card>
+        <SessionCard />
 
-        <Card tone="cream" className="ring-1 ring-inset ring-line">
+        <Card tone="cream">
           <Eyebrow>Neuronales Modell</Eyebrow>
           <p className="mt-[9px] text-[13px] leading-[1.55] text-prose/85">
             Optional. Ohne Modell rechnet das eingebaute Verfahren.
