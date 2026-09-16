@@ -73,6 +73,49 @@ interface Slice {
 const PAD_KEYS = ['1', '2', '3', '4', 'q', 'w', 'e', 'r', 'a', 's', 'd', 'f', 'y', 'x', 'c', 'v']
 const MAX_PADS = 16
 
+/**
+ * The slice, drawn small enough to fit on its own pad.
+ *
+ * Sixteen identical squares labelled with a key and a duration tell you
+ * nothing about which one holds the snare. Twenty-odd peak values do, and they
+ * cost one pass over a quarter-second of samples.
+ */
+function PadWave({ audio, from, to }: { audio: AudioData; from: number; to: number }) {
+  const peaks = useMemo(() => {
+    const mono = audio.channels[0]
+    const start = Math.max(0, Math.floor(from * audio.sampleRate))
+    const end = Math.min(mono.length, Math.ceil(to * audio.sampleRate))
+    const buckets = 22
+    const width = Math.max(1, Math.floor((end - start) / buckets))
+    const values: number[] = []
+    for (let b = 0; b < buckets; b += 1) {
+      let peak = 0
+      const at = start + b * width
+      for (let i = at; i < Math.min(at + width, end); i += 1) peak = Math.max(peak, Math.abs(mono[i]))
+      values.push(peak)
+    }
+    const loudest = Math.max(...values, 0.001)
+    return values.map((value) => value / loudest)
+  }, [audio, from, to])
+
+  return (
+    <svg viewBox="0 0 22 10" preserveAspectRatio="none" className="h-[26px] w-full" aria-hidden>
+      {peaks.map((value, index) => (
+        <rect
+          key={index}
+          x={index + 0.18}
+          y={5 - Math.max(0.35, value * 4.6)}
+          width={0.64}
+          height={Math.max(0.7, value * 9.2)}
+          rx={0.3}
+          fill="currentColor"
+          opacity={0.75}
+        />
+      ))}
+    </svg>
+  )
+}
+
 const GRID_DIVISIONS: { value: number; label: string }[] = [
   { value: 0.25, label: '1/16' },
   { value: 0.5, label: '1/8' },
@@ -694,7 +737,7 @@ export function SamplerPanel({ theme }: { theme: ResolvedTheme }) {
               ) : null}
             </div>
 
-            <div className="mt-[14px] grid grid-cols-4 gap-[7px]">
+            <div className="mt-[14px] grid max-w-[420px] grid-cols-4 gap-[7px]">
               {slices.slice(0, MAX_PADS).map((slice, index) => {
                 const isPlaying = playing.includes(index)
                 const isSelected = slice.id === activeSlice
@@ -712,11 +755,11 @@ export function SamplerPanel({ theme }: { theme: ResolvedTheme }) {
                     onPointerLeave={() => {
                       if (slice.mode === 'gate') stopPad(index)
                     }}
-                    className={`flex aspect-square flex-col justify-between rounded-card p-[9px] text-left transition-colors ${
+                    className={`press flex aspect-square flex-col justify-between rounded-card p-[8px] text-left ${
                       isPlaying
                         ? 'bg-ink text-on-ink'
                         : isSelected
-                          ? 'bg-panel-mid text-ink'
+                          ? 'bg-panel-mid text-ink ring-1 ring-inset ring-ink/40'
                           : 'bg-raised text-ink hover:bg-panel-soft'
                     }`}
                   >
@@ -728,7 +771,8 @@ export function SamplerPanel({ theme }: { theme: ResolvedTheme }) {
                         {slice.semitones !== 0 ? (slice.semitones > 0 ? `+${slice.semitones}` : slice.semitones) : ''}
                       </span>
                     </span>
-                    <span className="numeric text-[11px] opacity-80">
+                    {audio ? <PadWave audio={audio} from={slice.start} to={slice.end} /> : null}
+                    <span className="numeric text-[10px] opacity-70">
                       {(slice.end - slice.start).toFixed(2)} s
                     </span>
                   </button>

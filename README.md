@@ -4,19 +4,25 @@ Ein Medienstudio, das öffentlich im Internet steht und trotzdem nichts hochläd
 Der Server liefert HTML, JavaScript und WebAssembly aus — danach rechnet
 ausschließlich der Rechner des Besuchers.
 
-| | |
-|---|---|
-| **Downloader** | Direkte Links, HLS-Playlisten und — auf Wunsch — Portale |
-| **Konverter** | FFmpeg als WebAssembly, zehn Ausgabeformate |
-| **Spurentrennung** | Gesang, Schlagzeug, Bass, Übriges — ohne Modell-Download |
-| **Lautheit** | Vollständiges EBU R128 / ITU-R BS.1770-4 mit True-Peak-Grenze |
-| **Chopper** | Chops an Transienten oder im Tempo-Raster, 16 Pads, Sample-Pack |
-| **Harmonie** | Tonart mit Camelot-Code, Akkordverlauf, Melodie als MIDI |
+Die Reiter heißen nach dem Ergebnis, nicht nach dem Verfahren — wer mit einer
+Aufnahme und einer Frage ankommt, kennt die Fachwörter noch nicht, und eine
+Reiterleiste ist der schlechteste Ort, um sie zu lernen.
 
-Das Harmonie-Panel hat zwei Ansichten: „Einfach“ zeigt Tempo, Tonart und
+| Reiter | | |
+|---|---|---|
+| **Herunterladen** | Downloader | Direkte Links, HLS-Playlisten und — auf Wunsch — Portale |
+| **Umwandeln** | Konverter | FFmpeg als WebAssembly, zehn Ausgabeformate |
+| **Spuren trennen** | Spurentrennung | Gesang, Schlagzeug, Bass, Übriges — ohne Modell-Download |
+| **Lautstärke** | Lautheit | Vollständiges EBU R128 / ITU-R BS.1770-4 mit True-Peak-Grenze |
+| **Zerschneiden** | Chopper | Schnitte an Anschlägen oder im Tempo-Raster, 16 Pads, Sample-Pack |
+| **Tonart** | Harmonie | Tonart mit Camelot-Code, Akkordverlauf, Melodie als MIDI |
+
+Das Tonart-Panel hat zwei Ansichten: „Einfach“ zeigt Tempo, Tonart und
 Camelot-Code und sonst nichts, „Detail“ zusätzlich Akkorde, Tonklassen, die
 Melodie und alle Einstellungen. Einfach überspringt die Tonhöhenverfolgung, den
-teuren Teil, weil sie dort ohnehin nicht gezeigt wird.
+teuren Teil, weil sie dort ohnehin nicht gezeigt wird — und sagt das auch, statt
+im Detailmodus „keine Melodie gefunden“ für etwas zu melden, das nie gesucht
+wurde.
 
 Dazu: helles und dunkles Erscheinungsbild, Stapelverarbeitung mit ZIP-Ausgabe,
 Installation als PWA und vollständiger Offline-Betrieb.
