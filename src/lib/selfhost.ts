@@ -788,3 +788,68 @@ export function mirrorScript(origin: string, port = MIRROR_PORT): string {
     '',
   ].join('\n')
 }
+
+/* -------------------------------------------------------------------------- */
+/* The yt-dlp bridge                                                           */
+/* -------------------------------------------------------------------------- */
+
+export const YTDLP_LAUNCHER = 'sondra-ytdlp.mjs'
+export const YTDLP_RELEASES = 'https://github.com/yt-dlp/yt-dlp/releases/latest'
+
+/** Where each platform's single-file build lives. */
+const YTDLP_BINARY: Record<Platform, { asset: string; saveAs: string }> = {
+  windows: { asset: 'yt-dlp.exe', saveAs: 'yt-dlp.exe' },
+  macos: { asset: 'yt-dlp_macos', saveAs: 'yt-dlp' },
+  linux: { asset: 'yt-dlp_linux', saveAs: 'yt-dlp' },
+  unknown: { asset: 'yt-dlp_linux', saveAs: 'yt-dlp' },
+}
+
+/**
+ * The shortest way to a working service.
+ *
+ * Three files and no package manager: yt-dlp is one self-contained executable,
+ * the bridge is one script, and Node runs it. Nothing is compiled, nothing is
+ * installed into the system, and deleting the folder undoes all of it.
+ *
+ * yt-dlp needs no ffmpeg here because it never merges anything — the bridge
+ * hands video and audio to Sondra separately, and the FFmpeg already in the
+ * page puts them together.
+ */
+export function ytdlpSteps({
+  hasNode,
+  platform,
+  origin,
+}: {
+  hasNode: boolean
+  platform: Platform
+  origin: string
+}): string[] {
+  const steps: string[] = []
+  if (!hasNode) {
+    const install = nodeInstallCommand(platform)
+    if (install) steps.push(install)
+  }
+
+  const { asset, saveAs } = YTDLP_BINARY[platform]
+  const site = origin.replace(/\/$/, '')
+  const get = platform === 'windows' ? 'curl.exe' : 'curl'
+
+  steps.push(`${get} -L -o ${saveAs} ${YTDLP_RELEASES}/download/${asset}`)
+  if (platform !== 'windows') steps.push(`chmod +x ${saveAs}`)
+  steps.push(`${get} -O ${site}/${YTDLP_LAUNCHER}`)
+  steps.push(`node ${YTDLP_LAUNCHER} ${site}`)
+  return steps
+}
+
+/**
+ * The same thing again, with the browser's YouTube session.
+ *
+ * YouTube asks connections it distrusts to prove they are not a bot. The proof
+ * it accepts is a signed-in session, and yt-dlp can read one out of a browser
+ * on this machine. Shown as a separate line rather than baked in, because it
+ * means the download happens as you, logged in — which is a decision, not a
+ * detail.
+ */
+export function ytdlpCookieCommand(origin: string, browser = 'firefox'): string {
+  return `node ${YTDLP_LAUNCHER} ${origin.replace(/\/$/, '')} --cookies ${browser}`
+}

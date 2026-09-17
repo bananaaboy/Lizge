@@ -14,7 +14,7 @@
  */
 
 import { sanitizeFilename } from './format'
-import { fetchLocalAware } from './service'
+import { explain, fetchLocalAware } from './service'
 
 export interface TransferProgress {
   receivedBytes: number
@@ -96,6 +96,17 @@ function emptyTransferError(byteLength: number, url: string): TransferError {
   )
 }
 
+/** Pulls `{ error: { code } }` out of a refusal, if that is what it is. */
+async function explainErrorBody(response: Response): Promise<string | null> {
+  if (!response.headers.get('content-type')?.includes('json')) return null
+  try {
+    const body = (await response.json()) as { error?: { code?: string } }
+    return body.error?.code ? explain(body.error.code) : null
+  } catch {
+    return null
+  }
+}
+
 /** Reads a response body, reporting progress as the bytes arrive. */
 async function readWithProgress(
   response: Response,
@@ -166,7 +177,11 @@ export async function fetchMedia(
   }
 
   if (!response.ok) {
-    throw new TransferError('http', `Server antwortete mit ${response.status} ${response.statusText}.`)
+    // A service that refuses a tunnel usually says why, in the same error
+    // shape it uses everywhere else. Reporting "502" instead of that sentence
+    // throws away the one part of the answer the reader can act on.
+    const explained = await explainErrorBody(response)
+    throw new TransferError('http', explained ?? `Server antwortete mit ${response.status} ${response.statusText}.`)
   }
 
   const bytes = await readWithProgress(response, onProgress, signal)
