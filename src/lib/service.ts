@@ -89,7 +89,7 @@ export class ServiceError extends Error {
 }
 
 /** Turns the service's error codes into something a person can act on. */
-function explain(code: string | null): string {
+export function explain(code: string | null): string {
   if (!code) return 'Der Dienst hat die Anfrage abgelehnt.'
   if (code.includes('link.invalid') || code.includes('link.unsupported')) {
     return 'Diese Adresse kennt der Dienst nicht oder unterstützt sie nicht.'
@@ -100,6 +100,22 @@ function explain(code: string | null): string {
   if (code.includes('content.video.age')) return 'Das Video ist altersbeschränkt.'
   if (code.includes('content.video.region')) return 'Das Video ist in der Region des Dienstes gesperrt.'
   if (code.includes('content.too_long')) return 'Das Video überschreitet die Längenbegrenzung des Dienstes.'
+  // Die beiden Codes der yt-dlp-Brücke. Beide haben eine konkrete Abhilfe, und
+  // die gehört in die Meldung — sonst steht dort nur, dass es nicht ging.
+  if (code.includes('ytdlp.signin')) {
+    return (
+      'YouTube verlangt für dieses Video eine Anmeldung („bestätigen, dass Sie kein Bot sind"). ' +
+      'Starten Sie die Brücke mit dem Browser neu, in dem Sie bei YouTube angemeldet sind — ' +
+      'also mit --cookies firefox am Ende des Befehls. Statt firefox geht auch chrome, edge, ' +
+      'brave, opera oder safari.'
+    )
+  }
+  if (code.includes('ytdlp.missing')) {
+    return (
+      'Die Brücke läuft, findet aber yt-dlp nicht. Die Programmdatei gehört in denselben Ordner ' +
+      'wie sondra-ytdlp.mjs.'
+    )
+  }
   if (code.includes('auth')) return 'Der Dienst verlangt einen Zugangsschlüssel.'
   if (code.includes('rate_exceeded')) return 'Zu viele Anfragen an den Dienst. Später erneut versuchen.'
   if (code.includes('fetch') || code.includes('unreachable')) {

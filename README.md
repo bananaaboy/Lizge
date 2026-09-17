@@ -459,6 +459,60 @@ darüber geöffnet gilt sie als lokal, `crossOriginIsolated` steht, kein
 Erlaubnis-Knopf erscheint, die Verbindung steht nach 8 ms — und ein echter
 YouTube-Download lief durch: 84 MB, 1080p.
 
+### Derselbe Dienst, aber mit yt-dlp
+
+cobalt spricht YouTube über `youtubei.js` an, also über YouTubes eigene
+App-Schnittstelle. Das ist ein Weg, und wenn YouTube ihn sperrt, gibt es keinen
+zweiten. yt-dlp kennt viele, und vor allem kennt es einen, der hilft, wenn die
+Sperre auf der IP-Adresse liegt: die Anmeldung aus einem Browser auf demselben
+Rechner.
+
+yt-dlp ist allerdings ein *Befehl*, kein Dienst — es hat keine Schnittstelle,
+die eine Webseite ansprechen könnte, und eine Webseite darf auch kein Programm
+starten. `sondra-ytdlp.mjs` ist das fehlende Stück dazwischen: nach außen
+spricht es genau das Protokoll, das Sondra ohnehin kann, nach innen ruft es
+yt-dlp auf. Am Client musste dafür nichts geändert werden.
+
+```
+curl -L -o yt-dlp https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux
+chmod +x yt-dlp
+curl -O https://ihre-seite.example/sondra-ytdlp.mjs
+node sondra-ytdlp.mjs https://ihre-seite.example
+```
+
+Das ist weniger als der cobalt-Weg, nicht mehr: eine Programmdatei statt
+Paketmanager, Quelltext und 200 MB `node_modules`. Und es braucht kein ffmpeg,
+weil die Brücke nichts zusammenfügt — Bild und Ton gehen getrennt als zwei
+Tunnel an Sondra, und das FFmpeg in der Seite setzt sie zusammen. Genau der
+`local-processing`-Pfad, den cobalt ohnehin benutzt.
+
+Grenzen, die dieser Weg hat und nicht verschweigt:
+
+* **Bis 1080p.** Darüber liefert YouTube nur noch VP9 und AV1, und die lassen
+  sich nicht verlustfrei in einen MP4-Container kopieren. Neu kodieren würde aus
+  Sekunden Minuten machen, also endet die Formatwahl bei H.264.
+* **Der Bot-Check bleibt ein Bot-Check.** Wenn YouTube der IP-Adresse nicht
+  traut, hilft nur eine Anmeldung: `--cookies firefox` am Ende des Befehls liest
+  die Sitzung aus einem lokal installierten Browser. Das heißt aber auch, dass
+  der Abruf als Sie geschieht, angemeldet und dem Konto zurechenbar — deshalb
+  steht es als Extrazeile da und nicht im Standardbefehl.
+
+Beim Bauen lief mir derselbe Fehler über den Weg, den ich eine Woche zuvor im
+Client behoben hatte: die Brücke schickte `200 OK`, bevor klar war, ob auch nur
+ein Byte kommt. Scheitert der Abruf danach, bleibt nur der Verbindungsabbruch,
+und der Empfänger sieht eine leere Datei statt eines Grundes — die 9-Byte-Datei
+noch einmal, eine Ebene tiefer. Die Kopfzeilen warten jetzt auf das erste Byte;
+kommt keines, geht ein richtiger Fehler mit Code heraus, und `fetchMedia` liest
+ihn aus, statt „Server antwortete mit 502" zu melden.
+
+Gemessen, aus einem leeren Ordner und mit genau den vier Befehlen aus dem
+Dialog: yt-dlp 2026.08.19 geholt, Brücke auf 9000, Seite auf 8787, Download im
+Browser durchgelaufen — 84 426 490 Bytes, 1080p, zusammengefügt von Sondras
+FFmpeg. Alle vier Modi geprüft (Ton, Ton als MP3, ohne Ton, Bild und Ton), dazu
+die Fehlerwege: Unsinn-Adresse, leere Adresse, fehlendes yt-dlp und das
+gesperrte Video, das den Anmelde-Hinweis auslöst. cobalt lief unverändert
+weiter.
+
 ### Was auf einer gehosteten Seite wirklich hilft
 
 Drei Anläufe lang war die Erlaubnis fürs lokale Netzwerk die Empfehlung. Auf der

@@ -70,6 +70,9 @@ import {
   rememberInstance,
   unixScript,
   windowsScript,
+  ytdlpCookieCommand,
+  ytdlpSteps,
+  YTDLP_RELEASES,
 } from '../../lib/selfhost'
 import { detectPlatform } from '../../lib/platform'
 import { serviceConnection, setServiceConnection } from '../../lib/serviceState'
@@ -183,7 +186,7 @@ export function DownloaderPanel() {
   const [setupOpen, setSetupOpen] = useState(false)
   const [copied, setCopied] = useState(false)
   const [known, setKnown] = useState<string[]>(() => rememberedInstances())
-  const [localWay, setLocalWay] = useState<'node' | 'docker'>('node')
+  const [localWay, setLocalWay] = useState<'ytdlp' | 'node' | 'docker'>('ytdlp')
   // What is already on this machine. Both start off, because assuming a
   // stranger has a developer's toolchain is how instructions end up skipping
   // the step they most needed to include.
@@ -228,9 +231,11 @@ export function DownloaderPanel() {
   const localCommand =
     localWay === 'docker'
       ? oneLiner()
-      : localSteps({ hasNode, hasGit, platform, origin: window.location.origin }).join('\n')
+      : localWay === 'ytdlp'
+        ? ytdlpSteps({ hasNode, platform, origin: window.location.origin }).join('\n')
+        : localSteps({ hasNode, hasGit, platform, origin: window.location.origin }).join('\n')
   /** Node is missing and this system has no install command worth printing. */
-  const needsNodeByHand = localWay === 'node' && manualPrerequisite({ hasNode, platform })
+  const needsNodeByHand = localWay !== 'docker' && manualPrerequisite({ hasNode, platform })
   const connected = serviceInfo !== null
   const endpointLabel = service.endpoint.replace(/^https?:\/\//, '').replace(/\/$/, '')
 
@@ -1321,7 +1326,8 @@ export function DownloaderPanel() {
                           >
                             {(
                               [
-                                { id: 'node', label: 'Ohne Docker' },
+                                { id: 'ytdlp', label: 'Mit yt-dlp' },
+                                { id: 'node', label: 'Mit cobalt' },
                                 { id: 'docker', label: 'Mit Docker' },
                               ] as const
                             ).map((choice) => (
@@ -1340,7 +1346,7 @@ export function DownloaderPanel() {
                             ))}
                           </div>
 
-                          {localWay === 'node' ? (
+                          {localWay !== 'docker' ? (
                             /* Asking beats assuming. The commands below are then
                                the ones for this machine and no others, so the list
                                can be pasted start to finish without anyone having
@@ -1360,16 +1366,18 @@ export function DownloaderPanel() {
                                   checked={hasNode}
                                   onChange={setHasNode}
                                 />
-                                <Toggle
-                                  label="Git"
-                                  hint={
-                                    hasGit
-                                      ? undefined
-                                      : 'Aus: der Quelltext kommt als Archiv, Git wird nicht gebraucht.'
-                                  }
-                                  checked={hasGit}
-                                  onChange={setHasGit}
-                                />
+                                {localWay === 'node' ? (
+                                  <Toggle
+                                    label="Git"
+                                    hint={
+                                      hasGit
+                                        ? undefined
+                                        : 'Aus: der Quelltext kommt als Archiv, Git wird nicht gebraucht.'
+                                    }
+                                    checked={hasGit}
+                                    onChange={setHasGit}
+                                  />
+                                ) : null}
                               </div>
                               <p className="mt-[9px] text-[12px] leading-[1.5] text-muted">
                                 Nicht sicher? Beide aus lassen — dann steht alles da, und ein Schritt,
@@ -1387,7 +1395,24 @@ export function DownloaderPanel() {
                           ) : null}
 
                           <p className="mt-[11px] text-[12px] leading-[1.5] text-muted">
-                            {localWay === 'node' ? (
+                            {localWay === 'ytdlp' ? (
+                              <>
+                                Der kürzeste Weg: yt-dlp ist{' '}
+                                <a
+                                  className="underline underline-offset-2 hover:text-ink"
+                                  href={YTDLP_RELEASES}
+                                  target="_blank"
+                                  rel="noreferrer noopener"
+                                >
+                                  eine einzelne Programmdatei
+                                </a>{' '}
+                                ohne Installation, das Skript daneben ist die Brücke zu dieser Seite.
+                                Kein Paketmanager, kein Quelltext, kein ffmpeg — Bild und Ton kommen
+                                getrennt hier an, und das FFmpeg in dieser Seite setzt sie zusammen.
+                                yt-dlp kennt außerdem mehr Umwege als cobalt und kommt bei Videos
+                                durch, bei denen der andere Weg aufgibt.
+                              </>
+                            ) : localWay === 'node' ? (
                               <>
                                 Node.js ist ein gewöhnlicher Installer, ohne virtuelle Maschine — genau
                                 das ist der Unterschied zu Docker Desktop, das unter Windows WSL2
@@ -1469,8 +1494,37 @@ export function DownloaderPanel() {
                             {localCommand}
                           </code>
 
+                          {localWay === 'ytdlp' ? (
+                            /* The one failure everybody hits, with its remedy
+                               next to it rather than after a web search. */
+                            <details className="mt-[9px] rounded-nav bg-panel-soft px-[11px] py-[9px]">
+                              <summary className="cursor-pointer list-none text-[12px] text-ink underline underline-offset-2">
+                                Falls YouTube „bestätigen, dass Sie kein Bot sind" verlangt
+                              </summary>
+                              <p className="mt-[7px] text-[12px] leading-[1.5] text-prose/85">
+                                Dann will YouTube eine Anmeldung sehen. yt-dlp darf die Sitzung aus
+                                einem Browser auf diesem Rechner lesen — starten Sie die Brücke mit
+                                dem Browser, in dem Sie bei YouTube angemeldet sind:
+                              </p>
+                              <code className="mt-[7px] block rounded-nav bg-raised px-[9px] py-[7px] font-mono text-[11px] leading-[1.6] whitespace-pre-wrap text-prose">
+                                {ytdlpCookieCommand(window.location.origin)}
+                              </code>
+                              <p className="mt-[7px] text-[12px] leading-[1.5] text-muted">
+                                Statt <code className="font-mono">firefox</code> geht auch chrome,
+                                edge, brave, opera oder safari. Das heißt allerdings, dass der Abruf
+                                als Sie geschieht — angemeldet, Ihrem Konto zurechenbar.
+                              </p>
+                            </details>
+                          ) : null}
+
                           <p className="mt-[9px] text-[12px] leading-[1.5] text-muted">
-                            {localWay !== 'docker' ? (
+                            {localWay === 'ytdlp' ? (
+                              <>
+                                Der Dienst hört danach nur auf{' '}
+                                <code className="font-mono">localhost:{DEFAULT_PORT}</code>. Das
+                                Fenster muss offen bleiben, solange er läuft.
+                              </>
+                            ) : localWay !== 'docker' ? (
                               <>
                                 Unter Windows nehmen Sie besser das fertige Skript unten: PowerShell
                                 schreibt eine Datei mit <code className="font-mono">&gt;</code> in einer
@@ -1501,19 +1555,23 @@ export function DownloaderPanel() {
                             type="button"
                             onClick={() => setSetupOpen((value) => !value)}
                             aria-expanded={setupOpen}
+                            /* The yt-dlp way is three lines that fit on the
+                               screen. A script file to run three lines is a
+                               file to explain, verify and delete. */
+                            hidden={localWay === 'ytdlp'}
                             className="mt-[9px] rounded-nav text-[12px] text-muted underline underline-offset-2 hover:text-ink"
                           >
                             {setupOpen ? 'Weniger' : 'Lieber fertige Dateien statt Befehlen?'}
                           </button>
 
-                          {setupOpen ? (
+                          {setupOpen && localWay !== 'ytdlp' ? (
                             <div className="mt-[9px] flex flex-col gap-[9px] text-[12px] leading-[1.5] text-prose/85">
                               <p className="text-muted">
                                 Ein Skript, das den Ordner anlegt und den Dienst startet. Alles hier
                                 entsteht im Browser, nichts wird nachgeladen.
                               </p>
                               <div className="flex flex-wrap gap-[7px]">
-                                {localWay !== 'docker' ? (
+                                {localWay === 'node' ? (
                                   <>
                                     <Button
                                       size="sm"
