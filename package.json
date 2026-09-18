@@ -3,11 +3,12 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "Sondra \u2014 a fully client-side media studio. Download, convert, separate, normalize and sample audio entirely in the browser.",
+  "description": "Sondra — a fully client-side media studio. Download, convert, separate, normalize and sample audio entirely in the browser.",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b --noEmit && vite build",
     "preview": "vite preview",
+    "dev:service": "node scripts/dev-service.mjs",
     "typecheck": "tsc -b --noEmit",
     "verify:loudness": "node --experimental-strip-types scripts/verify-loudness.mts",
     "verify:tempo": "esbuild scripts/verify-tempo.mts --bundle --platform=node --format=esm --log-level=warning --outfile=node_modules/.verify-tempo.mjs && node node_modules/.verify-tempo.mjs",
@@ -22,6 +23,7 @@
     "react-dom": "^19.1.0",
     "tone": "^15.1.22",
     "wavesurfer.js": "^7.9.5",
+    "youtubei.js": "^18.0.0",
     "zustand": "^5.0.5"
   },
   "devDependencies": {

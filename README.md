@@ -60,8 +60,12 @@ Drei Dinge machen die Behauptung überprüfbar:
 2. **Kein Speicher.** Medien liegen ausschließlich im Heap des Tabs — kein
    `localStorage`, keine IndexedDB, keine Cookies. Tab schließen ist die
    Löschtaste.
-3. **Die einzige Ausnahme ist sichtbar.** Der Downloader holt genau die Adresse,
-   die man eingibt, direkt vom Zielserver.
+3. **Die einzige Ausnahme ist sichtbar** — und wird gezählt. Das Abzeichen im
+   Kopf sagt „Lokal · 1 Ausnahme", und die Ausnahme ist „Herunterladen": dort
+   geht die eingegebene Adresse an einen kleinen Dienst dieser Seite, der die
+   Datei durchreicht. Eigene Dateien sieht er nie, gespeichert wird dort
+   nichts, und das Feld darüber sagt es in drei Sätzen, bevor man etwas
+   eintippt.
 
 ## Projektstruktur
 
@@ -1036,3 +1040,150 @@ FFmpeg (WebAssembly-Portierung: ffmpeg.wasm), ONNX Runtime Web, Wavesurfer.js
 und Tone.js sind quelloffene Projekte unter ihren jeweiligen Lizenzen. Die
 Schriften Cormorant Garamond und Inter stehen unter der SIL Open Font License
 und liegen als Latin-Teilmenge im Repository.
+
+
+---
+
+## Editoren statt Formulare, Kacheln statt Reiter
+
+Drei Sätze aus einer Rückmeldung, die zusammen die Hälfte der App betrafen:
+das Bearbeiten von Bildern sei „sehr umständlich", beim Video „genau gleich",
+und der Downloader solle neu — nicht mehr lokal, dafür mit einer klaren
+Warnung. Dazu: ein Kacheldesign zum Auswählen.
+
+### Warum die beiden Werkzeuge umständlich waren
+
+Beide waren Formulare. Oben eine Vorschau, darunter in einer Spalte jede
+Einstellung, die es gibt — Größe, Format, Qualität, Drehung, Farbe,
+Geschwindigkeit, Ausschnitt —, alle gleichzeitig sichtbar, unabhängig davon,
+was man gerade tut. Das hat zwei Folgen, und beide sind teuer:
+
+* **Das Bild wandert weg.** Ein Regler, der etwas am Bild ändert, steht
+  zwangsläufig unter dem Bild. Nach zwei Reglern ist das Bild aus dem
+  sichtbaren Bereich gescrollt, und jede Prüfung des Ergebnisses kostet einen
+  Weg nach oben und wieder zurück.
+* **Alles ist gleich wichtig.** Wer zuschneiden will, sieht zwanzig Regler, von
+  denen einer dazugehört.
+
+Der Ausschnitt war zusätzlich kein Rechteck, sondern eine Geste: man zog einen
+neuen auf, jedes Mal von vorn. Eine Kante um zehn Pixel zu verschieben hieß,
+die anderen drei zu verlieren.
+
+### Die Form, auf die alle Editoren zulaufen
+
+```
+┌──────────────────────────────────────────────────┐
+│ Datei · was sie ist          ↺ ↻ ⟳     Speichern │
+├────┬────────────────────────────────┬────────────┤
+│ We │                                │ nur die    │
+│ rk │            Bühne               │ Regler für │
+│ ze │                                │ dieses     │
+│ ug │                                │ Werkzeug   │
+├────┴────────────────────────────────┴────────────┤
+│ Status                                           │
+└──────────────────────────────────────────────────┘
+```
+
+Die Bühne bewegt sich nie und scrollt nie. Links steht, was man tut; rechts
+stehen die Regler dafür und sonst nichts. Die übrigen dreißig Einstellungen
+gibt es weiterhin — sie sind einen Klick entfernt statt eines Scrollvorgangs.
+Unter `lg` wird die Leiste zu einer Reihe von Chips unter der Bühne und die
+Regler rutschen darunter; die Reihenfolge bleibt: sehen, wählen, einstellen.
+
+`EditorShell` ist dieselbe Datei für Bild und Video, `CropOverlay` dasselbe
+Rechteck mit acht Griffen und einem ziehbaren Inneren.
+
+### Zwei Fehler, die erst die Direktmanipulation sichtbar gemacht hat
+
+**Der Zug wurde zum Verschieben.** Solange der Ausschnitt noch das ganze Bild
+ist, liegt sein Inneres über der gesamten Fläche — und das Innere fing den Zug
+als „verschieben" ab, was bei einem vollflächigen Rechteck nichts tut. Es sah
+aus, als reagierte das Ziehen gar nicht. Jetzt reicht das Innere die Geste
+weiter, solange es nichts zu verschieben gibt.
+
+**Drehen warf den Ausschnitt weg.** Vertretbar — das Rechteck galt für einen
+Rahmen, den es nicht mehr gibt — aber niemand will das: man rückt ein Foto
+gerade und stellt fest, dass der Ausschnitt verschwunden ist. Weil das
+Rechteck in Bruchteilen gespeichert ist, ist Mitdrehen Arithmetik in vier
+Zeilen (`rotateRect`, `mirrorRect`).
+
+Dazu kam eine Reihenfolge-Entscheidung: **erst geraderücken, dann
+zuschneiden.** Vorher lief der Ausschnitt zuerst, sodass eine 16:9-Auswahl auf
+einem Hochkantvideo als 9:16 herauskam. Jetzt gilt die Reihenfolge in
+`image.ts`, in der Filterkette von `video.ts` und im Overlay gleichermaßen —
+was auf dem Bildschirm zu sehen ist, ist auch das, was FFmpeg bekommt.
+
+Und die Vorschau ist nicht länger ein zweiter, ähnlich aussehender Rechenweg:
+`paintImage` malt für den Bildschirm und für die Datei, nur mit einer Grenze
+für die Auflösung. Eine Vorschau mit eigenem Code ist eine Vorschau, die
+irgendwann lügt.
+
+### Der Start ist jetzt eine Frage
+
+Die App öffnete auf dem Downloader — der erste Satz an einen neuen Besucher
+war damit „füge einen Link ein", eine vernünftige Antwort auf genau eines von
+dreißig Dingen. Der Rest lag hinter einer Reiterleiste, die auf einem Laptop
+seitlich scrollt.
+
+Jetzt steht dort „Was möchten Sie machen?", darunter ein Suchfeld und alle
+Werkzeuge als Kacheln, nach Themen gruppiert, mit den zwei Wegen hinein ganz
+oben. Gespeist wird das aus `lib/actions.ts`, derselben Liste, aus der schon
+die Suche und die Befehlspalette lesen — eine neue Fähigkeit dort einzutragen
+macht sie überall auffindbar.
+
+Eine Kachel für ein Werkzeug, das zu keiner offenen Datei passt, wird leicht
+abgeblendet — **aber nur, wenn überhaupt eine Datei offen ist.** Bei leerer
+Sitzung ist alles gleichermaßen unbenutzbar, und die ganze Seite grau zu
+färben sagt nichts und macht sie schlechter lesbar.
+
+### Der Downloader, serverseitig — und was dabei wirklich geht
+
+Die frühere Messung („1 von 10 aus dem Rechenzentrum") stand im Weg, also
+wurde sie nachgeprüft, und sie stimmt weiterhin — aber nur für yt-dlp:
+
+| Weg (Rechenzentrums-IP, 18.9.2026) | Ergebnis |
+|---|---|
+| yt-dlp: Adressen auflösen | geht (52 Formate mit URL) |
+| yt-dlp: Datei holen | **„Sign in to confirm you're not a bot"** |
+| youtubei.js: auflösen | geht, für alle geprüften Videos |
+| youtubei.js: progressive Spur holen | **geht** — HTTP 206, echte Bytes |
+| youtubei.js: hohe Auflösungen | keine Adresse vorhanden — SABR |
+| dasselbe, mit gültigem PoToken | unverändert keine Adresse |
+
+Das Ergebnis ist unbequem und deshalb ausdrücklich: YouTube liefert an einen
+Server nur noch die *progressive* Spur — Bild und Ton in einer Datei, in der
+Regel 360p — und manche Videos nicht einmal die. Die hohen Auflösungen laufen
+über SABR, ein ausgehandeltes Protokoll, das gar keine abrufbare Adresse hat.
+Ein PoToken ändert daran nichts; er wurde erzeugt und gemessen, nicht
+vermutet.
+
+Also macht der eingebaute Dienst genau das, was er kann, und sagt den Rest:
+
+* `api/resolve.js` schlägt nach und **signiert** die gefundenen Adressen
+  (HMAC, kurze Gültigkeit).
+* `api/stream.js` prüft die Signatur und reicht die Bytes durch — nur `https`,
+  nie in private Adressbereiche, damit der Endpunkt kein SSRF-Loch ist.
+* Der Browser holt in **4-MB-Stücken** mit `Range`. Das ist nicht Feinschliff,
+  sondern die Bedingung dafür, dass es überhaupt geht: eine Funktion auf so
+  einer Plattform hat ein Zeitlimit von etwa einer Minute, ein langes Video
+  wäre in einem Aufruf nie fertig. Nebenbei wird der Fortschritt exakt und
+  Abbrechen sofort wirksam.
+
+Gemessen im Browser gegen den echten Dienst: **11 829 048 Bytes** durch, in
+Stücken, mit Fortschritt.
+
+Der vollständige Downloader — eigene Instanz, yt-dlp auf dem eigenen Gerät,
+Cookies, Playlists, volle Auflösung — ist unverändert da, nur nicht mehr die
+Eingangstür: er steht unter „Mehr Wege". Und wo der Dienst nicht weiterkommt,
+sagt die Fehlermeldung genau das und zeigt auf diesen Weg.
+
+### Was der Dienst braucht
+
+`SONDRA_SECRET` in der Umgebung der Bereitstellung. Damit werden die
+weitergereichten Adressen signiert; ohne die Variable greift eine Konstante,
+die genau so viel wert ist, wie sie kostet. Die Zulassungsliste im Proxy ist
+der eigentliche Zaun, die Signatur hält Gelegenheitsnutzung ab.
+
+Lokal ausprobieren lässt sich beides mit `npm run build && npm run
+dev:service` — `vite preview` kennt `api/` nicht, also liefert ein kleines
+Skript beides auf einem Port aus.

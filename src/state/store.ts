@@ -48,6 +48,7 @@ export interface LogLine {
 }
 
 export type PanelId =
+  | 'start'
   | 'downloader'
   | 'converter'
   | 'audio'
@@ -93,7 +94,9 @@ const makeId = () =>
 export const useSession = create<SessionState>((set, get) => ({
   assets: [],
   activeAssetId: null,
-  panel: 'downloader',
+  // The tile screen, not a tool: the app's first sentence should be "what do
+  // you want to do", not "paste a link".
+  panel: 'start',
   logs: [],
 
   convert: DEFAULT_CONVERT,

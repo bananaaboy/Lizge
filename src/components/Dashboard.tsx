@@ -4,13 +4,12 @@
  */
 
 import { useEffect, useRef, useState } from 'react'
-import type { ReactNode } from 'react'
 
 import { detectCapabilities, hasWebGpuAdapter, suggestedThreads } from '../lib/capabilities'
 import { onServiceConnection, serviceConnection, type ServiceConnection } from '../lib/serviceState'
 import { loadFfmpeg, onFfmpegStatus, type FfmpegStatus } from '../lib/ffmpegClient'
 import type { ResolvedTheme } from '../lib/theme'
-import { useSession, type PanelId } from '../state/store'
+import { useSession } from '../state/store'
 import { ConverterPanel } from './panels/ConverterPanel'
 import { HarmonyPanel } from './panels/HarmonyPanel'
 import { DownloaderPanel } from './panels/DownloaderPanel'
@@ -21,98 +20,9 @@ import { VideoPanel } from './panels/VideoPanel'
 import { ImagePanel } from './panels/ImagePanel'
 import { AudioEditorPanel } from './panels/AudioEditorPanel'
 import { FileDrop } from './FileDrop'
-import { OpenFileButton } from './AppShell'
+import { Home } from './Home'
+import { PANELS, ToolIcon } from './panelMeta'
 import { Button, Card, Eyebrow } from './ui/primitives'
-
-/* -------------------------------------------------------------------------- */
-/* Tools                                                                       */
-/* -------------------------------------------------------------------------- */
-
-/**
- * Every tool is named for the result, not for the technique.
- *
- * "Spuren", "Lautheit" and "Harmonie" are what these things are called by
- * people who already know what they are. Someone arriving with a recording and
- * a question does not know that yet, and a tab bar is the worst possible place
- * to learn vocabulary: it is the one control you have to use before you have
- * seen anything. So the label answers "what will this do for me" and the line
- * underneath it says it again in a full sentence.
- */
-const PANELS: { id: PanelId; label: string; summary: string; icon: ReactNode }[] = [
-  {
-    id: 'downloader',
-    label: 'Herunterladen',
-    summary: 'Ein Video oder Lied von einer Adresse holen',
-    icon: (
-      <path d="M8 2.6v7.2m0 0L5.2 7M8 9.8L10.8 7M2.8 12.2h10.4" />
-    ),
-  },
-  {
-    id: 'converter',
-    label: 'Umwandeln',
-    summary: 'In ein anderes Dateiformat bringen — etwa Video zu MP3',
-    icon: <path d="M2.6 5.4h9.2m0 0L9.4 3.1m2.4 2.3L9.4 7.7M13.4 10.6H4.2m0 0l2.4-2.3m-2.4 2.3l2.4 2.3" />,
-  },
-  {
-    id: 'audio',
-    label: 'Ton',
-    summary: 'Schneiden, blenden, Pegel, Stille entfernen, Tonhöhe, Tempo',
-    icon: <path d="M1.8 8h1.8l1.6-4.6 2.4 9.2 2-6.2 1.2 3.4h3" />,
-  },
-  {
-    id: 'video',
-    label: 'Video',
-    summary: 'Schneiden, drehen, Ausschnitt, Tempo, Ton herauslösen',
-    icon: <path d="M1.8 4.2h8.6v7.6H1.8zM10.4 7l3.8-2.2v6.4L10.4 9z" />,
-  },
-  {
-    id: 'images',
-    label: 'Bilder',
-    summary: 'Skalieren, zuschneiden, umwandeln, viele auf einmal',
-    icon: <path d="M2 3.2h12v9.6H2zM2 10l3.4-3.2 3 2.8 2.2-2 3.4 3.2M5.6 6.2a.9.9 0 100-1.8.9.9 0 000 1.8z" />,
-  },
-  {
-    id: 'stems',
-    label: 'Spuren trennen',
-    summary: 'Gesang, Schlagzeug und Bass als einzelne Dateien',
-    icon: <path d="M8 1.8L14 5 8 8.2 2 5zM2 8l6 3.2L14 8M2 11l6 3.2L14 11" />,
-  },
-  {
-    id: 'normalize',
-    label: 'Lautstärke',
-    summary: 'So laut machen wie im Radio, ohne zu übersteuern',
-    icon: <path d="M3.4 9.6V6.4M6.5 12V4M9.5 10.8V5.2M12.6 8.6V7.4" />,
-  },
-  {
-    id: 'sampler',
-    label: 'Zerschneiden',
-    summary: 'In einzelne Schläge zerlegen und auf Tasten legen',
-    icon: <path d="M3.4 2.8l7.4 9.2M12.6 2.8L5.2 12M4.3 13.2a1.5 1.5 0 100-3 1.5 1.5 0 000 3zM11.7 13.2a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" />,
-  },
-  {
-    id: 'harmony',
-    label: 'Tonart',
-    summary: 'Tonart, Tempo, Akkorde und die Melodie als MIDI',
-    icon: <path d="M6 11.6V3.4l7-1.2v8.2M6 11.6a1.8 1.8 0 11-3.6 0 1.8 1.8 0 013.6 0zM13 10.4a1.8 1.8 0 11-3.6 0 1.8 1.8 0 013.6 0z" />,
-  },
-]
-
-function ToolIcon({ children }: { children: ReactNode }) {
-  return (
-    <svg
-      viewBox="0 0 16 16"
-      className="h-4 w-4 shrink-0"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.35"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-    >
-      {children}
-    </svg>
-  )
-}
 
 function PanelTabs() {
   const panel = useSession((state) => state.panel)
@@ -369,34 +279,6 @@ function MachineRow() {
 /* -------------------------------------------------------------------------- */
 
 /**
- * The first thing a first-time visitor sees.
- *
- * The downloader used to own this screen alone, which meant the opening move
- * the app offered was "paste a link" — and someone who already has the file on
- * their desk had no visible way in at all. The file picker was real, but it
- * lived inside a card that only rendered on the other five tabs.
- */
-function FirstRun() {
-  return (
-    <Card tone="cream" className="rise">
-      <div className="flex flex-col items-start gap-[18px] sm:flex-row sm:items-center sm:gap-[28px]">
-        <div className="min-w-0 flex-1">
-          <p className="display-sm">Womit fangen wir an?</p>
-          <p className="mt-[6px] max-w-[52ch] text-body leading-[1.55] text-prose/85">
-            Öffnen Sie eine Datei von Ihrem Gerät — oder holen Sie sie unten über eine Adresse.
-            Gerechnet wird auf Ihrem Gerät; hochgeladen wird nichts.
-          </p>
-        </div>
-        <div className="flex shrink-0 flex-col items-start gap-[6px]">
-          <OpenFileButton size="md" />
-          <span className="text-[12px] text-muted">oder Datei ins Fenster ziehen</span>
-        </div>
-      </div>
-    </Card>
-  )
-}
-
-/**
  * What a tool shows before it has anything to work on.
  *
  * Five panels used to answer this question five times over, and each of them
@@ -443,9 +325,16 @@ export function Dashboard({ theme }: { theme: ResolvedTheme }) {
   const panel = useSession((state) => state.panel)
   const hasAssets = useSession((state) => state.assets.length > 0)
   const current = PANELS.find((entry) => entry.id === panel)
-  // The downloader is how files arrive, so it never waits for one.
+  // The start screen and the downloader never wait for a file: one is the menu
+  // and the other is how files arrive. The three editors open on their own
+  // drop zone, which is a better empty state than a generic one.
   const ready =
-    hasAssets || panel === 'downloader' || panel === 'video' || panel === 'images' || panel === 'audio'
+    hasAssets ||
+    panel === 'start' ||
+    panel === 'downloader' ||
+    panel === 'video' ||
+    panel === 'images' ||
+    panel === 'audio'
 
   return (
     <section id="studio" className="shell flex flex-col gap-[16px] py-[18px]">
@@ -454,11 +343,11 @@ export function Dashboard({ theme }: { theme: ResolvedTheme }) {
       {/* Keyed on the panel so every switch replays the entrance rather than
           swapping content in place, which reads as a jump. */}
       <div key={panel} role="tabpanel" aria-label={current?.label} className="rise flex flex-col gap-[16px]">
-        {!hasAssets && panel === 'downloader' ? <FirstRun /> : null}
         {!ready ? (
           <NothingLoaded label={current?.label ?? ''} summary={current?.summary ?? ''} />
         ) : (
           <>
+            {panel === 'start' ? <Home /> : null}
             {panel === 'downloader' ? <DownloaderPanel /> : null}
             {panel === 'converter' ? <ConverterPanel /> : null}
             {panel === 'audio' ? <AudioEditorPanel /> : null}

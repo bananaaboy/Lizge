@@ -118,19 +118,26 @@ export function buildVideoJob(
   if (end > ops.start && end < duration - 0.001) args.push('-to', end.toFixed(3))
 
   const filters: string[] = []
+  // Straighten first, crop second. That is the order people work in — you fix
+  // a sideways clip and then decide what to keep — and it is the order the
+  // editor's crop overlay draws in, so the rectangle on screen and the
+  // rectangle in the filter graph mean the same thing. With crop first, a
+  // 16:9 selection on a portrait clip came out 9:16.
+  if (ops.rotate === 90) filters.push('transpose=1')
+  if (ops.rotate === 180) filters.push('transpose=1,transpose=1')
+  if (ops.rotate === 270) filters.push('transpose=2')
+  if (ops.flipH) filters.push('hflip')
+  if (ops.flipV) filters.push('vflip')
   if (ops.crop) {
-    // FFmpeg wants pixels, and only even numbers survive 4:2:0 chroma.
+    // FFmpeg wants pixels, and only even numbers survive 4:2:0 chroma. `iw`
+    // and `ih` are the *filter's* input, which after the transposes above is
+    // already the upright frame.
     const even = (value: string) => `trunc(${value}/2)*2`
     filters.push(
       `crop=${even(`iw*${ops.crop.width.toFixed(4)}`)}:${even(`ih*${ops.crop.height.toFixed(4)}`)}:` +
         `${even(`iw*${ops.crop.x.toFixed(4)}`)}:${even(`ih*${ops.crop.y.toFixed(4)}`)}`,
     )
   }
-  if (ops.rotate === 90) filters.push('transpose=1')
-  if (ops.rotate === 180) filters.push('transpose=1,transpose=1')
-  if (ops.rotate === 270) filters.push('transpose=2')
-  if (ops.flipH) filters.push('hflip')
-  if (ops.flipV) filters.push('vflip')
   // The obvious way to avoid upscaling is scale=-2:'min(720,ih)'. Two traps in
   // one expression: these arguments reach FFmpeg as an array, so the quotes are
   // literal characters that break the filter, and the comma inside min() is

@@ -49,6 +49,17 @@ export function BootGate({ children }: { children: ReactNode }) {
   const [boot, setBoot] = useState<FfmpegBoot | null>(null)
   /** Set when the visitor decides not to wait, or to carry on after a failure. */
   const [dismissed, setDismissed] = useState(false)
+  /**
+   * This is a door, not a shutter: it opens once and stays open.
+   *
+   * The core is deliberately unloaded after some jobs — every media probe ends
+   * with `unloadFfmpeg()`, and so does a failed run — which puts the boot state
+   * back to "idle". Without this latch that reads as "not loaded yet" and the
+   * loading screen swallows the whole app again, mid-session, over a file the
+   * visitor had already opened. It reloads in the background when it is next
+   * needed; there is nothing for anyone to wait for.
+   */
+  const [opened, setOpened] = useState(false)
 
   useEffect(() => onFfmpegBoot(setBoot), [])
 
@@ -57,7 +68,11 @@ export function BootGate({ children }: { children: ReactNode }) {
     void loadFfmpeg().catch(() => {})
   }, [])
 
-  if (!boot || boot.state === 'ready' || dismissed) return <>{children}</>
+  useEffect(() => {
+    if (boot?.state === 'ready' || dismissed) setOpened(true)
+  }, [boot?.state, dismissed])
+
+  if (!boot || boot.state === 'ready' || dismissed || opened) return <>{children}</>
 
   const failed = boot.state === 'error'
   const fraction =

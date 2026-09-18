@@ -103,9 +103,11 @@ function PrivacyChip() {
       >
         <span className="pulse-dot h-[6px] w-[6px] rounded-pill bg-ink" aria-hidden />
         {/* A lone green dot says nothing. On a phone the claim shortens, it
-            does not disappear — this is the one place the promise is made. */}
-        <span className="hidden sm:inline">Läuft lokal</span>
-        <span className="sm:hidden">Lokal</span>
+            does not disappear — this is the one place the promise is made, and
+            since there is now exactly one thing it does not cover, the badge
+            counts it rather than letting the popover carry it alone. */}
+        <span className="hidden sm:inline">Lokal · 1 Ausnahme</span>
+        <span className="sm:hidden">Lokal · 1</span>
       </button>
 
       {open ? (
@@ -116,10 +118,15 @@ function PrivacyChip() {
             Ihr Gerät. Es gibt keinen Upload-Endpunkt, keine Datenbank und keine Speicherung über das
             Schließen des Tabs hinaus.
           </p>
+          <p className="mb-[11px] text-muted">
+            Die eine Ausnahme ist „Herunterladen“. Ein Browser darf eine Datei nicht von einer
+            fremden Seite holen, also übernimmt das ein kleiner Dienst dieser Seite: er bekommt die
+            Adresse, die Sie eingeben, und reicht die Datei durch. Ihre eigenen Dateien sieht er nie,
+            und gespeichert wird dort nichts.
+          </p>
           <p className="text-muted">
-            Ausnahmen sind zwei Funktionen, die Sie ausdrücklich einschalten: der Downloader holt die
-            Adresse, die Sie eingeben, und der Extraktions-Dienst leitet sie über einen fremden
-            Server. Beides wird im Downloader benannt.
+            Wer auch das nicht möchte, startet yt-dlp auf dem eigenen Rechner — der Downloader zeigt
+            unter „Mehr Wege“, wie. Dann geht wirklich alles hier.
           </p>
         </div>
       ) : null}

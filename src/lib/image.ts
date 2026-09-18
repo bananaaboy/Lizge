@@ -93,12 +93,31 @@ export function factsOf(bitmap: ImageBitmap): ImageFacts {
   }
 }
 
+/**
+ * The frame the crop rectangle lives in.
+ *
+ * Rotation happens before cropping — you straighten a photo and *then* decide
+ * what to keep, not the other way round — so after a quarter turn the frame is
+ * the other way round too, and a crop rectangle expressed against it has to
+ * follow. Every part of the pipeline asks this function rather than working it
+ * out again, which is what keeps the overlay on screen and the pixels in the
+ * file agreeing with each other.
+ */
+export function rotatedSize(bitmap: { width: number; height: number }, rotate: number): {
+  width: number
+  height: number
+} {
+  return rotate === 90 || rotate === 270
+    ? { width: bitmap.height, height: bitmap.width }
+    : { width: bitmap.width, height: bitmap.height }
+}
+
 /** The size the result will have, without doing the work. */
 export function outputSize(bitmap: ImageBitmap, ops: ImageOps): { width: number; height: number } {
+  const frame = rotatedSize(bitmap, ops.rotate)
   const crop = ops.crop
-  let width = crop ? Math.max(1, Math.round(bitmap.width * crop.width)) : bitmap.width
-  let height = crop ? Math.max(1, Math.round(bitmap.height * crop.height)) : bitmap.height
-  if (ops.rotate === 90 || ops.rotate === 270) [width, height] = [height, width]
+  let width = crop ? Math.max(1, Math.round(frame.width * crop.width)) : frame.width
+  let height = crop ? Math.max(1, Math.round(frame.height * crop.height)) : frame.height
   if (ops.width > 0 && ops.width !== width) {
     height = Math.max(1, Math.round((height * ops.width) / width))
     width = ops.width
@@ -149,24 +168,60 @@ function canvasOf(width: number, height: number): HTMLCanvasElement {
 }
 
 /**
- * Runs the whole chain in one draw where possible.
+ * Turns the image the right way up, once.
  *
- * Order matters and is fixed: crop, then rotate and flip, then scale, then
- * colour. Scaling last would throw away detail the crop was meant to keep;
- * colour first would be applied to pixels that are about to be resampled.
+ * Only called when there is a turn or a mirror to apply; without one the
+ * original bitmap is handed straight to the crop, which saves a full-size draw
+ * on the common path.
  */
-export async function processImage(
+function orient(bitmap: ImageBitmap, ops: ImageOps): CanvasImageSource {
+  const frame = rotatedSize(bitmap, ops.rotate)
+  const canvas = canvasOf(frame.width, frame.height)
+  const context = canvas.getContext('2d')
+  if (!context) throw new Error('Der Browser stellt keine Zeichenfläche bereit.')
+  context.imageSmoothingQuality = 'high'
+  // The mirror is applied to what you end up seeing, not to the unrotated
+  // source: canvas composes these right-to-left, so `scale` written before
+  // `rotate` is the one that happens after it. "Horizontal spiegeln" on a
+  // photo you have just turned upright should mirror it left-to-right on
+  // screen, not top-to-bottom.
+  context.translate(frame.width / 2, frame.height / 2)
+  context.scale(ops.flipH ? -1 : 1, ops.flipV ? -1 : 1)
+  if (ops.rotate) context.rotate((ops.rotate * Math.PI) / 180)
+  context.drawImage(bitmap, -bitmap.width / 2, -bitmap.height / 2)
+  return canvas
+}
+
+/**
+ * Draws the whole chain onto a canvas.
+ *
+ * Order is fixed: orient, then crop, then scale, then colour. The preview and
+ * the export call exactly this, which is the point — a preview computed by a
+ * second, similar-looking code path is a preview that will eventually lie.
+ *
+ * `maxDimension` is the one thing the preview asks for differently: at 24
+ * megapixels a live redraw on every slider tick is not free, and nobody can
+ * see 24 megapixels on a 700-pixel stage anyway. Blur scales with it so the
+ * preview still shows the right amount of blur; sharpen is a 3×3 kernel and is
+ * therefore always slightly stronger in the preview than in the export, which
+ * is the honest trade for making it interactive at all.
+ */
+export function paintImage(
   bitmap: ImageBitmap,
   ops: ImageOps,
-): Promise<{ bytes: Uint8Array; mime: string; width: number; height: number }> {
-  const crop = ops.crop
-  const sourceX = crop ? crop.x * bitmap.width : 0
-  const sourceY = crop ? crop.y * bitmap.height : 0
-  const sourceWidth = crop ? Math.max(1, crop.width * bitmap.width) : bitmap.width
-  const sourceHeight = crop ? Math.max(1, crop.height * bitmap.height) : bitmap.height
+  canvas: HTMLCanvasElement,
+  maxDimension = 0,
+): { width: number; height: number; scale: number } {
+  const full = outputSize(bitmap, ops)
+  const scale =
+    maxDimension > 0 && Math.max(full.width, full.height) > maxDimension
+      ? maxDimension / Math.max(full.width, full.height)
+      : 1
+  const width = Math.max(1, Math.round(full.width * scale))
+  const height = Math.max(1, Math.round(full.height * scale))
 
-  const { width, height } = outputSize(bitmap, ops)
-  const canvas = canvasOf(width, height)
+  canvas.width = width
+  canvas.height = height
   const context = canvas.getContext('2d')
   if (!context) throw new Error('Der Browser stellt keine Zeichenfläche bereit.')
 
@@ -177,40 +232,40 @@ export async function processImage(
     context.fillRect(0, 0, width, height)
   }
 
+  const source = ops.rotate || ops.flipH || ops.flipV ? orient(bitmap, ops) : bitmap
+  const frame = rotatedSize(bitmap, ops.rotate)
+  const crop = ops.crop
+  const sourceX = crop ? crop.x * frame.width : 0
+  const sourceY = crop ? crop.y * frame.height : 0
+  const sourceWidth = crop ? Math.max(1, crop.width * frame.width) : frame.width
+  const sourceHeight = crop ? Math.max(1, crop.height * frame.height) : frame.height
+
   const filters: string[] = []
   if (ops.brightness !== 1) filters.push(`brightness(${ops.brightness})`)
   if (ops.contrast !== 1) filters.push(`contrast(${ops.contrast})`)
   if (ops.saturation !== 1) filters.push(`saturate(${ops.saturation})`)
-  if (ops.blur > 0) filters.push(`blur(${ops.blur}px)`)
-  if (filters.length > 0) context.filter = filters.join(' ')
+  if (ops.blur > 0) filters.push(`blur(${(ops.blur * scale).toFixed(2)}px)`)
+  context.filter = filters.length > 0 ? filters.join(' ') : 'none'
 
   context.imageSmoothingEnabled = true
   context.imageSmoothingQuality = 'high'
-
-  context.save()
-  context.translate(width / 2, height / 2)
-  if (ops.rotate) context.rotate((ops.rotate * Math.PI) / 180)
-  context.scale(ops.flipH ? -1 : 1, ops.flipV ? -1 : 1)
-  // After a quarter turn the destination box is the other way round.
-  const drawWidth = ops.rotate === 90 || ops.rotate === 270 ? height : width
-  const drawHeight = ops.rotate === 90 || ops.rotate === 270 ? width : height
-  context.drawImage(
-    bitmap,
-    sourceX,
-    sourceY,
-    sourceWidth,
-    sourceHeight,
-    -drawWidth / 2,
-    -drawHeight / 2,
-    drawWidth,
-    drawHeight,
-  )
-  context.restore()
+  context.drawImage(source, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, width, height)
 
   if (ops.sharpen > 0) {
     context.filter = 'none'
     context.putImageData(sharpen(context.getImageData(0, 0, width, height), ops.sharpen), 0, 0)
   }
+
+  return { width, height, scale }
+}
+
+/** Runs the chain and encodes the result. */
+export async function processImage(
+  bitmap: ImageBitmap,
+  ops: ImageOps,
+): Promise<{ bytes: Uint8Array; mime: string; width: number; height: number }> {
+  const canvas = document.createElement('canvas')
+  const { width, height } = paintImage(bitmap, ops, canvas)
 
   const format = IMAGE_FORMATS.find((entry) => entry.id === ops.format) ?? IMAGE_FORMATS[0]
   const blob = await new Promise<Blob | null>((resolve) =>
