@@ -33,6 +33,16 @@
   --color-muted: #5d6c61;
   --color-line: #e3e2dc;
 
+  /* The editor stage. Deliberately dark in both themes and deliberately
+     neutral: a picture judged against cream reads warm, against green reads
+     cold, and the one surface in the app whose job is to not lie about colour
+     is the one you are editing on. */
+  --color-stage: #15181a;
+  --color-stage-soft: #1d2124;
+  --color-stage-line: #2b3134;
+  --color-stage-ink: #eef1f0;
+  --color-stage-muted: #98a3a0;
+
   /* Elevation. One soft shadow, used only to lift a card off the canvas. */
   --shadow-card: 0 1px 2px rgb(20 35 25 / 0.04), 0 4px 16px -8px rgb(20 35 25 / 0.1);
   --shadow-lift: 0 2px 6px rgb(20 35 25 / 0.06), 0 12px 30px -12px rgb(20 35 25 / 0.18);
@@ -91,6 +101,11 @@
     --color-prose: #e0e8e2;
     --color-muted: #94a898;
     --color-line: #25302a;
+    --color-stage: #0d1011;
+    --color-stage-soft: #161a1c;
+    --color-stage-line: #262c2f;
+    --color-stage-ink: #eef1f0;
+    --color-stage-muted: #98a3a0;
 
     --shadow-card: 0 1px 2px rgb(0 0 0 / 0.5), 0 4px 16px -8px rgb(0 0 0 / 0.6);
     --shadow-lift: 0 2px 6px rgb(0 0 0 / 0.55), 0 12px 30px -12px rgb(0 0 0 / 0.72);
@@ -112,6 +127,11 @@
   --color-prose: #e0e8e2;
   --color-muted: #94a898;
   --color-line: #25302a;
+  --color-stage: #0d1011;
+  --color-stage-soft: #161a1c;
+  --color-stage-line: #262c2f;
+  --color-stage-ink: #eef1f0;
+  --color-stage-muted: #98a3a0;
 
   --shadow-card: 0 1px 2px rgb(0 0 0 / 0.5), 0 4px 16px -8px rgb(0 0 0 / 0.6);
   --shadow-lift: 0 2px 6px rgb(0 0 0 / 0.55), 0 12px 30px -12px rgb(0 0 0 / 0.72);
@@ -389,6 +409,66 @@ select option {
 
 @media (prefers-reduced-motion: reduce) {
   .press:active:not(:disabled) {
+    transform: none;
+  }
+}
+
+/* --- editor stage ----------------------------------------------------------
+   The checkerboard is the one place in the app where a decorative pattern
+   earns its keep: it is the only way to tell "this pixel is transparent" from
+   "this pixel is grey", and getting that wrong is how a logo ends up exported
+   with a white box behind it.
+   --------------------------------------------------------------------------- */
+@utility stage-checks {
+  background-color: var(--color-stage);
+  background-image:
+    linear-gradient(45deg, var(--color-stage-soft) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--color-stage-soft) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--color-stage-soft) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--color-stage-soft) 75%);
+  background-size: 18px 18px;
+  background-position: 0 0, 0 9px, 9px -9px, -9px 0;
+}
+
+/* A tile answers the pointer before it is clicked: it lifts, and a thin band
+   of ink wipes in along the bottom edge. Transform and opacity only. */
+@utility tile {
+  position: relative;
+  overflow: hidden;
+  transition:
+    transform var(--dur-base) var(--ease-spring),
+    box-shadow var(--dur-base) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out);
+}
+
+.tile::after {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 3px;
+  background: var(--color-ink);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--dur-base) var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .tile:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lift);
+  }
+  .tile:hover::after {
+    transform: scaleX(1);
+  }
+}
+
+.tile:focus-visible::after {
+  transform: scaleX(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tile:hover {
     transform: none;
   }
 }
