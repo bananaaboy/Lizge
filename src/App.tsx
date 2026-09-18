@@ -1,4 +1,5 @@
 import { BootGate } from './components/BootGate'
+import { CommandPalette } from './components/CommandPalette'
 import { Dashboard } from './components/Dashboard'
 import { DropOverlay, Footer, Header, SessionBar } from './components/AppShell'
 import { useGlobalIngest } from './hooks/useGlobalIngest'
@@ -20,6 +21,7 @@ export default function App() {
         </main>
         <Footer />
         <DropOverlay visible={dragging} />
+        <CommandPalette />
       </div>
     </BootGate>
   )

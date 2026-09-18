@@ -17,6 +17,8 @@ import { DownloaderPanel } from './panels/DownloaderPanel'
 import { NormalizePanel } from './panels/NormalizePanel'
 import { SamplerPanel } from './panels/SamplerPanel'
 import { StemsPanel } from './panels/StemsPanel'
+import { VideoPanel } from './panels/VideoPanel'
+import { ImagePanel } from './panels/ImagePanel'
 import { FileDrop } from './FileDrop'
 import { OpenFileButton } from './AppShell'
 import { Button, Card, Eyebrow } from './ui/primitives'
@@ -49,6 +51,18 @@ const PANELS: { id: PanelId; label: string; summary: string; icon: ReactNode }[]
     label: 'Umwandeln',
     summary: 'In ein anderes Dateiformat bringen — etwa Video zu MP3',
     icon: <path d="M2.6 5.4h9.2m0 0L9.4 3.1m2.4 2.3L9.4 7.7M13.4 10.6H4.2m0 0l2.4-2.3m-2.4 2.3l2.4 2.3" />,
+  },
+  {
+    id: 'video',
+    label: 'Video',
+    summary: 'Schneiden, drehen, Ausschnitt, Tempo, Ton herauslösen',
+    icon: <path d="M1.8 4.2h8.6v7.6H1.8zM10.4 7l3.8-2.2v6.4L10.4 9z" />,
+  },
+  {
+    id: 'images',
+    label: 'Bilder',
+    summary: 'Skalieren, zuschneiden, umwandeln, viele auf einmal',
+    icon: <path d="M2 3.2h12v9.6H2zM2 10l3.4-3.2 3 2.8 2.2-2 3.4 3.2M5.6 6.2a.9.9 0 100-1.8.9.9 0 000 1.8z" />,
   },
   {
     id: 'stems',
@@ -423,7 +437,7 @@ export function Dashboard({ theme }: { theme: ResolvedTheme }) {
   const hasAssets = useSession((state) => state.assets.length > 0)
   const current = PANELS.find((entry) => entry.id === panel)
   // The downloader is how files arrive, so it never waits for one.
-  const ready = hasAssets || panel === 'downloader'
+  const ready = hasAssets || panel === 'downloader' || panel === 'video' || panel === 'images'
 
   return (
     <section id="studio" className="shell flex flex-col gap-[16px] py-[18px]">
@@ -439,6 +453,8 @@ export function Dashboard({ theme }: { theme: ResolvedTheme }) {
           <>
             {panel === 'downloader' ? <DownloaderPanel /> : null}
             {panel === 'converter' ? <ConverterPanel /> : null}
+            {panel === 'video' ? <VideoPanel /> : null}
+            {panel === 'images' ? <ImagePanel /> : null}
             {panel === 'stems' ? <StemsPanel /> : null}
             {panel === 'normalize' ? <NormalizePanel /> : null}
             {panel === 'sampler' ? <SamplerPanel theme={theme} /> : null}

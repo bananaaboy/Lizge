@@ -4,10 +4,11 @@
 
 import { useEffect } from 'react'
 
+import { actionsFor } from '../lib/actions'
 import { saveBytes } from '../lib/download'
 import { formatBytes, formatDuration } from '../lib/format'
 import { useDecodedAudio } from '../hooks/useDecodedAudio'
-import { useActiveAsset, useSession } from '../state/store'
+import { KIND_LABEL, useActiveAsset, useSession } from '../state/store'
 import { AudioPreview } from './AudioPreview'
 import { Badge, Card } from './ui/primitives'
 
@@ -20,7 +21,9 @@ import { Badge, Card } from './ui/primitives'
  * second panel does not pay for it again.
  */
 function SelectedPlayer() {
-  const asset = useActiveAsset()
+  const selected = useActiveAsset()
+  // Decoding a PNG as audio is a guaranteed failure and a pointless wait.
+  const asset = selected && (selected.kind === 'audio' || selected.kind === 'video') ? selected : null
   const { audio, decode, status } = useDecodedAudio(asset)
 
   useEffect(() => {
@@ -72,6 +75,57 @@ export function SessionAside() {
   )
 }
 
+/**
+ * What can be done with the file that is selected.
+ *
+ * The principle this serves is the one the whole app is arranged around: a
+ * file should not have to be carried to a tool. It says what it is, the tools
+ * that fit it are listed right there, and one click is the whole journey —
+ * which also means the capabilities are discovered by using the app rather
+ * than by reading the tab bar and guessing.
+ */
+function WhatFits() {
+  const asset = useActiveAsset()
+  const panel = useSession((state) => state.panel)
+  const setPanel = useSession((state) => state.setPanel)
+  if (!asset) return null
+
+  const fits = actionsFor(asset.kind)
+  if (fits.length === 0) {
+    return (
+      <p className="text-[12px] leading-[1.5] text-muted">
+        Für {KIND_LABEL[asset.kind]}-Dateien gibt es hier noch kein Werkzeug. Speichern und
+        Verwalten geht trotzdem.
+      </p>
+    )
+  }
+
+  return (
+    <div className="flex flex-col gap-[7px]">
+      <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">
+        Damit geht
+      </span>
+      <div className="flex flex-wrap gap-[5px]">
+        {fits.map((action) => (
+          <button
+            key={action.id}
+            type="button"
+            title={action.hint}
+            onClick={() => setPanel(action.panel)}
+            className={`press rounded-pill px-[10px] py-[5px] text-[12px] ${
+              action.panel === panel
+                ? 'bg-ink text-on-ink'
+                : 'bg-panel-soft text-ink hover:bg-panel-mid'
+            }`}
+          >
+            {action.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export function AssetList() {
   const assets = useSession((state) => state.assets)
   const activeId = useSession((state) => state.activeAssetId)
@@ -101,6 +155,7 @@ export function AssetList() {
       </div>
 
       <SelectedPlayer />
+      <WhatFits />
 
       <ul className="flex flex-col gap-[7px]">
         {assets.map((asset) => {

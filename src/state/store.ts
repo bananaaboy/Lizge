@@ -8,13 +8,21 @@
  */
 
 import { create } from 'zustand'
+import { useShallow } from 'zustand/shallow'
 
 import { DEFAULT_CONVERT, type ConvertSettings } from '../lib/convert'
 import { DEFAULT_NORMALIZATION, type NormalizationSettings } from '../lib/loudness'
 import { DEFAULT_SEPARATION, type SeparationOptions } from '../lib/separation'
 import type { AudioData } from '../lib/wav'
 
-export type AssetKind = 'audio' | 'video' | 'unknown'
+/**
+ * What a file is, as far as the tools are concerned.
+ *
+ * Not a MIME type: the question every tool asks is "can I work on this", and
+ * the answer is one of six, not one of four hundred. `image` and `archive`
+ * arrived when the app stopped being audio-only.
+ */
+export type AssetKind = 'audio' | 'video' | 'image' | 'document' | 'archive' | 'unknown'
 
 export interface Asset {
   id: string
@@ -39,7 +47,15 @@ export interface LogLine {
   message: string
 }
 
-export type PanelId = 'downloader' | 'converter' | 'stems' | 'normalize' | 'sampler' | 'harmony'
+export type PanelId =
+  | 'downloader'
+  | 'converter'
+  | 'video'
+  | 'images'
+  | 'stems'
+  | 'normalize'
+  | 'sampler'
+  | 'harmony'
 
 interface SessionState {
   assets: Asset[]
@@ -126,11 +142,59 @@ export function useActiveAsset(): Asset | null {
   return useSession((state) => state.assets.find((asset) => asset.id === state.activeAssetId) ?? null)
 }
 
+/**
+ * The file a kind-specific tool should work on.
+ *
+ * The selection is shared across every tool, so the image tool can easily be
+ * opened while a WAV is selected. Rather than showing an empty panel it falls
+ * back to the first file of its own kind — and returns null only when the
+ * session really holds nothing it can use.
+ */
+export function useActiveAssetOfKind(kind: AssetKind): Asset | null {
+  return useSession((state) => {
+    const active = state.assets.find((asset) => asset.id === state.activeAssetId)
+    if (active?.kind === kind) return active
+    return state.assets.find((asset) => asset.kind === kind) ?? null
+  })
+}
+
+/**
+ * Everything of one kind, for the tools that work on a whole batch.
+ *
+ * Through `useShallow`, because `filter` builds a new array on every read and
+ * the store compares selector results by identity: without it every render
+ * looks like a change, which re-renders, which reads again — React stops that
+ * with "maximum update depth exceeded" rather than letting the tab hang.
+ */
+export function useAssetsOfKind(kind: AssetKind): Asset[] {
+  return useSession(useShallow((state) => state.assets.filter((asset) => asset.kind === kind)))
+}
+
+const BY_EXTENSION: Record<string, AssetKind> = {}
+const register = (kind: AssetKind, extensions: string[]) => {
+  for (const extension of extensions) BY_EXTENSION[extension] = kind
+}
+register('audio', ['mp3', 'wav', 'flac', 'ogg', 'oga', 'opus', 'm4a', 'aac', 'aiff', 'aif', 'wma', 'alac', 'mka'])
+register('video', ['mp4', 'webm', 'mkv', 'mov', 'avi', 'ts', 'm4v', 'flv', 'wmv', 'mpg', 'mpeg', '3gp'])
+register('image', ['jpg', 'jpeg', 'png', 'webp', 'avif', 'gif', 'bmp', 'tif', 'tiff', 'svg', 'heic'])
+register('document', ['pdf', 'txt', 'md', 'csv', 'json', 'docx', 'rtf', 'xml', 'srt', 'vtt'])
+register('archive', ['zip', 'tar', 'gz', 'tgz', 'bz2', 'xz', '7z', 'rar'])
+
 export function kindFromMime(mime: string, name: string): AssetKind {
   if (mime.startsWith('audio/')) return 'audio'
   if (mime.startsWith('video/')) return 'video'
-  const extension = name.split('.').pop()?.toLowerCase() ?? ''
-  if (['mp3', 'wav', 'flac', 'ogg', 'opus', 'm4a', 'aac', 'aiff', 'wma'].includes(extension)) return 'audio'
-  if (['mp4', 'webm', 'mkv', 'mov', 'avi', 'ts', 'm4v', 'flv'].includes(extension)) return 'video'
-  return 'unknown'
+  if (mime.startsWith('image/')) return 'image'
+  if (mime.startsWith('text/') || mime === 'application/pdf' || mime === 'application/json') return 'document'
+  if (/^application\/(zip|x-tar|gzip|x-7z|vnd\.rar)/.test(mime)) return 'archive'
+  return BY_EXTENSION[name.split('.').pop()?.toLowerCase() ?? ''] ?? 'unknown'
+}
+
+/** The plain-language name of a kind, for anywhere a file is described. */
+export const KIND_LABEL: Record<AssetKind, string> = {
+  audio: 'Ton',
+  video: 'Video',
+  image: 'Bild',
+  document: 'Dokument',
+  archive: 'Archiv',
+  unknown: 'Datei',
 }
