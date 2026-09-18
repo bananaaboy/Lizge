@@ -72,6 +72,9 @@ import {
   windowsScript,
   ytdlpCookieCommand,
   ytdlpSteps,
+  ytdlpUnixLauncher,
+  ytdlpWindowsLauncher,
+  launcherFilename,
   YTDLP_RELEASES,
 } from '../../lib/selfhost'
 import { detectPlatform } from '../../lib/platform'
@@ -89,6 +92,7 @@ import {
   Field,
   Notice,
   Progress,
+  Reveal,
   Select,
   TextInput,
   Toggle,
@@ -1490,9 +1494,83 @@ export function DownloaderPanel() {
                             </div>
                           ) : null}
 
-                          <code className="mt-[9px] block rounded-nav bg-panel-soft px-[11px] py-[9px] font-mono text-[11px] leading-[1.6] whitespace-pre-wrap text-prose">
+                          {localWay === 'ytdlp' ? (
+                            /* The four commands below are mechanical, and
+                               "open a terminal" is where most people stop. One
+                               file that does all of it is the same setup with
+                               the part that scares people removed. */
+                            <div className="mt-[11px] rounded-card bg-panel-mid p-[16px]">
+                              <p className="text-[13px] font-semibold text-ink">
+                                Der kurze Weg: eine Datei
+                              </p>
+                              <p className="mt-[6px] text-[12px] leading-[1.5] text-prose/85">
+                                {platform === 'windows'
+                                  ? 'Herunterladen, doppelklicken, fertig. Die Datei holt yt-dlp und startet alles; der Browser öffnet sich von selbst.'
+                                  : 'Herunterladen, dann im Terminal einmal starten. Die Datei holt yt-dlp und startet alles; der Browser öffnet sich von selbst.'}
+                              </p>
+                              <div className="mt-[11px] flex flex-wrap items-center gap-[9px]">
+                                <Button
+                                  size="sm"
+                                  onClick={() =>
+                                    saveBytes(
+                                      new TextEncoder().encode(
+                                        platform === 'windows'
+                                          ? ytdlpWindowsLauncher(window.location.origin)
+                                          : ytdlpUnixLauncher(window.location.origin, platform),
+                                      ),
+                                      launcherFilename(platform),
+                                      'text/plain',
+                                    )
+                                  }
+                                >
+                                  {launcherFilename(platform)} herunterladen
+                                  <ArrowRight />
+                                </Button>
+                                {platform !== 'windows' ? (
+                                  <code className="rounded-nav bg-raised px-[9px] py-[6px] font-mono text-[11px] text-prose">
+                                    bash {launcherFilename(platform)}
+                                  </code>
+                                ) : null}
+                              </div>
+                              <p className="mt-[9px] text-[12px] leading-[1.5] text-muted">
+                                Node.js muss auf dem Rechner sein — das ist das Einzige, was die
+                                Datei nicht selbst holen kann. Fehlt es, sagt sie es und öffnet die
+                                richtige Seite.
+                              </p>
+                              {/* The route with nothing to run at all. Worth
+                                  naming, because for a one-off download it is
+                                  genuinely less work than any setup. */}
+                              <p className="mt-[7px] border-t border-ink/10 pt-[9px] text-[12px] leading-[1.5] text-muted">
+                                Gar kein Node? Dann reicht auch{' '}
+                                <a
+                                  className="text-ink underline underline-offset-2"
+                                  href={YTDLP_RELEASES}
+                                  target="_blank"
+                                  rel="noreferrer noopener"
+                                >
+                                  yt-dlp allein
+                                </a>{' '}
+                                — Video damit herunterladen und die fertige Datei hier ins Fenster
+                                ziehen. Für einmalige Sachen ist das der kürzeste Weg überhaupt.
+                              </p>
+                            </div>
+                          ) : null}
+
+                          <code
+                            className={`mt-[9px] block rounded-nav bg-panel-soft px-[11px] py-[9px] font-mono text-[11px] leading-[1.6] whitespace-pre-wrap text-prose ${
+                              localWay === 'ytdlp' ? 'hidden' : ''
+                            }`}
+                          >
                             {localCommand}
                           </code>
+
+                          {localWay === 'ytdlp' ? (
+                            <Reveal label="Lieber die Befehle selbst eingeben" className="mt-[11px]">
+                              <code className="block rounded-nav bg-panel-soft px-[11px] py-[9px] font-mono text-[11px] leading-[1.6] whitespace-pre-wrap text-prose">
+                                {localCommand}
+                              </code>
+                            </Reveal>
+                          ) : null}
 
                           {localWay === 'ytdlp' ? (
                             /* The one failure everybody hits, with its remedy
