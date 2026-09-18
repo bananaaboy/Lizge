@@ -557,6 +557,27 @@ das und öffnet die richtige Seite.
 Und wer gar nichts starten will, benutzt yt-dlp allein und zieht die fertige
 Datei ins Fenster. Für einmalige Sachen ist das der kürzeste Weg überhaupt.
 
+### yt-dlp ist jetzt der Hauptweg
+
+cobalt bleibt vollständig erhalten — wer schon eine Instanz betreibt, ändert
+nichts. Aber die Empfehlung ist yt-dlp, weil der Weg dorthin kürzer ist (eine
+Programmdatei statt Paketmanager und Quelltext) und weil yt-dlp mehr Umwege
+kennt, wenn YouTube zumacht.
+
+Zwei Dinge waren dabei zu korrigieren, und beide waren Reste aus der Zeit, als
+cobalt die einzige Umsetzung war:
+
+* **Die App schrieb „cobalt" fest vor die Version.** Verbunden mit der Brücke
+  stand da „cobalt yt-dlp 2026.08.19 · Sondra-Brücke". Der Dienst nennt sich
+  in seiner Versionsangabe selbst; das Präfix ist weg.
+* **Der Warnhinweis behauptete einen fremden Betreiber.** Läuft der Dienst auf
+  demselben Rechner, gibt es keinen — und einen Hinweis zu zeigen, der
+  nachweislich nicht stimmt, erzieht dazu, auch den zu überlesen, der stimmt.
+  Jetzt steht bei einer Adresse auf `localhost` das Zutreffende da: kein
+  fremder Server dazwischen, aber YouTube sieht die Anfrage und damit die
+  IP-Adresse, so wie beim Ansehen auch. Die Haftungszeile steht in beiden
+  Fassungen und ist an keine Bedingung geknüpft.
+
 ### Derselbe Dienst, aber mit yt-dlp
 
 cobalt spricht YouTube über `youtubei.js` an, also über YouTubes eigene

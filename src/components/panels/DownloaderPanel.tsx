@@ -30,6 +30,7 @@ import { detectCapabilities } from '../../lib/capabilities'
 import {
   DEFAULT_SERVICE,
   findLocalInstance,
+  isLoopback,
   localJobArgs,
   localJobExtension,
   probeService,
@@ -37,6 +38,7 @@ import {
   localNetworkPermission,
   pageIsLocal,
   requestLocalAccess,
+  LOCAL_SERVICE_DISCLAIMER,
   SERVICE_DISCLAIMER,
   ServiceError,
   watchForInstance,
@@ -582,7 +584,7 @@ export function DownloaderPanel() {
       const found = await findLocalInstance(localCandidates(), controller.signal)
       if (found) {
         adopt(found.endpoint, found.info)
-        log('dienst', `Lokale Instanz gefunden: ${found.endpoint} (cobalt ${found.info.version})`)
+        log('dienst', `Lokale Instanz gefunden: ${found.endpoint} — ${found.info.version}`)
       } else {
         setError(
           `Auf diesem Rechner läuft nichts auf Port ${DEFAULT_PORT}. Mit „Befehl kopieren“ ` +
@@ -626,7 +628,7 @@ export function DownloaderPanel() {
       const found = await watchForInstance(localCandidates(), { signal: controller.signal })
       if (found) {
         adopt(found.endpoint, found.info)
-        log('dienst', `Instanz gefunden: ${found.endpoint} (cobalt ${found.info.version})`)
+        log('dienst', `Instanz gefunden: ${found.endpoint} — ${found.info.version}`)
       } else if (!controller.signal.aborted) {
         setError(
           `Fünf Minuten lang kam auf Port ${DEFAULT_PORT} keine Antwort. Läuft Docker? ` +
@@ -662,7 +664,7 @@ export function DownloaderPanel() {
         if (found) {
           if (!stopped) {
             adopt(found.endpoint, found.info)
-            log('dienst', `Instanz gefunden: ${found.endpoint} (cobalt ${found.info.version})`)
+            log('dienst', `Instanz gefunden: ${found.endpoint} — ${found.info.version}`)
           }
           return
         }
@@ -708,7 +710,7 @@ export function DownloaderPanel() {
           await requestLocalAccess(candidate)
           const info = await probeService(candidate, null, AbortSignal.timeout(8000))
           adopt(candidate, info)
-          setProbe(`Verbunden mit ${candidate} — cobalt ${info.version}, ${info.services.length} Dienste.`)
+          setProbe(`Verbunden mit ${candidate} — ${info.version}, ${info.services.length} Dienste.`)
           return
         } catch {
           // Next address. The report below says what the browser decided.
@@ -736,7 +738,7 @@ export function DownloaderPanel() {
     for (const candidate of localCandidates()) {
       try {
         const info = await probeService(candidate, null, AbortSignal.timeout(5000))
-        lines.push(`${candidate} → cobalt ${info.version}, ${info.services.length} Dienste`)
+        lines.push(`${candidate} → ${info.version}, ${info.services.length} Dienste`)
         adopt(candidate, info)
         setProbe(lines.join('\n'))
         return
@@ -807,7 +809,7 @@ export function DownloaderPanel() {
     try {
       const info = await probeService(service.endpoint, apiKey || null, controller.signal)
       adopt(service.endpoint.trim(), info)
-      log('dienst', `Instanz erreichbar: cobalt ${info.version}, ${info.services.length} Dienste`)
+      log('dienst', `Instanz erreichbar: ${info.version}, ${info.services.length} Dienste`)
     } catch (failure) {
       const message = failure instanceof Error ? failure.message : String(failure)
       setError(message)
@@ -1169,7 +1171,7 @@ export function DownloaderPanel() {
                 {connected ? (
                   <>
                     <div className="flex flex-wrap items-center gap-[7px]">
-                      <Badge tone="forest">cobalt {serviceInfo.version}</Badge>
+                      <Badge tone="forest">{serviceInfo.version}</Badge>
                       {/* Whether the instance actually offers YouTube is the thing
                           people get wrong, so it is stated rather than implied. */}
                       <Badge>
@@ -1330,9 +1332,9 @@ export function DownloaderPanel() {
                           >
                             {(
                               [
-                                { id: 'ytdlp', label: 'Mit yt-dlp' },
-                                { id: 'node', label: 'Mit cobalt' },
-                                { id: 'docker', label: 'Mit Docker' },
+                                { id: 'ytdlp', label: 'Mit yt-dlp — empfohlen' },
+                                { id: 'node', label: 'cobalt' },
+                                { id: 'docker', label: 'cobalt mit Docker' },
                               ] as const
                             ).map((choice) => (
                               <button
@@ -1816,18 +1818,29 @@ export function DownloaderPanel() {
                   </div>
                 )}
 
-                {/* Terms last, under the controls they apply to. */}
-                <div className="rounded-card bg-raised p-[21px] text-[12px] leading-[1.5] ring-1 ring-inset ring-ink/30">
-                  <p className="mb-[7px] font-semibold text-ink">{SERVICE_DISCLAIMER.title}</p>
-                  {SERVICE_DISCLAIMER.paragraphs.map((paragraph) => (
-                    <p key={paragraph.slice(0, 24)} className="mb-[7px] text-prose/85">
-                      {paragraph}
-                    </p>
-                  ))}
-                  <p className="mt-[9px] border-t border-line pt-[9px] text-muted">
-                    {SERVICE_DISCLAIMER.liability}
-                  </p>
-                </div>
+                {/* Terms last, under the controls they apply to — and the
+                    right ones: a service on this machine has no operator to
+                    warn about, and saying otherwise would train people to
+                    ignore the notice that does matter. */}
+                {(() => {
+                  const terms =
+                    service.endpoint && isLoopback(service.endpoint)
+                      ? LOCAL_SERVICE_DISCLAIMER
+                      : SERVICE_DISCLAIMER
+                  return (
+                    <div className="rounded-card bg-raised p-[21px] text-[12px] leading-[1.5] ring-1 ring-inset ring-ink/30">
+                      <p className="mb-[7px] font-semibold text-ink">{terms.title}</p>
+                      {terms.paragraphs.map((paragraph) => (
+                        <p key={paragraph.slice(0, 24)} className="mb-[7px] text-prose/85">
+                          {paragraph}
+                        </p>
+                      ))}
+                      <p className="mt-[9px] border-t border-line pt-[9px] text-muted">
+                        {terms.liability}
+                      </p>
+                    </div>
+                  )
+                })()}
             </div>
           </Dialog>
         </div>

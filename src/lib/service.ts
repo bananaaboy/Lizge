@@ -193,7 +193,7 @@ function normalizeEndpoint(endpoint: string): string {
     if (MEDIA_HOSTS.test(url.hostname)) {
       throw new ServiceError(
         `${url.hostname} ist die Adresse des Videos, nicht die des Dienstes. Oben gehört der Link ` +
-          'zum Medium hin; hier die Adresse Ihrer eigenen cobalt-Instanz.',
+          'zum Medium hin; hier die Adresse Ihres eigenen Dienstes.',
       )
     }
 
@@ -383,13 +383,16 @@ export async function probeService(
     body = await response.json()
   } catch {
     throw new ServiceError(
-      `Unter dieser Adresse antwortet etwas (${response.status}), aber kein cobalt-kompatibler ` +
-        'Dienst. Zeigt die Adresse vielleicht auf die Weboberfläche statt auf die API?',
+      `Unter dieser Adresse antwortet etwas (${response.status}), aber kein Dienst, den Sondra ` +
+        'ansprechen kann. Zeigt die Adresse vielleicht auf eine Weboberfläche statt auf die API?',
     )
   }
 
   if (!body.cobalt) {
-    throw new ServiceError('Die Antwort sieht nicht nach einer cobalt-API aus.')
+    throw new ServiceError(
+      'Die Antwort passt nicht zu der Schnittstelle, die Sondra spricht. Erwartet wird die ' +
+        'yt-dlp-Brücke oder eine cobalt-Instanz.',
+    )
   }
 
   return {
@@ -614,7 +617,16 @@ export function localJobExtension(job: LocalJob): string {
   return fromName ?? 'mp4'
 }
 
-/** The notice shown whenever the feature is switched on. */
+/**
+ * The notice shown whenever the feature is switched on.
+ *
+ * Two versions, because the truth differs. Against somebody else's instance
+ * the address really does leave the machine and a stranger could log it.
+ * Against the bridge on this computer there is no stranger — but YouTube still
+ * sees the request, and saying "completely local" would be a lie of omission.
+ *
+ * The liability sentence is the same in both and is not conditional.
+ */
 export const SERVICE_DISCLAIMER = {
   title: 'Diese Funktion verlässt das lokale Prinzip',
   paragraphs: [
@@ -623,6 +635,21 @@ export const SERVICE_DISCLAIMER = {
       'Sie einen Dienst, dem Sie vertrauen, oder betreiben Sie eine eigene Instanz.',
     'Alle übrigen Werkzeuge bleiben lokal: Konvertierung, Spurentrennung, Lautheit und Sampler ' +
       'rechnen weiterhin ausschließlich auf Ihrem Gerät.',
+  ],
+  liability:
+    'Haftungsausschluss: Die Nutzung erfolgt auf eigene Verantwortung und eigenes Risiko. Für die ' +
+    'Rechtmäßigkeit der abgerufenen Inhalte, für Verstöße gegen Nutzungsbedingungen oder ' +
+    'Urheberrechte Dritter und für Schäden jeder Art wird keinerlei Haftung übernommen.',
+} as const
+
+/** The same notice when the service is the bridge on this very machine. */
+export const LOCAL_SERVICE_DISCLAIMER = {
+  title: 'Was dabei Ihr Gerät verlässt',
+  paragraphs: [
+    'Der Dienst läuft auf diesem Rechner, kein fremder Server ist dazwischen — niemand außer Ihnen ' +
+      'sieht also, welche Adressen Sie abrufen.',
+    'Die Anfrage selbst geht trotzdem hinaus: YouTube sieht sie und damit Ihre IP-Adresse, so wie ' +
+      'beim normalen Ansehen auch. Alle übrigen Werkzeuge rechnen weiterhin ausschließlich hier.',
   ],
   liability:
     'Haftungsausschluss: Die Nutzung erfolgt auf eigene Verantwortung und eigenes Risiko. Für die ' +
