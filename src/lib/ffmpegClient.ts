@@ -286,10 +286,37 @@ export interface RunResult {
 }
 
 /**
+ * One core, one job at a time.
+ *
+ * There is a single FFmpeg instance behind all of this, and its worker cannot
+ * service two `exec` calls at once — it dies with "null function or function
+ * signature mismatch", an error that names nothing useful and points at
+ * whichever job was unlucky enough to be second. That is not a rare corner:
+ * the session sidebar decodes the selected file's audio to draw a waveform,
+ * and a panel that starts a render while that is still running overlaps it.
+ *
+ * So every caller queues. The chain is on the promise itself rather than a
+ * boolean, which means a caller never has to poll and the order of arrival is
+ * the order of execution.
+ */
+let queue: Promise<unknown> = Promise.resolve()
+
+function enqueue<T>(job: () => Promise<T>): Promise<T> {
+  const next = queue.then(job, job)
+  // Failures must not poison the chain for everyone behind them.
+  queue = next.catch(() => undefined)
+  return next
+}
+
+/**
  * Writes inputs to MEMFS, runs one ffmpeg invocation, reads the outputs back,
  * and cleans up — so a long session does not slowly fill the heap with old jobs.
  */
-export async function runFfmpeg({ input, output, args, signal }: RunOptions): Promise<RunResult> {
+export function runFfmpeg(options: RunOptions): Promise<RunResult> {
+  return enqueue(() => runFfmpegNow(options))
+}
+
+async function runFfmpegNow({ input, output, args, signal }: RunOptions): Promise<RunResult> {
   const ffmpeg = await loadFfmpeg()
   const logs: string[] = []
   const stopLogging = onFfmpegLog((line) => {
@@ -317,7 +344,13 @@ export async function runFfmpeg({ input, output, args, signal }: RunOptions): Pr
     const code = await ffmpeg.exec(args)
     if (signal?.aborted) throw new DOMException('Abgebrochen', 'AbortError')
     if (code !== 0) {
+      // A non-zero exit usually means ffmpeg called exit(), and exit() takes
+      // the WebAssembly runtime with it. The core looks alive afterwards and
+      // fails on the next call with "null function or function signature
+      // mismatch" — an error about the previous job, reported against the next
+      // one. Reloading here keeps a failure local to the run that caused it.
       const tail = logs.slice(-8).join('\n')
+      await unloadFfmpeg().catch(() => undefined)
       throw new Error(`FFmpeg endete mit Code ${code}.\n${tail}`)
     }
 
@@ -365,4 +398,128 @@ export async function decodeToWav(bytes: Uint8Array, filename: string, signal?: 
 /** MEMFS has no directories in play here, so keep names flat and safe. */
 export function sanitize(name: string): string {
   return name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(-64)
+}
+
+/* -------------------------------------------------------------------------- */
+/* Probing                                                                     */
+/* -------------------------------------------------------------------------- */
+
+export interface MediaFacts {
+  durationSeconds: number | null
+  width: number | null
+  height: number | null
+  frameRate: number | null
+  videoCodec: string | null
+  audioCodec: string | null
+  sampleRate: number | null
+  channels: string | null
+}
+
+const EMPTY_FACTS: MediaFacts = {
+  durationSeconds: null,
+  width: null,
+  height: null,
+  frameRate: null,
+  videoCodec: null,
+  audioCodec: null,
+  sampleRate: null,
+  channels: null,
+}
+
+/**
+ * What a file actually contains, according to FFmpeg.
+ *
+ * The browser answers this for free through a `<video>` element — but only for
+ * the codecs it can play, and a Chromium build without H.264 or a Firefox
+ * without system codecs will simply report a duration of zero. That silence is
+ * indistinguishable from a broken file, and it leaves every control that needs
+ * a length disabled with no explanation.
+ *
+ * So when the browser cannot answer, FFmpeg is asked. The obvious way — `-i`
+ * with no output at all — is a trap in a WebAssembly build: ffmpeg treats
+ * "nothing to do" as an error and calls `exit(1)`, and `exit` tears down the
+ * whole runtime. The core survives the probe but every later run dies with
+ * "null function or function signature mismatch", which looks like a bug
+ * anywhere but here.
+ *
+ * Writing a tenth of a second to the null muxer instead ends with exit code 0
+ * and prints the same stream information. The core is reloaded anyway if the
+ * exit code is not 0, so a build without that muxer costs one reload rather
+ * than a broken session.
+ */
+export function probeMedia(
+  bytes: Uint8Array,
+  filename: string,
+  signal?: AbortSignal,
+): Promise<MediaFacts> {
+  return enqueue(() => probeMediaNow(bytes, filename, signal))
+}
+
+async function probeMediaNow(
+  bytes: Uint8Array,
+  filename: string,
+  signal?: AbortSignal,
+): Promise<MediaFacts> {
+  const ffmpeg = await loadFfmpeg()
+  const name = `probe_${sanitize(filename)}`
+  const logs: string[] = []
+  const stopLogging = onFfmpegLog((line) => logs.push(line))
+
+  try {
+    await ffmpeg.writeFile(name, bytes.slice())
+    await ffmpeg
+      .exec(['-hide_banner', '-i', name, '-t', '0.1', '-f', 'null', '-'])
+      .catch(() => 1)
+    const facts = signal?.aborted ? EMPTY_FACTS : parseProbe(logs.join('\n'))
+    return facts
+  } catch {
+    await unloadFfmpeg().catch(() => undefined)
+    return EMPTY_FACTS
+  } finally {
+    stopLogging()
+    // Always, not only after a non-zero exit. Measured: a probe run leaves the
+    // core in a state where the very next job dies with "null function or
+    // function signature mismatch", even when the probe itself reported
+    // success — the same argument lists run clean through a native FFmpeg, so
+    // it is the runtime and not the arguments. A reload costs a few seconds in
+    // the rare case a file needs probing at all; a wedged core costs the
+    // session.
+    await unloadFfmpeg().catch(() => undefined)
+  }
+}
+
+/** Pulls the facts out of what FFmpeg printed to its log. */
+export function parseProbe(text: string): MediaFacts {
+  const facts: MediaFacts = { ...EMPTY_FACTS }
+
+  const duration = text.match(/Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)/)
+  if (duration) {
+    facts.durationSeconds =
+      Number(duration[1]) * 3600 + Number(duration[2]) * 60 + Number(duration[3])
+  }
+
+  const video = text.match(/Stream #\d+:\d+.*?: Video:\s*([\w\d]+)[^\n]*/)
+  if (video) {
+    facts.videoCodec = video[1]
+    // The first WxH on the video line is the frame size. Anything later is an
+    // aspect ratio or a display size, so the search stops at the first hit.
+    const size = video[0].match(/(\d{2,5})x(\d{2,5})/)
+    if (size) {
+      facts.width = Number(size[1])
+      facts.height = Number(size[2])
+    }
+    const fps = video[0].match(/([\d.]+)\s*fps/)
+    if (fps) facts.frameRate = Number(fps[1])
+  }
+
+  const audio = text.match(/Stream #\d+:\d+.*?: Audio:\s*([\w\d]+)[^\n]*/)
+  if (audio) {
+    facts.audioCodec = audio[1]
+    const rate = audio[0].match(/(\d{4,6})\s*Hz/)
+    if (rate) facts.sampleRate = Number(rate[1])
+    const layout = audio[0].match(/\b(mono|stereo|5\.1|7\.1|quad)\b/)
+    if (layout) facts.channels = layout[1]
+  }
+
+  return facts
 }

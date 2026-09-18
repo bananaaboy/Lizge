@@ -12,6 +12,8 @@ Reiterleiste ist der schlechteste Ort, um sie zu lernen.
 |---|---|---|
 | **Herunterladen** | Downloader | Direkte Links, HLS-Playlisten und — auf Wunsch — Portale |
 | **Umwandeln** | Konverter | FFmpeg als WebAssembly, zehn Ausgabeformate |
+| **Video** | — | Schneiden an der Zeitleiste, Ausschnitt, Drehen, Tempo, Ton herauslösen, GIF |
+| **Bilder** | — | Skalieren, zuschneiden, Farbe, umwandeln, Stapel als ZIP |
 | **Spuren trennen** | Spurentrennung | Gesang, Schlagzeug, Bass, Übriges — ohne Modell-Download |
 | **Lautstärke** | Lautheit | Vollständiges EBU R128 / ITU-R BS.1770-4 mit True-Peak-Grenze |
 | **Zerschneiden** | Chopper | Schnitte an Anschlägen oder im Tempo-Raster, 16 Pads, Sample-Pack |
@@ -458,6 +460,57 @@ Gemessen, mit dem echten Dienst statt einem Attrappen-Server: ein Aufruf, cobalt
 darüber geöffnet gilt sie als lokal, `crossOriginIsolated` steht, kein
 Erlaubnis-Knopf erscheint, die Verbindung steht nach 8 ms — und ein echter
 YouTube-Download lief durch: 84 MB, 1080p.
+
+### Von einem Audiowerkzeug zu einer Werkstatt
+
+Bilder und Video sind dazugekommen, und mit ihnen eine Frage, die vorher nicht
+gestellt werden musste: woher weiß jemand, was das Programm kann? Bei sechs
+Reitern liest man sie; bei vielen mehr wächst die Leiste in ein Menü hinein.
+
+Die Antwort ist, die Werkzeuge zu Daten zu machen. `src/lib/actions.ts` ist eine
+Liste dessen, was Sondra kann — je Eintrag ein Ergebnis in Alltagssprache, die
+Dateiarten, auf die es passt, und die Wörter, die Leute tatsächlich tippen,
+deutsche wie englische. Aus derselben Liste speisen sich drei Dinge: die
+Aktionen, die eine ausgewählte Datei an sich selbst anzeigt, die Suche, und die
+Befehlspalette auf Strg/Cmd + K. Ein Eintrag mehr macht eine Fähigkeit überall
+gleichzeitig auffindbar; eine zweite Stelle zum Nachtragen gibt es nicht.
+
+**Bilder laufen ohne WebAssembly.** Gemessen, bevor es gebaut wurde: die
+Zeichenfläche des Browsers schreibt PNG, JPEG und WebP nativ. Für ein
+Bildschirmfoto dreißig Megabyte FFmpeg zu laden wäre absurd, also tut es das
+nicht — skalieren, zuschneiden, drehen, Helligkeit, Kontrast, Sättigung,
+Weichzeichnen laufen sofort. Geschärft wird mit einem eigenen 3×3-Durchgang,
+weil die Zeichenfläche dafür keinen Filter hat. AVIF kann sie nicht schreiben,
+und das steht so da, statt heimlich ein PNG zu liefern.
+
+**Video läuft über FFmpeg, in einem Durchgang.** Schnitt, Ausschnitt, Drehung,
+Skalierung und Tempo sind alle Filter, und Filter lassen sich verketten — fünf
+Durchgänge wären fünf Mal dekodieren und kodieren. Ein Schnitt, der sonst
+nichts verlangt, kopiert die Spuren statt sie neu zu rechnen.
+
+Drei Fehler, die beim Bauen sichtbar wurden und alle drei nichts mit Video zu
+tun hatten:
+
+* **Der Kern verträgt nur einen Auftrag.** Die Seitenleiste dekodiert den Ton
+  der ausgewählten Datei, um eine Wellenform zu zeichnen. Startet ein Panel
+  währenddessen einen Lauf, überlappen sich zwei `exec`-Aufrufe auf einer
+  Instanz, und sie stirbt mit „null function or function signature mismatch" —
+  einem Fehler, der nichts benennt und auf den falschen Auftrag zeigt. Jetzt
+  stehen alle Aufrufe in einer Schlange.
+* **`-preset veryfast` ist in diesem WASM-Build kaputt.** Dieselbe
+  Argumentliste läuft durch ein natives FFmpeg sauber durch; im Browser stirbt
+  sie sofort. Mit `-preset medium` ist derselbe Auftrag in zehn Sekunden fertig.
+  Der Konverter bietet `veryfast` in seinem eigenen Menü an und stürzt damit
+  nicht ab — kommt aber auch nach sieben Minuten nicht zurück.
+* **Ein Selektor mit `filter` baut bei jedem Lesen ein neues Array.** Der Store
+  vergleicht Ergebnisse über Identität, also sah jedes Rendern wie eine
+  Änderung aus. React bricht das mit „maximum update depth exceeded" ab.
+
+Und eine Lücke, die vorher keine war: Wenn der Browser ein Video nicht abspielen
+kann — bei H.264 ist das eine Lizenzfrage, kein Fehler in der Datei —, meldet er
+eine Länge von null und sonst nichts. Jede Bedienung, die eine Länge braucht,
+säße dann grau da. Jetzt fragt FFmpeg nach, und daneben steht, warum es kein
+Bild gibt.
 
 ### Derselbe Dienst, aber mit yt-dlp
 

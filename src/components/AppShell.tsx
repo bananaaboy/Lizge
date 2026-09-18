@@ -13,6 +13,7 @@ import type { InstallState } from '../hooks/useInstallPrompt'
 import { useFilePicker } from '../hooks/useIngest'
 import type { ThemeChoice } from '../lib/theme'
 import { useSession } from '../state/store'
+import { PaletteHint } from './CommandPalette'
 import { ThemeToggle } from './ThemeToggle'
 import { Button } from './ui/primitives'
 
@@ -146,6 +147,7 @@ export function Header({
               Installieren
             </Button>
           ) : null}
+          <PaletteHint />
           <PrivacyChip />
           <ThemeToggle choice={themeChoice} onChange={onThemeChange} />
           {hasAssets ? <OpenFileButton label="Weitere Datei" collapse /> : null}
