@@ -19,6 +19,7 @@ import { SamplerPanel } from './panels/SamplerPanel'
 import { StemsPanel } from './panels/StemsPanel'
 import { VideoPanel } from './panels/VideoPanel'
 import { ImagePanel } from './panels/ImagePanel'
+import { AudioEditorPanel } from './panels/AudioEditorPanel'
 import { FileDrop } from './FileDrop'
 import { OpenFileButton } from './AppShell'
 import { Button, Card, Eyebrow } from './ui/primitives'
@@ -51,6 +52,12 @@ const PANELS: { id: PanelId; label: string; summary: string; icon: ReactNode }[]
     label: 'Umwandeln',
     summary: 'In ein anderes Dateiformat bringen — etwa Video zu MP3',
     icon: <path d="M2.6 5.4h9.2m0 0L9.4 3.1m2.4 2.3L9.4 7.7M13.4 10.6H4.2m0 0l2.4-2.3m-2.4 2.3l2.4 2.3" />,
+  },
+  {
+    id: 'audio',
+    label: 'Ton',
+    summary: 'Schneiden, blenden, Pegel, Stille entfernen, Tonhöhe, Tempo',
+    icon: <path d="M1.8 8h1.8l1.6-4.6 2.4 9.2 2-6.2 1.2 3.4h3" />,
   },
   {
     id: 'video',
@@ -437,7 +444,8 @@ export function Dashboard({ theme }: { theme: ResolvedTheme }) {
   const hasAssets = useSession((state) => state.assets.length > 0)
   const current = PANELS.find((entry) => entry.id === panel)
   // The downloader is how files arrive, so it never waits for one.
-  const ready = hasAssets || panel === 'downloader' || panel === 'video' || panel === 'images'
+  const ready =
+    hasAssets || panel === 'downloader' || panel === 'video' || panel === 'images' || panel === 'audio'
 
   return (
     <section id="studio" className="shell flex flex-col gap-[16px] py-[18px]">
@@ -453,6 +461,7 @@ export function Dashboard({ theme }: { theme: ResolvedTheme }) {
           <>
             {panel === 'downloader' ? <DownloaderPanel /> : null}
             {panel === 'converter' ? <ConverterPanel /> : null}
+            {panel === 'audio' ? <AudioEditorPanel /> : null}
             {panel === 'video' ? <VideoPanel /> : null}
             {panel === 'images' ? <ImagePanel /> : null}
             {panel === 'stems' ? <StemsPanel /> : null}
