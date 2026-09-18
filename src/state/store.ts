@@ -50,6 +50,7 @@ export interface LogLine {
 export type PanelId =
   | 'downloader'
   | 'converter'
+  | 'audio'
   | 'video'
   | 'images'
   | 'stems'

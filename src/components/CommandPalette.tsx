@@ -13,7 +13,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 
-import { ACTIONS, searchActions, type ToolAction } from '../lib/actions'
+import { ACTIONS, GROUP_LABEL, searchActions, type ToolAction, type ToolGroup } from '../lib/actions'
 import { formatBytes } from '../lib/format'
 import { KIND_LABEL, useSession } from '../state/store'
 
@@ -73,13 +73,38 @@ export function CommandPalette() {
     return assets.filter((asset) => asset.name.toLowerCase().includes(term)).slice(0, 4)
   }, [query, assets])
 
-  const rows = useMemo(
-    () => [
-      ...files.map((file) => ({ kind: 'file' as const, file })),
-      ...matches.map((action) => ({ kind: 'action' as const, action })),
-    ],
-    [files, matches],
-  )
+  /**
+   * The flat list, but ordered so the headings come out in a sensible order.
+   *
+   * Thirty capabilities in one column is a wall. Grouped under five headings
+   * it is a menu — and when a file is open, the group that fits it comes
+   * first, so the answer to "what can I do with this" is at the top rather
+   * than somewhere in the middle.
+   */
+  const rows = useMemo(() => {
+    const order: ToolGroup[] = ['holen', 'ton', 'musik', 'video', 'bild']
+    const preferred = active
+      ? ({ audio: 'ton', video: 'video', image: 'bild' } as Partial<Record<string, ToolGroup>>)[active.kind]
+      : undefined
+    const groups = preferred ? [preferred, ...order.filter((g) => g !== preferred)] : order
+
+    const actions: { kind: 'action'; action: ToolAction; heading?: string }[] = []
+    for (const group of groups) {
+      const inGroup = matches.filter((action) => action.group === group)
+      for (const [index, action] of inGroup.entries()) {
+        actions.push({ kind: 'action', action, heading: index === 0 ? GROUP_LABEL[group] : undefined })
+      }
+    }
+
+    return [
+      ...files.map((file, index) => ({
+        kind: 'file' as const,
+        file,
+        heading: index === 0 ? ('Dateien in dieser Sitzung' as string | undefined) : undefined,
+      })),
+      ...actions,
+    ]
+  }, [files, matches, active])
 
   useEffect(() => setCursor(0), [query])
 
@@ -135,16 +160,40 @@ export function CommandPalette() {
 
         <div className="min-h-0 flex-1 overflow-y-auto p-[8px]">
           {rows.length === 0 ? (
-            <p className="px-[12px] py-[18px] text-[13px] text-muted">
-              Nichts gefunden. Versuchen Sie es mit dem Ergebnis statt dem Verfahren — etwa „mp3“,
-              „kleiner machen“ oder „gesang“.
-            </p>
+            <div className="px-[12px] py-[16px]">
+              <p className="text-[13px] text-muted">
+                Nichts gefunden. Suchen Sie nach dem Ergebnis, nicht nach dem Verfahren:
+              </p>
+              <div className="mt-[10px] flex flex-wrap gap-[6px]">
+                {['mp3', 'video schneiden', 'gesang', 'kleiner machen', 'tonart', 'stille'].map((example) => (
+                  <button
+                    key={example}
+                    type="button"
+                    onClick={() => setQuery(example)}
+                    className="press rounded-pill bg-panel-soft px-[10px] py-[5px] text-[12px] text-ink hover:bg-panel-mid"
+                  >
+                    {example}
+                  </button>
+                ))}
+              </div>
+            </div>
           ) : null}
 
           {rows.map((row, index) => {
             const selected = index === cursor
+            const heading = row.heading ? (
+              <p
+                key={`h-${row.heading}`}
+                className="px-[12px] pt-[12px] pb-[4px] text-[11px] font-semibold uppercase tracking-[0.08em] text-muted"
+              >
+                {row.heading}
+              </p>
+            ) : null
+
             if (row.kind === 'file') {
               return (
+                <div key={`file-wrap-${row.file.id}`}>
+                  {heading}
                 <button
                   key={`file-${row.file.id}`}
                   type="button"
@@ -161,19 +210,28 @@ export function CommandPalette() {
                   <span className={`numeric shrink-0 text-[11px] ${selected ? 'opacity-70' : 'text-muted'}`}>
                     {formatBytes(row.file.sizeBytes)}
                   </span>
-                </button>
+                  </button>
+                </div>
               )
             }
 
             const fits = active ? row.action.kinds.includes(active.kind) : false
             return (
-              <button
+              <div key={`wrap-${row.action.id}`}>
+                {heading}
+                <button
                 key={row.action.id}
                 type="button"
                 onMouseEnter={() => setCursor(index)}
                 onClick={() => choose(index)}
                 className={`flex w-full items-baseline gap-[10px] rounded-nav px-[12px] py-[9px] text-left ${
                   selected ? 'bg-ink text-on-ink' : 'hover:bg-panel-soft'
+                } ${
+                  /* Dimmed rather than labelled. A badge reading "fits your
+                     selection" on nearly every row is a badge that says
+                     nothing; quieting the few that do not fit says the same
+                     thing without adding thirty words to the screen. */
+                  active && !fits && !selected ? 'opacity-55' : ''
                 }`}
               >
                 <span className="min-w-0 flex-1">
@@ -182,16 +240,13 @@ export function CommandPalette() {
                     {row.action.hint}
                   </span>
                 </span>
-                {fits ? (
-                  <span
-                    className={`shrink-0 rounded-pill px-[8px] py-[2px] text-[11px] ${
-                      selected ? 'bg-on-ink/20' : 'bg-panel-mid text-ink'
-                    }`}
-                  >
-                    passt zur Auswahl
+                {selected ? (
+                  <span className="shrink-0 rounded-nav bg-on-ink/20 px-[7px] py-[2px] font-mono text-[11px]">
+                    ↵
                   </span>
                 ) : null}
-              </button>
+                </button>
+              </div>
             )
           })}
         </div>

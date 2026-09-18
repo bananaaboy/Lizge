@@ -12,6 +12,7 @@ Reiterleiste ist der schlechteste Ort, um sie zu lernen.
 |---|---|---|
 | **Herunterladen** | Downloader | Direkte Links, HLS-Playlisten und — auf Wunsch — Portale |
 | **Umwandeln** | Konverter | FFmpeg als WebAssembly, zehn Ausgabeformate |
+| **Ton** | — | Schneiden an der Wellenform, Blenden, Pegel, Stille, Tonhöhe, Tempo, Kanäle |
 | **Video** | — | Schneiden an der Zeitleiste, Ausschnitt, Drehen, Tempo, Ton herauslösen, GIF |
 | **Bilder** | — | Skalieren, zuschneiden, Farbe, umwandeln, Stapel als ZIP |
 | **Spuren trennen** | Spurentrennung | Gesang, Schlagzeug, Bass, Übriges — ohne Modell-Download |
@@ -460,6 +461,43 @@ Gemessen, mit dem echten Dienst statt einem Attrappen-Server: ein Aufruf, cobalt
 darüber geöffnet gilt sie als lokal, `crossOriginIsolated` steht, kein
 Erlaubnis-Knopf erscheint, die Verbindung steht nach 8 ms — und ein echter
 YouTube-Download lief durch: 84 MB, 1080p.
+
+### Der Ton-Editor, und warum er klein war
+
+Schneiden, blenden, Pegel, Stille entfernen, umkehren, transponieren, dehnen,
+Mono/Stereo, Abtastrate — das klingt nach viel und war wenig Arbeit, weil die
+Rechnerei längst dalag: `sliceAudio`, `applyFades`, `reverseAudio`,
+`pitchShift`, `stretchAudio` und `resampleByRatio` gab es für den Sampler und
+die Tonart-Erkennung. Gefehlt hat die unglamouröse Hälfte, und die steht jetzt
+in `src/lib/edit.ts`: Pegel, Stille, Aneinanderhängen, Kanäle, Abtastrate.
+
+Zwei Entscheidungen darin sind keine Geschmacksfrage:
+
+* **Stille wird auf einem 20-ms-Fenster gemessen, nicht pro Abtastwert.** Ein
+  einzelner Nulldurchgang ist keine Stille, und ein Gate, das das glaubt,
+  klappert. An den Rändern bleiben 50 ms stehen — schneidet man exakt an der
+  Schwelle, fehlt das Ausklingen davor und der Atemzug danach, und es klingt
+  zusammengestückelt.
+* **Nichts wird verändert, alles wird neu gebaut.** Der Verlauf hält die
+  vorherigen Fassungen, Strg/Cmd + Z nimmt zurück, und die Datei in der
+  Sitzung wird nie angefasst.
+
+Geprüft mit echtem Ton, vor der Oberfläche: −6 dB ergibt exakt −6, das
+Normalisieren landet auf −0,30 dBFS, eine eingebaute Sekunde Stille wird als
+0,00–1,00 s erkannt und lässt 7,1 s von 8 s übrig, das Aneinanderhängen mit
+0,2 s Blende ergibt 15,8 s statt 16, und WAV überlebt den Hin- und Rückweg in
+16, 24 und 32 bit.
+
+### Die Suche gruppiert jetzt
+
+Dreißig Fähigkeiten in einer Spalte sind eine Wand. Unter fünf Überschriften
+sind sie ein Menü — und die Gruppe, die zur geöffneten Datei passt, steht
+oben, sodass „was kann ich damit machen" zuerst beantwortet wird.
+
+Eine Auszeichnung ist dabei rausgeflogen: jede Zeile trug „passt zur
+Auswahl", weil bei einer Tondatei eben fast alles passt. Eine Markierung, die
+für alles gilt, sagt nichts. Die wenigen Zeilen, die *nicht* passen, sind
+jetzt leicht abgedunkelt — dieselbe Auskunft, dreißig Wörter weniger.
 
 ### Von einem Audiowerkzeug zu einer Werkstatt
 

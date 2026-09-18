@@ -13,9 +13,21 @@
 
 import type { AssetKind, PanelId } from '../state/store'
 
+/** The heading a capability is filed under in the search results. */
+export type ToolGroup = 'holen' | 'ton' | 'video' | 'bild' | 'musik'
+
+export const GROUP_LABEL: Record<ToolGroup, string> = {
+  holen: 'Hereinholen',
+  ton: 'Ton',
+  video: 'Video',
+  bild: 'Bilder',
+  musik: 'Für Musik',
+}
+
 export interface ToolAction {
   id: string
   panel: PanelId
+  group: ToolGroup
   /** What it produces, in the user's words. */
   label: string
   hint: string
@@ -33,6 +45,7 @@ export const ACTIONS: ToolAction[] = [
   {
     id: 'download',
     panel: 'downloader',
+    group: 'holen',
     label: 'Von einer Adresse laden',
     hint: 'Video oder Lied aus dem Netz holen',
     kinds: [],
@@ -43,6 +56,7 @@ export const ACTIONS: ToolAction[] = [
   {
     id: 'convert-audio',
     panel: 'converter',
+    group: 'ton',
     label: 'In ein anderes Format bringen',
     hint: 'MP3, FLAC, WAV, AAC, Opus, ALAC, Vorbis',
     kinds: ['audio', 'video'],
@@ -51,6 +65,7 @@ export const ACTIONS: ToolAction[] = [
   {
     id: 'extract-audio',
     panel: 'video',
+    group: 'ton',
     label: 'Ton aus dem Video holen',
     hint: 'Die Tonspur als eigene Datei',
     kinds: ['video'],
@@ -61,6 +76,7 @@ export const ACTIONS: ToolAction[] = [
   {
     id: 'video-trim',
     panel: 'video',
+    group: 'video',
     label: 'Video zuschneiden',
     hint: 'Anfang und Ende festlegen',
     kinds: ['video'],
@@ -69,6 +85,7 @@ export const ACTIONS: ToolAction[] = [
   {
     id: 'video-crop',
     panel: 'video',
+    group: 'video',
     label: 'Bildausschnitt ändern',
     hint: 'Ränder wegschneiden, Format ändern',
     kinds: ['video'],
@@ -77,6 +94,7 @@ export const ACTIONS: ToolAction[] = [
   {
     id: 'video-rotate',
     panel: 'video',
+    group: 'video',
     label: 'Drehen oder spiegeln',
     hint: 'Hochkant-Aufnahmen geraderücken',
     kinds: ['video', 'image'],
@@ -85,6 +103,7 @@ export const ACTIONS: ToolAction[] = [
   {
     id: 'video-speed',
     panel: 'video',
+    group: 'video',
     label: 'Geschwindigkeit ändern',
     hint: 'Zeitraffer oder Zeitlupe',
     kinds: ['video'],
@@ -93,6 +112,7 @@ export const ACTIONS: ToolAction[] = [
   {
     id: 'video-resize',
     panel: 'video',
+    group: 'video',
     label: 'Auflösung ändern',
     hint: '1080p, 720p, kleiner machen',
     kinds: ['video'],
@@ -101,6 +121,7 @@ export const ACTIONS: ToolAction[] = [
   {
     id: 'video-mute',
     panel: 'video',
+    group: 'video',
     label: 'Ton entfernen',
     hint: 'Video ohne Tonspur',
     kinds: ['video'],
@@ -109,6 +130,7 @@ export const ACTIONS: ToolAction[] = [
   {
     id: 'video-frame',
     panel: 'video',
+    group: 'video',
     label: 'Einzelbild speichern',
     hint: 'Ein Standbild aus dem Video',
     kinds: ['video'],
@@ -117,6 +139,7 @@ export const ACTIONS: ToolAction[] = [
   {
     id: 'video-gif',
     panel: 'video',
+    group: 'video',
     label: 'GIF daraus machen',
     hint: 'Kurzer Ausschnitt als GIF',
     kinds: ['video'],
@@ -127,6 +150,7 @@ export const ACTIONS: ToolAction[] = [
   {
     id: 'image-resize',
     panel: 'images',
+    group: 'bild',
     label: 'Bild skalieren',
     hint: 'Auf eine Zielbreite bringen',
     kinds: ['image'],
@@ -135,6 +159,7 @@ export const ACTIONS: ToolAction[] = [
   {
     id: 'image-convert',
     panel: 'images',
+    group: 'bild',
     label: 'Bildformat ändern',
     hint: 'PNG, JPEG oder WebP',
     kinds: ['image'],
@@ -143,6 +168,7 @@ export const ACTIONS: ToolAction[] = [
   {
     id: 'image-compress',
     panel: 'images',
+    group: 'bild',
     label: 'Bild kleiner machen',
     hint: 'Qualität gegen Dateigröße abwägen',
     kinds: ['image'],
@@ -151,6 +177,7 @@ export const ACTIONS: ToolAction[] = [
   {
     id: 'image-crop',
     panel: 'images',
+    group: 'bild',
     label: 'Bild zuschneiden',
     hint: 'Ausschnitt aufziehen',
     kinds: ['image'],
@@ -159,6 +186,7 @@ export const ACTIONS: ToolAction[] = [
   {
     id: 'image-adjust',
     panel: 'images',
+    group: 'bild',
     label: 'Helligkeit und Farbe',
     hint: 'Helligkeit, Kontrast, Sättigung, Schärfe',
     kinds: ['image'],
@@ -167,16 +195,101 @@ export const ACTIONS: ToolAction[] = [
   {
     id: 'image-batch',
     panel: 'images',
+    group: 'bild',
     label: 'Viele Bilder auf einmal',
     hint: 'Dieselben Schritte auf alle, Ergebnis als ZIP',
     kinds: ['image'],
     keywords: ['batch', 'stapel', 'alle', 'mehrere', 'massen', 'zip'],
   },
 
+  /* -- editing sound -------------------------------------------------------- */
+  {
+    id: 'audio-cut',
+    panel: 'audio',
+    group: 'ton',
+    label: 'Ton schneiden',
+    hint: 'Ausschnitt wählen, behalten oder herausschneiden',
+    kinds: ['audio'],
+    keywords: ['cut', 'trim', 'schneiden', 'kürzen', 'ausschnitt', 'crop', 'split', 'bearbeiten', 'editor'],
+  },
+  {
+    id: 'audio-fade',
+    panel: 'audio',
+    group: 'ton',
+    label: 'Ein- und ausblenden',
+    hint: 'Weiche Anfänge und Enden',
+    kinds: ['audio'],
+    keywords: ['fade', 'blende', 'einblenden', 'ausblenden', 'fade in', 'fade out', 'weich'],
+  },
+  {
+    id: 'audio-gain',
+    panel: 'audio',
+    group: 'ton',
+    label: 'Lauter oder leiser',
+    hint: 'Pegel in dB, auch nur im Ausschnitt',
+    kinds: ['audio'],
+    keywords: ['gain', 'pegel', 'lauter', 'leiser', 'volume', 'db', 'verstärken', 'peak'],
+  },
+  {
+    id: 'audio-silence',
+    panel: 'audio',
+    group: 'ton',
+    label: 'Stille entfernen',
+    hint: 'Pausen finden und herausschneiden',
+    kinds: ['audio'],
+    keywords: ['silence', 'stille', 'pausen', 'leerlauf', 'trim silence', 'entfernen'],
+  },
+  {
+    id: 'audio-reverse',
+    panel: 'audio',
+    group: 'ton',
+    label: 'Rückwärts abspielen',
+    hint: 'Die Aufnahme umkehren',
+    kinds: ['audio'],
+    keywords: ['reverse', 'rückwärts', 'umkehren', 'backwards'],
+  },
+  {
+    id: 'audio-join',
+    panel: 'audio',
+    group: 'ton',
+    label: 'Aufnahmen aneinanderhängen',
+    hint: 'Mit kurzer Überblendung verbinden',
+    kinds: ['audio'],
+    keywords: ['join', 'merge', 'concat', 'aneinander', 'verbinden', 'zusammenfügen', 'anhängen'],
+  },
+  {
+    id: 'audio-pitch',
+    panel: 'audio',
+    group: 'musik',
+    label: 'Tonhöhe ändern',
+    hint: 'Transponieren, Länge bleibt gleich',
+    kinds: ['audio'],
+    keywords: ['pitch', 'tonhöhe', 'transponieren', 'halbtöne', 'shift', 'höher', 'tiefer'],
+  },
+  {
+    id: 'audio-tempo',
+    panel: 'audio',
+    group: 'musik',
+    label: 'Tempo ändern',
+    hint: 'Dehnen oder stauchen, Tonhöhe bleibt',
+    kinds: ['audio'],
+    keywords: ['tempo', 'stretch', 'dehnen', 'schneller', 'langsamer', 'time stretch', 'bpm ändern'],
+  },
+  {
+    id: 'audio-shape',
+    panel: 'audio',
+    group: 'ton',
+    label: 'Mono, Stereo, Abtastrate',
+    hint: 'Kanäle und Abtastrate umstellen',
+    kinds: ['audio'],
+    keywords: ['mono', 'stereo', 'kanäle', 'channels', 'abtastrate', 'sample rate', '44100', '48000', 'bit'],
+  },
+
   /* -- music ---------------------------------------------------------------- */
   {
     id: 'stems',
     panel: 'stems',
+    group: 'musik',
     label: 'Spuren trennen',
     hint: 'Gesang, Schlagzeug und Bass einzeln',
     kinds: ['audio', 'video'],
@@ -185,6 +298,7 @@ export const ACTIONS: ToolAction[] = [
   {
     id: 'loudness',
     panel: 'normalize',
+    group: 'musik',
     label: 'Lautstärke angleichen',
     hint: 'EBU R128, so laut wie im Radio',
     kinds: ['audio', 'video'],
@@ -193,6 +307,7 @@ export const ACTIONS: ToolAction[] = [
   {
     id: 'loudness-check',
     panel: 'normalize',
+    group: 'musik',
     label: 'Master prüfen',
     hint: 'LUFS, True Peak, Dynamik messen',
     kinds: ['audio', 'video'],
@@ -201,6 +316,7 @@ export const ACTIONS: ToolAction[] = [
   {
     id: 'chop',
     panel: 'sampler',
+    group: 'musik',
     label: 'In Schnipsel zerlegen',
     hint: 'An Anschlägen oder im Takt, auf Tasten legen',
     kinds: ['audio'],
@@ -209,6 +325,7 @@ export const ACTIONS: ToolAction[] = [
   {
     id: 'key',
     panel: 'harmony',
+    group: 'musik',
     label: 'Tonart und Tempo bestimmen',
     hint: 'Tonart, Camelot, BPM, Akkorde, MIDI',
     kinds: ['audio'],
