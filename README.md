@@ -512,6 +512,51 @@ eine Länge von null und sonst nichts. Jede Bedienung, die eine Länge braucht,
 säße dann grau da. Jetzt fragt FFmpeg nach, und daneben steht, warum es kein
 Bild gibt.
 
+### Warum es ohne Einrichtung nicht geht
+
+Die Frage kam mehrfach, also steht hier die Messung statt einer Meinung.
+
+Ein Browser kann YouTube nicht selbst abrufen, und zwar an zwei Stellen:
+`youtubei`, die Schnittstelle, die die Adressen der Datenströme liefert, gibt
+für fremde Herkünfte kein CORS frei — und `googlevideo.com`, wo die Daten
+liegen, ebenfalls nicht. Beides sind Entscheidungen von YouTube, keine Lücken
+im Programm. Dazwischen muss etwas stehen, das kein Browser ist.
+
+Bleibt: eine fremde Instanz. Geprüft am 18.9.2026:
+
+| | |
+|---|---|
+| `api.cobalt.tools` | erreichbar, CORS offen — aber **kein YouTube** in der Dienstliste, dazu `error.api.auth.jwt.missing`, also ein Bot-Check |
+| `instances.cobalt.best` | kein DNS |
+| `instances.hyper.lol` | kein DNS |
+
+Die Verzeichnisse offener Instanzen, aus denen man früher eine hätte
+aussuchen können, existieren nicht mehr.
+
+Damit bleiben genau zwei ehrliche Möglichkeiten, und beide kosten etwas:
+
+1. **Etwas läuft auf dem Rechner des Nutzers.** Kostet eine Einrichtung, dafür
+   sieht kein Dritter die Adressen. Das ist der Weg, den Sondra geht — und er
+   ist jetzt eine Datei und ein Doppelklick statt vier Befehlen.
+2. **Etwas läuft auf dem Server der Seite.** Kostet die Zusage, dass nichts
+   übertragen wird, dazu Betriebskosten und die Verantwortung für das, was
+   Besucher damit abrufen. Und es funktioniert schlecht: YouTube misstraut
+   Adressen aus Rechenzentren. Gemessen von genau so einer Adresse aus ging
+   **1 von 10** Videos durch; yt-dlp bekam dort „Sign in to confirm you're not
+   a bot". Ein Knopf, der meistens nicht funktioniert, ist schlechter als
+   einer, der einmal Einrichtung verlangt.
+
+Deshalb ist der kurze Weg kurz geworden, statt zu verschwinden:
+`sondra-youtube.cmd` unter Windows ist eine Datei, die per Doppelklick läuft —
+bewusst `.cmd` und nicht PowerShell, weil ein `.ps1` beim Doppelklick im
+Editor landet, solange die Ausführungsrichtlinie nicht geändert wurde. Die
+Datei holt yt-dlp, holt die Brücke, startet beides und öffnet den Browser.
+Node.js ist das Einzige, was sie nicht selbst holen kann; fehlt es, sagt sie
+das und öffnet die richtige Seite.
+
+Und wer gar nichts starten will, benutzt yt-dlp allein und zieht die fertige
+Datei ins Fenster. Für einmalige Sachen ist das der kürzeste Weg überhaupt.
+
 ### Derselbe Dienst, aber mit yt-dlp
 
 cobalt spricht YouTube über `youtubei.js` an, also über YouTubes eigene

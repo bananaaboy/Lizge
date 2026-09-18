@@ -853,3 +853,137 @@ export function ytdlpSteps({
 export function ytdlpCookieCommand(origin: string, browser = 'firefox'): string {
   return `node ${YTDLP_LAUNCHER} ${origin.replace(/\/$/, '')} --cookies ${browser}`
 }
+
+/* -------------------------------------------------------------------------- */
+/* One file, one double-click                                                  */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * The whole setup as a single file.
+ *
+ * Four commands pasted into a terminal is not much, but "open a terminal" is
+ * where most people stop — and everything those four lines do is mechanical.
+ * So they become one file that fetches yt-dlp, fetches the bridge and starts
+ * both, and that reports what is missing in words rather than in a stack trace.
+ *
+ * Windows gets `.cmd` rather than PowerShell on purpose: a `.cmd` runs on
+ * double-click, while a `.ps1` opens in Notepad unless the execution policy has
+ * been changed first — which is exactly the kind of step this is meant to
+ * remove. `curl.exe` has shipped with Windows since 2018, so nothing has to be
+ * installed to fetch anything.
+ */
+export function ytdlpWindowsLauncher(origin: string): string {
+  const site = origin.replace(/\/$/, '')
+  return [
+    '@echo off',
+    'rem Sondra: YouTube und aehnliche Seiten. Erzeugt von Sondra, veraenderbar.',
+    'rem Doppelklick genuegt. Das Fenster muss offen bleiben, solange es laeuft.',
+    'setlocal',
+    'cd /d "%~dp0"',
+    'title Sondra - Dienst fuer Portale',
+    '',
+    'echo.',
+    'echo   Sondra richtet den Dienst fuer YouTube und aehnliche Seiten ein.',
+    'echo.',
+    '',
+    'where node >nul 2>nul',
+    'if errorlevel 1 (',
+    '  echo   Node.js fehlt - das ist das einzige, was von Hand kommen muss.',
+    '  echo   Der Installer oeffnet sich jetzt. Danach diese Datei erneut',
+    '  echo   doppelklicken.',
+    '  echo.',
+    `  start "" "${NODE_DOWNLOAD}"`,
+    '  pause',
+    '  exit /b 1',
+    ')',
+    '',
+    'if not exist yt-dlp.exe (',
+    '  echo   yt-dlp wird geholt ^(einmalig, rund 40 MB^)...',
+    `  curl.exe -L --progress-bar -o yt-dlp.exe ${YTDLP_RELEASES}/download/yt-dlp.exe`,
+    '  if errorlevel 1 (',
+    '    echo   Download fehlgeschlagen. Besteht eine Internetverbindung?',
+    '    pause',
+    '    exit /b 1',
+    '  )',
+    ') else (',
+    '  echo   yt-dlp ist schon da.',
+    ')',
+    '',
+    'echo   Sondra-Bruecke wird geholt...',
+    `curl.exe -L -s -o ${YTDLP_LAUNCHER} ${site}/${YTDLP_LAUNCHER}`,
+    '',
+    'echo.',
+    'echo   Startet. Der Browser oeffnet sich gleich von selbst.',
+    'echo.',
+    'rem Erst warten, dann oeffnen: der Dienst braucht einen Moment, und eine',
+    'rem Fehlerseite, die von selbst aufgeht, sieht aus wie ein Fehlschlag.',
+    `start "" /min cmd /c "timeout /t 5 >nul & start \"\" http://localhost:${MIRROR_PORT}/"`,
+    `node ${YTDLP_LAUNCHER} ${site}`,
+    '',
+    'echo.',
+    'echo   Beendet. Fenster kann geschlossen werden.',
+    'pause',
+    '',
+  ].join('\r\n')
+}
+
+/**
+ * The same for macOS and Linux.
+ *
+ * Started with `bash sondra-youtube.sh` rather than by double-click: a file
+ * that arrives through a browser has no execute bit, and telling someone to
+ * set one is worse than telling them to type `bash`. On macOS the downloaded
+ * yt-dlp also carries a quarantine flag that Gatekeeper enforces, so the script
+ * clears it — otherwise the first run dies with a dialog about an unidentified
+ * developer and no hint of what to do.
+ */
+export function ytdlpUnixLauncher(origin: string, platform: Platform): string {
+  const site = origin.replace(/\/$/, '')
+  const asset = platform === 'macos' ? 'yt-dlp_macos' : 'yt-dlp_linux'
+  return [
+    '#!/usr/bin/env bash',
+    '# Sondra: YouTube und ähnliche Seiten. Erzeugt von Sondra, veränderbar.',
+    '# Starten mit:  bash sondra-youtube.sh',
+    'set -e',
+    'cd "$(dirname "$0")"',
+    '',
+    'echo',
+    'echo "  Sondra richtet den Dienst für YouTube und ähnliche Seiten ein."',
+    'echo',
+    '',
+    'if ! command -v node >/dev/null 2>&1; then',
+    '  echo "  Node.js fehlt — das ist das einzige, was von Hand kommen muss."',
+    `  echo "  Holen bei ${NODE_DOWNLOAD} und diese Datei erneut starten."`,
+    '  exit 1',
+    'fi',
+    '',
+    'if [ ! -x ./yt-dlp ]; then',
+    '  echo "  yt-dlp wird geholt (einmalig, rund 40 MB)…"',
+    `  curl -L --progress-bar -o yt-dlp ${YTDLP_RELEASES}/download/${asset}`,
+    '  chmod +x yt-dlp',
+    ...(platform === 'macos'
+      ? [
+          '  # Gatekeeper haelt heruntergeladene Programme sonst an.',
+          '  xattr -d com.apple.quarantine yt-dlp 2>/dev/null || true',
+        ]
+      : []),
+    'else',
+    '  echo "  yt-dlp ist schon da."',
+    'fi',
+    '',
+    'echo "  Sondra-Brücke wird geholt…"',
+    `curl -L -s -o ${YTDLP_LAUNCHER} ${site}/${YTDLP_LAUNCHER}`,
+    '',
+    'echo',
+    'echo "  Startet. Der Browser öffnet sich gleich von selbst."',
+    'echo',
+    `(sleep 2 && (open "http://localhost:${MIRROR_PORT}/" 2>/dev/null || xdg-open "http://localhost:${MIRROR_PORT}/" 2>/dev/null)) &`,
+    `exec node ${YTDLP_LAUNCHER} ${site}`,
+    '',
+  ].join('\n')
+}
+
+/** What the one-file launcher is called on each system. */
+export function launcherFilename(platform: Platform): string {
+  return platform === 'windows' ? 'sondra-youtube.cmd' : 'sondra-youtube.sh'
+}
