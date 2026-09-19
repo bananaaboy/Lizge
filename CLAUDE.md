@@ -4,6 +4,12 @@ Deutschsprachiges Medienstudio, das im Browser rechnet. Vite 7 · React 19 ·
 TypeScript · Tailwind v4 · zustand. Oberflächentexte sind **Deutsch**,
 Codekommentare **Englisch**.
 
+Wer das Produkt sucht — Publikum, Hauptaufgabe, die gesetzten Einschränkungen
+und die gemessenen Grenzen, die Versprechen begrenzen — findet es in
+[PRODUCT.md](PRODUCT.md). Diese Datei hier hält die gestalterischen
+Entscheidungen, und zwar als einzige: zwei Regeldateien driften auseinander und
+ziehen spätere Arbeit in verschiedene Richtungen.
+
 ## Design Guidelines (anti-AI-slop, established 2026-09-19)
 
 This project had an explicit design pass to remove generic "AI-generated"
