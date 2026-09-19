@@ -62,13 +62,13 @@ function Tool({
     <button
       type="button"
       onClick={onClick}
-      // The separator is a 1px outline rather than a border or a grid gap.
-      // A gap showing the surface below draws the lines for free but paints
-      // the *empty* cells at the end of a group too, which came out as a grey
-      // placeholder slab. Outlines are drawn outside the box, so neighbours
-      // overlap into a single hairline, the outer ring clips the rest, and a
-      // cell that does not exist draws nothing.
-      className="press group flex flex-col items-start gap-[4px] outline outline-1 outline-line bg-raised px-[16px] py-[12px] text-left hover:bg-panel-soft"
+      // One line, on one side. A box on all four sides claims "this is an
+      // object"; a row in a list of thirty is not an object, it is an item,
+      // and an item is separated from the one above it by a rule. The rule
+      // above the first row doubles as the group's own top edge, so the group
+      // needs no box either — and an empty cell at the end of a group draws
+      // nothing at all, which is what an empty cell should do.
+      className="press group flex flex-col items-start gap-[4px] border-t border-line px-[16px] py-[12px] text-left hover:bg-panel-soft"
     >
       <span className="flex items-center gap-[8px] text-small font-semibold leading-[1.3] text-ink">
         {/* When the tool needs a kind of file the session does not hold, only
@@ -121,9 +121,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="flex flex-col gap-[8px]">
       <h3 className="eyebrow">{title}</h3>
-      <div className="grid overflow-hidden rounded-card bg-raised ring-1 ring-line sm:grid-cols-2 lg:grid-cols-3">
-        {children}
-      </div>
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3">{children}</div>
     </section>
   )
 }

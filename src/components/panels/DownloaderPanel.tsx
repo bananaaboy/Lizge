@@ -226,7 +226,9 @@ export function DownloaderPanel() {
             {result.streams.map((stream) => (
               <div
                 key={stream.id}
-                className="flex flex-wrap items-center gap-x-[12px] gap-y-[8px] rounded-nav bg-panel-soft px-[16px] py-[12px] ring-1 ring-inset ring-line"
+                // A list of options, so a rule between them rather than a box
+                // around each.
+                className="flex flex-wrap items-center gap-x-[12px] gap-y-[8px] border-t border-line px-[4px] py-[12px]"
               >
                 <span className="min-w-0 flex-1 text-small text-ink">{stream.label}</span>
                 <span className="numeric text-small text-muted">
