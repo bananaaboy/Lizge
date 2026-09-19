@@ -367,7 +367,7 @@ export function ImagePanel() {
     return (
       <div className="flex flex-col gap-[16px]">
         <FileDrop />
-        <p className="text-center text-[13px] text-muted">
+        <p className="text-center text-small text-muted">
           JPEG, PNG, WebP, GIF und meist auch AVIF und HEIC. Alles wird hier im Tab gerechnet.
         </p>
       </div>
@@ -400,7 +400,7 @@ export function ImagePanel() {
   const ratio = ASPECTS.find((entry) => entry.id === aspect)?.ratio ?? null
 
   return (
-    <div className="flex flex-col gap-[14px]">
+    <div className="flex flex-col gap-[16px]">
       <EditorShell
         title={asset.name}
         subtitle={
@@ -430,7 +430,7 @@ export function ImagePanel() {
                 <path d="M4 10a6 6 0 106-6 6 6 0 00-4.6 2.2M5.4 3.4v2.9h2.9" />
               </svg>
             </IconButton>
-            <Button size="sm" onClick={save} disabled={!result} className="ml-[6px]">
+            <Button size="sm" onClick={save} disabled={!result} className="ml-[8px]">
               Speichern
             </Button>
           </>
@@ -441,7 +441,7 @@ export function ImagePanel() {
         stage={
           <div ref={stageRef} className="absolute inset-[16px] flex items-center justify-center overflow-auto">
             {decodeError ? (
-              <p className="max-w-[40ch] text-center text-[13px] leading-[1.55] text-stage-muted">{decodeError}</p>
+              <p className="max-w-[40ch] text-center text-small leading-[1.55] text-stage-muted">{decodeError}</p>
             ) : (
               <div
                 className="relative shrink-0"
@@ -482,7 +482,7 @@ export function ImagePanel() {
             <button
               type="button"
               onClick={() => setZoom('fit')}
-              className="numeric press rounded-pill px-[10px] py-[5px] text-[12px] text-stage-ink hover:bg-stage-line"
+              className="numeric press rounded-pill px-[8px] py-[4px] text-small text-stage-ink hover:bg-stage-line"
               title="Einpassen"
             >
               {zoom === 'fit' ? 'Passend' : `${Math.round(display.factor * 100)} %`}
@@ -512,7 +512,7 @@ export function ImagePanel() {
               onKeyDown={(event) => event.key === ' ' && setCompare(true)}
               onKeyUp={() => setCompare(false)}
               disabled={cropping}
-              className="press rounded-pill px-[10px] py-[5px] text-[12px] text-stage-ink hover:bg-stage-line disabled:opacity-35"
+              className="press rounded-pill px-[8px] py-[4px] text-small text-stage-ink hover:bg-stage-line disabled:opacity-35"
               title="Gedrückt halten für das Original"
             >
               {compare ? 'Original' : 'Vergleichen'}
@@ -618,7 +618,7 @@ function Inspector({
           onChange={chooseAspect}
           options={ASPECTS.map((entry) => ({ value: entry.id, label: entry.label }))}
         />
-        <div className="numeric rounded-nav bg-panel-soft px-[12px] py-[10px] text-[12px] text-prose">
+        <div className="numeric rounded-nav bg-panel-soft px-[12px] py-[8px] text-small text-prose">
           {ops.crop
             ? `${Math.round(ops.crop.width * frame.width)} × ${Math.round(ops.crop.height * frame.height)} px`
             : `Ganzes Bild — ${frame.width} × ${frame.height} px`}
@@ -642,7 +642,7 @@ function Inspector({
     return (
       <>
         <ToolHeading title="Drehen und spiegeln" hint="Vierteldrehungen — verlustfrei, nichts wird neu berechnet." />
-        <div className="grid grid-cols-2 gap-[5px]">
+        <div className="grid grid-cols-2 gap-[4px]">
           <Button size="sm" variant="quiet" onClick={() => turn(270)}>
             ↺ Links
           </Button>
@@ -652,7 +652,7 @@ function Inspector({
         </div>
         <Toggle label="Waagrecht spiegeln" checked={ops.flipH} onChange={() => mirror('h')} />
         <Toggle label="Senkrecht spiegeln" checked={ops.flipV} onChange={() => mirror('v')} />
-        <p className="text-[12px] text-muted">Aktuell {ops.rotate}°.</p>
+        <p className="text-small text-muted">Aktuell {ops.rotate}°.</p>
       </>
     )
   }
@@ -677,9 +677,9 @@ function Inspector({
             onChange={(event) => patch({ width: Math.max(0, Number(event.target.value) || 0) })}
             className="w-[110px]"
           />
-          <span className="text-[12px] text-muted">px breit</span>
+          <span className="text-small text-muted">px breit</span>
         </label>
-        <div className="numeric rounded-nav bg-panel-soft px-[12px] py-[10px] text-[12px] text-prose">
+        <div className="numeric rounded-nav bg-panel-soft px-[12px] py-[8px] text-small text-prose">
           {target.width} × {target.height} px
           {source && target.width > frame.width ? (
             <span className="mt-[4px] block text-muted">
@@ -723,7 +723,7 @@ function Inspector({
           display={ops.saturation === 0 ? 'Schwarzweiß' : `${Math.round(ops.saturation * 100)} %`}
           onChange={(event) => patch({ saturation: Number(event.target.value) })}
         />
-        <div className="grid grid-cols-2 gap-[5px]">
+        <div className="grid grid-cols-2 gap-[4px]">
           <Button size="sm" variant="quiet" onClick={() => patch({ saturation: 0 })}>
             Schwarzweiß
           </Button>
@@ -762,7 +762,7 @@ function Inspector({
           display={ops.blur === 0 ? 'aus' : `${ops.blur} px`}
           onChange={(event) => patch({ blur: Number(event.target.value) })}
         />
-        <p className="text-[12px] leading-[1.45] text-muted">
+        <p className="text-small leading-[1.45] text-muted">
           In der Vorschau wirkt Schärfen etwas stärker als in der Datei: der Filter arbeitet dort auf
           weniger Pixeln.
         </p>
@@ -810,15 +810,15 @@ function Inspector({
           onChange={(event) => patch({ quality: Number(event.target.value) })}
         />
       ) : (
-        <p className="text-[12px] text-muted">PNG ist verlustfrei — es gibt nichts einzustellen.</p>
+        <p className="text-small text-muted">PNG ist verlustfrei — es gibt nichts einzustellen.</p>
       )}
-      <div className="numeric rounded-nav bg-panel-soft px-[12px] py-[10px] text-[12px] text-prose">
+      <div className="numeric rounded-nav bg-panel-soft px-[12px] py-[8px] text-small text-prose">
         {encoding ? 'wird gerechnet …' : result ? formatBytes(result.bytes.byteLength) : '—'}
-        <span className="mt-[3px] block text-muted">
+        <span className="mt-[4px] block text-muted">
           {result ? `${result.width} × ${result.height} px` : 'gemessen, nicht geschätzt'}
         </span>
       </div>
-      <div className="flex flex-col gap-[6px]">
+      <div className="flex flex-col gap-[8px]">
         <Button onClick={onSave} disabled={!result}>
           Datei speichern
         </Button>
@@ -828,7 +828,7 @@ function Inspector({
       </div>
       {/* A fact about the chosen format, not a setting — so it is written as
           one. A switch you cannot move is a worse way to say this. */}
-      <p className="text-[12px] leading-[1.45] text-muted">
+      <p className="text-small leading-[1.45] text-muted">
         {ops.format === 'jpeg'
           ? 'JPEG kann keine Transparenz: durchsichtige Stellen werden weiß.'
           : 'Durchsichtige Stellen bleiben durchsichtig.'}

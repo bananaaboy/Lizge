@@ -28,24 +28,24 @@ import {
   type StudioStream,
 } from '../../lib/studio'
 import { kindFromMime, useSession } from '../../state/store'
-import { Button, Card, Eyebrow, Notice, Progress, Reveal, TextInput } from '../ui/primitives'
+import { Button, Card, Notice, Progress, Reveal, TextInput } from '../ui/primitives'
 import { AdvancedDownloader } from './DownloaderAdvanced'
 
 /* -------------------------------------------------------------------------- */
 
 function NotLocalNotice() {
   return (
-    <div className="rounded-card bg-panel-cool p-[18px] ring-1 ring-inset ring-ink/20">
-      <p className="flex items-center gap-[8px] text-[13px] font-semibold text-ink">
+    <div className="rounded-card bg-panel-cool p-[16px] ring-1 ring-inset ring-ink/20">
+      <p className="flex items-center gap-[8px] text-small font-semibold text-ink">
         <svg viewBox="0 0 16 16" className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" aria-hidden>
           <path d="M8 1.6l6.2 10.8H1.8zM8 6.2v3.1M8 11.2h.01" />
         </svg>
         Dieses eine Werkzeug läuft nicht auf Ihrem Gerät
       </p>
-      <ul className="mt-[10px] flex list-disc flex-col gap-[5px] pl-[18px] text-[13px] leading-[1.5] text-prose/85">
+      <ul className="mt-[8px] flex list-disc flex-col gap-[4px] pl-[16px] text-small leading-[1.5] text-prose/85">
         <li>
           Die Adresse, die Sie einfügen, geht an einen Dienst dieser Seite. Er schlägt dort nach und
-          holt die Datei — Ihre eigenen Dateien sieht er nie.
+          holt die Datei. Ihre eigenen Dateien sieht er nie.
         </li>
         <li>
           Die Datei läuft durch diesen Dienst zu Ihnen. Gespeichert wird sie dort nicht; alles
@@ -147,13 +147,12 @@ export function DownloaderPanel() {
   return (
     <div className="flex flex-col gap-[16px]">
       <Card tone="cream">
-        <Eyebrow>Herunterladen</Eyebrow>
         <h2 className="display-md mt-[8px] mb-[12px]">Ein Video oder Lied von einer Adresse</h2>
 
         <NotLocalNotice />
 
         <form
-          className="mt-[18px] flex flex-col gap-[10px] sm:flex-row"
+          className="mt-[16px] flex flex-col gap-[8px] sm:flex-row"
           onSubmit={(event) => {
             event.preventDefault()
             void look()
@@ -172,11 +171,12 @@ export function DownloaderPanel() {
           </Button>
         </form>
 
-        <p className="mt-[10px] text-[12px] leading-[1.5] text-muted">
-          Ohne Einrichtung geht: YouTube in der Fassung, die Bild und Ton schon zusammen hat — in der
-          Regel 360p — und jede Adresse, die direkt auf eine Ton-, Video- oder Bilddatei zeigt. Für
-          1080p, für andere Portale und für Playlists führt der Weg über das eigene Gerät; das steht
-          weiter unten.
+        <p className="mt-[8px] text-small leading-[1.5] text-muted">
+          Der Dienst versucht drei Wege in dieser Reihenfolge: einen Anbieter, falls für diese
+          Installation einer hinterlegt ist; sonst YouTube direkt, was einem Server nur die Fassung
+          mit Bild und Ton in einem gibt, in der Regel 360p; sonst jede Adresse, die schon auf eine
+          Datei zeigt. Welcher Weg geantwortet hat, steht beim Ergebnis. Für volle Auflösung ohne
+          Anbieter führt der Weg über das eigene Gerät; das steht weiter unten.
         </p>
       </Card>
 
@@ -186,8 +186,8 @@ export function DownloaderPanel() {
           {error.code === 'youtube.sabr' || error.code === 'no-extractor' || error.code === 'youtube.signin' ? (
             <p className="mt-[8px]">
               Unter <span className="text-ink">Mehr Wege</span> steht, wie Sie yt-dlp auf Ihrem
-              Rechner starten. Das ist eine Datei und ein Doppelklick, und danach geht alles — in
-              voller Auflösung und ohne diesen Dienst.
+              Rechner starten. Das ist eine Datei und ein Doppelklick, und danach geht alles: volle
+              Auflösung, ohne diesen Dienst.
             </p>
           ) : null}
         </Notice>
@@ -205,22 +205,31 @@ export function DownloaderPanel() {
             ) : null}
             <div className="min-w-0 flex-1">
               <p className="truncate text-subheading text-ink">{result.title}</p>
-              <p className="numeric mt-[2px] text-[12px] text-muted">
+              <p className="numeric mt-[2px] text-small text-muted">
                 {[result.author, result.durationSeconds ? formatDuration(result.durationSeconds) : null]
                   .filter(Boolean)
                   .join(' · ')}
               </p>
+              {/* Which route answered. Not a detail: it decides the resolution
+                  on offer, and it decides who saw the address. */}
+              <p className="mt-[8px] text-micro uppercase tracking-[0.08em] text-muted">
+                {result.source === 'provider'
+                  ? 'Über den hinterlegten Anbieter'
+                  : result.source === 'youtube'
+                    ? 'YouTube direkt · nur die Fassung mit Bild und Ton in einem'
+                    : 'Direkte Datei-Adresse'}
+              </p>
             </div>
           </div>
 
-          <div className="mt-[18px] flex flex-col gap-[6px]">
+          <div className="mt-[16px] flex flex-col gap-[8px]">
             {result.streams.map((stream) => (
               <div
                 key={stream.id}
-                className="flex flex-wrap items-center gap-x-[12px] gap-y-[6px] rounded-nav bg-panel-soft px-[14px] py-[11px] ring-1 ring-inset ring-line"
+                className="flex flex-wrap items-center gap-x-[12px] gap-y-[8px] rounded-nav bg-panel-soft px-[16px] py-[12px] ring-1 ring-inset ring-line"
               >
-                <span className="min-w-0 flex-1 text-[13px] text-ink">{stream.label}</span>
-                <span className="numeric text-[12px] text-muted">
+                <span className="min-w-0 flex-1 text-small text-ink">{stream.label}</span>
+                <span className="numeric text-small text-muted">
                   {stream.ext.toUpperCase()}
                   {stream.bytes ? ` · ${formatBytes(stream.bytes)}` : ''}
                 </span>
@@ -244,7 +253,7 @@ export function DownloaderPanel() {
               <button
                 type="button"
                 onClick={() => abortRef.current?.abort()}
-                className="press self-start rounded-nav text-[12px] text-ink underline underline-offset-2"
+                className="press self-start rounded-nav text-small text-ink underline underline-offset-2"
               >
                 Abbrechen
               </button>
@@ -255,7 +264,7 @@ export function DownloaderPanel() {
 
       {/* The complete panel — instances, keys, cookies, playlists, full
           resolution — exactly as it was, just no longer the front door. */}
-      <Reveal label="Mehr Wege — eigener Dienst oder yt-dlp auf dem eigenen Gerät">
+      <Reveal label="Mehr Wege: eigener Dienst oder yt-dlp auf dem eigenen Gerät">
         <AdvancedDownloader />
       </Reveal>
     </div>

@@ -44,7 +44,7 @@ export function Card({
   className?: string
   children: ReactNode
 }) {
-  const padding = !padded ? '' : size === 'compact' ? 'p-[16px] sm:p-[20px]' : 'p-[22px] sm:p-[26px]'
+  const padding = !padded ? '' : size === 'compact' ? 'p-[16px] sm:p-[20px]' : 'p-[24px] sm:p-[24px]'
   return <div className={`rounded-card ${TONE_CLASS[tone]} ${padding} ${className}`}>{children}</div>
 }
 
@@ -65,7 +65,7 @@ export function Badge({
     tone === 'forest' ? 'bg-ink text-on-ink' : 'bg-raised text-ink'
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-pill px-[14px] py-[7px] text-[12px] leading-none ${styles} ${className}`}
+      className={`inline-flex items-center gap-1.5 rounded-pill px-[16px] py-[8px] text-small leading-none ${styles} ${className}`}
     >
       {children}
     </span>
@@ -80,7 +80,7 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 export function Button({ variant = 'primary', size = 'md', className = '', ...props }: ButtonProps) {
   const base =
     'press inline-flex items-center justify-center gap-2 rounded-card font-sans disabled:cursor-not-allowed disabled:opacity-40'
-  const sizes = size === 'sm' ? 'px-[14px] py-[9px] text-[13px]' : 'px-[20px] py-[13px] text-body'
+  const sizes = size === 'sm' ? 'px-[16px] py-[8px] text-small' : 'px-[20px] py-[12px] text-body'
   const variants = {
     primary: 'bg-ink text-on-ink hover:bg-ink-hover elevate',
     quiet: 'bg-raised text-ink ring-1 ring-inset ring-line hover:bg-panel-soft',
@@ -102,16 +102,16 @@ export function Field({
   className?: string
 }) {
   return (
-    <label className={`flex flex-col gap-[7px] ${className}`}>
-      <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink">{label}</span>
+    <label className={`flex flex-col gap-[8px] ${className}`}>
+      <span className="text-micro font-semibold uppercase tracking-[0.08em] text-ink">{label}</span>
       {children}
-      {hint ? <span className="text-[12px] leading-[1.5] text-muted">{hint}</span> : null}
+      {hint ? <span className="text-small leading-[1.5] text-muted">{hint}</span> : null}
     </label>
   )
 }
 
 const CONTROL =
-  'w-full rounded-nav border-0 bg-raised px-[14px] py-[11px] text-body text-prose outline-none ring-1 ring-inset ring-line focus:ring-ink'
+  'w-full rounded-nav border-0 bg-raised px-[16px] py-[12px] text-body text-prose outline-none ring-1 ring-inset ring-line focus:ring-ink'
 
 export function Select({ className = '', ...props }: SelectHTMLAttributes<HTMLSelectElement>) {
   return <select className={`${CONTROL} appearance-none pr-9 ${className}`} {...props} />
@@ -128,10 +128,10 @@ export function Slider({
   ...props
 }: InputHTMLAttributes<HTMLInputElement> & { label: string; display: string }) {
   return (
-    <div className="flex flex-col gap-[7px]">
+    <div className="flex flex-col gap-[8px]">
       <div className="flex items-baseline justify-between gap-3">
-        <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink">{label}</span>
-        <span className="numeric text-[13px] text-prose">{display}</span>
+        <span className="text-micro font-semibold uppercase tracking-[0.08em] text-ink">{label}</span>
+        <span className="numeric text-small text-prose">{display}</span>
       </div>
       <input type="range" {...props} />
     </div>
@@ -158,10 +158,10 @@ export function Toggle({
       aria-checked={checked}
       disabled={disabled}
       onClick={() => onChange(!checked)}
-      className="press group flex w-full items-start gap-[14px] rounded-nav text-left disabled:opacity-40"
+      className="press group flex w-full items-start gap-[16px] rounded-nav text-left disabled:opacity-40"
     >
       <span
-        className={`mt-0.5 flex h-[20px] w-[34px] shrink-0 items-center rounded-pill p-[3px] transition-colors duration-[var(--dur-fast)] ${
+        className={`mt-0.5 flex h-[20px] w-[34px] shrink-0 items-center rounded-pill p-[4px] transition-colors duration-[var(--dur-fast)] ${
           checked ? 'bg-ink' : 'bg-muted/35 group-hover:bg-muted/50'
         }`}
       >
@@ -173,7 +173,7 @@ export function Toggle({
       </span>
       <span className="flex flex-col gap-0.5">
         <span className="text-body text-prose">{label}</span>
-        {hint ? <span className="text-[12px] leading-[1.45] text-muted">{hint}</span> : null}
+        {hint ? <span className="text-small leading-[1.45] text-muted">{hint}</span> : null}
       </span>
     </button>
   )
@@ -182,11 +182,11 @@ export function Toggle({
 export function Progress({ value, label }: { value: number | null; label?: string }) {
   const percent = value === null ? null : Math.round(Math.max(0, Math.min(1, value)) * 100)
   return (
-    <div className="flex flex-col gap-[7px]">
+    <div className="flex flex-col gap-[8px]">
       {label ? (
         <div className="flex items-baseline justify-between gap-3">
-          <span className="text-[12px] text-muted">{label}</span>
-          {percent !== null ? <span className="numeric text-[12px] text-ink">{percent}%</span> : null}
+          <span className="text-small text-muted">{label}</span>
+          {percent !== null ? <span className="numeric text-small text-ink">{percent}%</span> : null}
         </div>
       ) : null}
       <div
@@ -221,13 +221,13 @@ export function Stat({
 }) {
   return (
     <div className="flex flex-col gap-[4px]">
-      <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink/70">{label}</span>
+      <span className="text-micro font-semibold uppercase tracking-[0.08em] text-ink/70">{label}</span>
       <span
-        className={`numeric pop ${emphasis ? 'font-display text-[30px] font-light leading-none' : 'text-subheading'} text-ink`}
+        className={`numeric pop ${emphasis ? 'font-display text-[31px] font-light leading-none' : 'text-subheading'} text-ink`}
       >
         {value}
       </span>
-      {note ? <span className="text-[12px] leading-[1.4] text-muted">{note}</span> : null}
+      {note ? <span className="text-small leading-[1.4] text-muted">{note}</span> : null}
     </div>
   )
 }
@@ -248,7 +248,7 @@ export function Notice({
   }[tone]
   return (
     <div
-      className={`rise rounded-card bg-raised p-[18px] text-[13px] leading-[1.55] ring-1 ring-inset ${ring}`}
+      className={`rise rounded-card bg-raised p-[16px] text-small leading-[1.55] ring-1 ring-inset ${ring}`}
     >
       {title ? <p className="mb-1.5 font-semibold text-ink">{title}</p> : null}
       <div className="text-prose/85">{children}</div>
@@ -275,7 +275,7 @@ export function Reveal({
 }) {
   return (
     <details className={`group ${className}`}>
-      <summary className="press inline-flex cursor-pointer list-none items-center gap-[6px] rounded-nav text-[12px] text-muted hover:text-ink">
+      <summary className="press inline-flex cursor-pointer list-none items-center gap-[8px] rounded-nav text-small text-muted hover:text-ink">
         <svg
           viewBox="0 0 12 12"
           className="h-3 w-3 transition-transform duration-[var(--dur-fast)] group-open:rotate-90"
@@ -290,7 +290,7 @@ export function Reveal({
         </svg>
         {label}
       </summary>
-      <div className="rise mt-[10px]">{children}</div>
+      <div className="rise mt-[8px]">{children}</div>
     </details>
   )
 }
@@ -346,13 +346,13 @@ export function Dialog({
       className="m-auto w-[min(920px,calc(100vw-24px))] rounded-card bg-canvas p-0 text-prose backdrop:bg-ink/50 backdrop:backdrop-blur-[3px]"
     >
       <div className="flex max-h-[min(88vh,900px)] flex-col">
-        <div className="flex items-center justify-between gap-[14px] border-b border-line px-[28px] py-[21px]">
+        <div className="flex items-center justify-between gap-[16px] border-b border-line px-[28px] py-[20px]">
           <p className="text-subheading text-ink">{title}</p>
           <button
             type="button"
             onClick={onClose}
             aria-label="Schließen"
-            className="rounded-nav p-[6px] text-muted transition-colors hover:text-ink"
+            className="rounded-nav p-[8px] text-muted transition-colors hover:text-ink"
           >
             <svg viewBox="0 0 16 16" className="h-4 w-4" fill="none" aria-hidden>
               <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />

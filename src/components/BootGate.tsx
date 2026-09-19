@@ -81,15 +81,15 @@ export function BootGate({ children }: { children: ReactNode }) {
       : null
 
   return (
-    <div className="flex min-h-dvh flex-col items-center justify-center gap-[21px] bg-canvas px-[24px] py-[48px]">
-      <div className="flex w-full max-w-[420px] flex-col items-center gap-[21px] text-center">
+    <div className="flex min-h-dvh flex-col items-center justify-center gap-[20px] bg-canvas px-[24px] py-[48px]">
+      <div className="flex w-full max-w-[420px] flex-col items-center gap-[20px] text-center">
         <Logo />
 
         {failed ? (
-          <div className="w-full rounded-card bg-raised p-[21px] text-[13px] leading-[1.55]">
-            <p className="mb-[9px] font-semibold text-ink">{boot.message}</p>
-            <p className="mb-[14px] text-prose/85">{boot.error}</p>
-            <p className="mb-[14px] text-muted">
+          <div className="w-full rounded-card bg-raised p-[20px] text-small leading-[1.55]">
+            <p className="mb-[8px] font-semibold text-ink">{boot.message}</p>
+            <p className="mb-[16px] text-prose/85">{boot.error}</p>
+            <p className="mb-[16px] text-muted">
               Umwandeln und das Zusammenfügen geladener Teile brauchen FFmpeg. Spurentrennung,
               Lautheit, Chopper und Harmonie rechnen ohne — die gehen trotzdem.
             </p>
@@ -103,7 +103,7 @@ export function BootGate({ children }: { children: ReactNode }) {
 
             <div className="w-full">
               <p className="text-body text-ink">{boot.message}</p>
-              <p className="numeric mt-[4px] text-[12px] text-muted">
+              <p className="numeric mt-[4px] text-small text-muted">
                 {boot.totalBytes
                   ? `${formatBytes(boot.receivedBytes)} von ${formatBytes(boot.totalBytes)}`
                   : formatBytes(boot.receivedBytes)}
@@ -124,7 +124,7 @@ export function BootGate({ children }: { children: ReactNode }) {
               />
             </div>
 
-            <p className="text-[12px] leading-[1.5] text-muted">
+            <p className="text-small leading-[1.5] text-muted">
               Einmal pro Gerät. Danach liegt FFmpeg im Zwischenspeicher des Browsers und die Seite
               startet sofort — auch ohne Netz.
             </p>
@@ -132,7 +132,7 @@ export function BootGate({ children }: { children: ReactNode }) {
             <button
               type="button"
               onClick={() => setDismissed(true)}
-              className="rounded-nav text-[12px] text-muted underline underline-offset-2 hover:text-ink"
+              className="rounded-nav text-small text-muted underline underline-offset-2 hover:text-ink"
             >
               Überspringen und ohne Umwandeln arbeiten
             </button>

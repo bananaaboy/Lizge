@@ -103,7 +103,7 @@ import {
   Button,
   Card,
   Dialog,
-  Eyebrow,
+
   Field,
   Notice,
   Progress,
@@ -870,17 +870,16 @@ export function AdvancedDownloader() {
 
   return (
     <div
-      className={`grid gap-[18px] ${
+      className={`grid gap-[16px] ${
         assetCount > 0 ? 'lg:grid-cols-[minmax(0,1fr)_320px]' : 'lg:grid-cols-1'
       }`}
     >
       <Card tone="keylime" size="compact">
-        <div className="flex flex-wrap items-baseline justify-between gap-x-[14px] gap-y-[4px]">
-          <Eyebrow>Herunterladen</Eyebrow>
-          <span className="text-[12px] text-muted">Adresse einfügen — der Weg wird automatisch gewählt.</span>
+        <div className="flex flex-wrap items-baseline justify-between gap-x-[16px] gap-y-[4px]">
+          <span className="text-small text-muted">Adresse einfügen — der Weg wird automatisch gewählt.</span>
         </div>
 
-        <div className="mt-[14px] flex flex-col gap-[14px]">
+        <div className="mt-[16px] flex flex-col gap-[16px]">
           {/* ---- address ---------------------------------------------------- */}
           <TextInput
             type="url"
@@ -897,8 +896,8 @@ export function AdvancedDownloader() {
           />
 
           {/* ---- path chips and the action share one row ------------------- */}
-          <div className="flex flex-wrap items-center gap-[9px]">
-            <div role="radiogroup" aria-label="Weg" className="flex gap-[4px] rounded-pill bg-panel-soft p-[3px]">
+          <div className="flex flex-wrap items-center gap-[8px]">
+            <div role="radiogroup" aria-label="Weg" className="flex gap-[4px] rounded-pill bg-panel-soft p-[4px]">
               {PATHS.map((path) => {
                 const active = path.id === effectiveMode
                 return (
@@ -913,7 +912,7 @@ export function AdvancedDownloader() {
                       setModeOverride(path.id)
                       reset()
                     }}
-                    className={`rounded-pill px-[14px] py-[6px] text-[13px] transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+                    className={`rounded-pill px-[16px] py-[8px] text-small transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
                       active ? 'bg-ink text-on-ink' : 'text-ink hover:bg-panel-mid'
                     }`}
                   >
@@ -923,7 +922,7 @@ export function AdvancedDownloader() {
               })}
             </div>
 
-            <div className="flex flex-wrap items-center gap-[9px] sm:ml-auto">
+            <div className="flex flex-wrap items-center gap-[8px] sm:ml-auto">
               {effectiveMode === 'service' ? (
                 <Button size="sm" onClick={() => runService()} disabled={busy || !canStart}>
                   {busy ? 'Lädt…' : 'Über den Dienst laden'}
@@ -949,7 +948,7 @@ export function AdvancedDownloader() {
             </div>
           </div>
 
-          <p className="-mt-[7px] text-[12px] leading-[1.45] text-muted">
+          <p className="-mt-[8px] text-small leading-[1.45] text-muted">
             {pathNote}
             {effectiveMode === 'service' && !service.endpoint
               ? ' Erst eine Adresse für den Dienst hinterlegen.'
@@ -979,7 +978,7 @@ export function AdvancedDownloader() {
           ) : null}
 
           {playlist && playlist.kind === 'media' ? (
-            <div className="flex flex-wrap gap-[7px]">
+            <div className="flex flex-wrap gap-[8px]">
               <Badge tone="forest">{playlist.segments.length} Segmente</Badge>
               {playlist.encrypted ? <Badge>verschlüsselt</Badge> : null}
             </div>
@@ -990,9 +989,9 @@ export function AdvancedDownloader() {
               {items.map((item) => (
                 <li
                   key={item.url}
-                  className="flex flex-wrap items-center gap-[9px] rounded-nav bg-panel-soft px-[14px] py-[9px]"
+                  className="flex flex-wrap items-center gap-[8px] rounded-nav bg-panel-soft px-[16px] py-[8px]"
                 >
-                  <span className="min-w-0 flex-1 truncate text-[13px] text-ink">{item.filename}</span>
+                  <span className="min-w-0 flex-1 truncate text-small text-ink">{item.filename}</span>
                   <Badge>{item.kind}</Badge>
                   <Button size="sm" onClick={() => runService(item)} disabled={busy}>
                     Holen
@@ -1017,10 +1016,10 @@ export function AdvancedDownloader() {
           ) : null}
 
           {fetched ? (
-            <div className="flex flex-wrap items-center gap-[11px] rounded-card bg-panel-soft px-[18px] py-[14px]">
+            <div className="flex flex-wrap items-center gap-[12px] rounded-card bg-panel-soft px-[16px] py-[16px]">
               <div className="min-w-0 flex-1">
                 <p className="truncate text-body text-ink">{fetched.name}</p>
-                <p className="numeric text-[12px] text-muted">{formatBytes(fetched.bytes.byteLength)} · in der Sitzung</p>
+                <p className="numeric text-small text-muted">{formatBytes(fetched.bytes.byteLength)} · in der Sitzung</p>
               </div>
               <Button size="sm" onClick={() => saveBytes(fetched.bytes, fetched.name, fetched.mime)}>
                 Speichern
@@ -1037,7 +1036,7 @@ export function AdvancedDownloader() {
         </div>
 
         {/* ---- external downloaders: switch, options, then the terms ------- */}
-        <div className="mt-[18px] border-t border-line pt-[18px]">
+        <div className="mt-[16px] border-t border-line pt-[16px]">
           <Toggle
             label="YouTube und externe Downloader"
             hint={
@@ -1074,26 +1073,26 @@ export function AdvancedDownloader() {
                way in. The rest is read once and then never again, so it
                lives behind a door instead of pushing the address field —
                the part used every single time — below the fold. */
-            <div className="mt-[14px] flex flex-col gap-[11px]">
+            <div className="mt-[16px] flex flex-col gap-[12px]">
               {/* What is true right now, stated before anything else. Someone
                   who just switched this on wants one answer — does YouTube work
                   yet — and that is a sentence, not a form. */}
-              <div className="flex flex-wrap items-center gap-[9px] rounded-card bg-panel-soft px-[14px] py-[11px]">
+              <div className="flex flex-wrap items-center gap-[8px] rounded-card bg-panel-soft px-[16px] py-[12px]">
                 <span
                   aria-hidden
                   className={`size-[9px] shrink-0 rounded-full ${connected ? 'bg-ink' : 'bg-ink/25'}`}
                 />
-                <p className="min-w-0 flex-1 text-[13px] text-ink">
+                <p className="min-w-0 flex-1 text-small text-ink">
                   {connected ? (
                     <>
-                      Verbunden mit <span className="font-mono text-[12px]">{endpointLabel}</span>
+                      Verbunden mit <span className="font-mono text-small">{endpointLabel}</span>
                     </>
                   ) : waiting ? (
                     'Wartet auf den Dienst — läuft er, wird er hier von selbst auftauchen.'
                   ) : (
                     <>
                       Noch kein Dienst. Sondra schaut alle paar Sekunden auf{' '}
-                      <span className="font-mono text-[12px]">localhost:{DEFAULT_PORT}</span> nach und
+                      <span className="font-mono text-small">localhost:{DEFAULT_PORT}</span> nach und
                       verbindet sich von selbst, sobald dort einer antwortet.
                     </>
                   )}
@@ -1119,21 +1118,21 @@ export function AdvancedDownloader() {
                       greift auf Ihren eigenen Rechner zu — das sperren Browser, teils mit einer
                       Rückfrage, teils ohne. „Zugriff erlauben“ stellt die Frage, falls Ihrer sie
                       kennt.
-                      <span className="mt-[9px] block border-t border-line pt-[9px]">
+                      <span className="mt-[8px] block border-t border-line pt-[8px]">
                         Sicher geht es anders herum: Holen Sie Sondra auf diesen Rechner, statt den
                         Rechner von außen anzusprechen. Der Spiegel ist eine Datei, ein Befehl, und
                         danach gibt es keine Sperre mehr, weil es keine Grenze mehr zu überschreiten
                         gibt.
                       </span>
-                      <span className="mt-[11px] flex flex-wrap items-center gap-[9px]">
+                      <span className="mt-[12px] flex flex-wrap items-center gap-[8px]">
                         <Button size="sm" onClick={saveMirror}>
                           Spiegel herunterladen
                         </Button>
-                        <code className="rounded-nav bg-panel-soft px-[9px] py-[5px] font-mono text-[11px] text-prose">
+                        <code className="rounded-nav bg-panel-soft px-[8px] py-[4px] font-mono text-micro text-prose">
                           node sondra-spiegel.mjs
                         </code>
                       </span>
-                      <span className="mt-[7px] block text-muted">
+                      <span className="mt-[8px] block text-muted">
                         Danach <code className="font-mono">localhost:{MIRROR_PORT}</code> öffnen
                         statt dieser Adresse. Es ist dieselbe Seite, nur von Ihrem Rechner
                         ausgeliefert.
@@ -1143,7 +1142,7 @@ export function AdvancedDownloader() {
                 </Notice>
               ) : null}
 
-              <div className="flex flex-wrap items-center gap-[9px]">
+              <div className="flex flex-wrap items-center gap-[8px]">
                 <Button size="sm" variant="quiet" onClick={() => setSetupDialog(true)}>
                   {connected ? 'Dienst ändern' : 'Dienst einrichten'}
                 </Button>
@@ -1153,25 +1152,25 @@ export function AdvancedDownloader() {
                   </Button>
                 ) : null}
                 {connected ? (
-                  <span className="text-[12px] text-muted">
+                  <span className="text-small text-muted">
                     Portal-Links im Feld oben gehen jetzt.
                   </span>
                 ) : null}
               </div>
 
               {probe ? (
-                <div className="rounded-card bg-panel-soft p-[21px]">
-                  <div className="flex items-baseline justify-between gap-[11px]">
-                    <p className="text-[12px] font-semibold text-ink">Ergebnis der Prüfung</p>
+                <div className="rounded-card bg-panel-soft p-[20px]">
+                  <div className="flex items-baseline justify-between gap-[12px]">
+                    <p className="text-small font-semibold text-ink">Ergebnis der Prüfung</p>
                     <button
                       type="button"
                       onClick={() => setProbe(null)}
-                      className="rounded-nav text-[12px] text-muted hover:text-ink"
+                      className="rounded-nav text-small text-muted hover:text-ink"
                     >
                       Ausblenden
                     </button>
                   </div>
-                  <pre className="mt-[7px] overflow-x-auto font-mono text-[11px] leading-[1.6] whitespace-pre-wrap text-prose">
+                  <pre className="mt-[8px] overflow-x-auto font-mono text-micro leading-[1.6] whitespace-pre-wrap text-prose">
                     {probe}
                   </pre>
                 </div>
@@ -1180,10 +1179,10 @@ export function AdvancedDownloader() {
           ) : null}
 
           <Dialog open={setupDialog} onClose={() => setSetupDialog(false)} title="Dienst einrichten">
-            <div className="flex flex-col gap-[21px]">
+            <div className="flex flex-col gap-[20px]">
                 {connected ? (
                   <>
-                    <div className="flex flex-wrap items-center gap-[7px]">
+                    <div className="flex flex-wrap items-center gap-[8px]">
                       <Badge tone="forest">{serviceInfo.version}</Badge>
                       {/* Whether the instance actually offers YouTube is the thing
                           people get wrong, so it is stated rather than implied. */}
@@ -1198,7 +1197,7 @@ export function AdvancedDownloader() {
                       {serviceInfo.needsTurnstile ? <Badge>verlangt Bot-Prüfung</Badge> : null}
                     </div>
 
-                    <div className="grid gap-[14px] sm:grid-cols-2">
+                    <div className="grid gap-[16px] sm:grid-cols-2">
                       <Field label="Was holen">
                         <Select
                           value={service.downloadMode}
@@ -1257,14 +1256,14 @@ export function AdvancedDownloader() {
                   /* What is left once the browser is ruled out: somebody has to
                      run a service. Either someone you know, or you. There is no
                      third option — see the note in the first card for why. */
-                  <div className="flex flex-col gap-[11px]">
-                    <div className="rounded-card bg-raised p-[21px] ring-1 ring-inset ring-ink/20">
-                      <p className="text-[13px] font-semibold text-ink">Eine fremde Instanz benutzen</p>
-                      <p className="mt-[3px] text-[12px] leading-[1.5] text-muted">
+                  <div className="flex flex-col gap-[12px]">
+                    <div className="rounded-card bg-raised p-[20px] ring-1 ring-inset ring-ink/20">
+                      <p className="text-small font-semibold text-ink">Eine fremde Instanz benutzen</p>
+                      <p className="mt-[4px] text-small leading-[1.5] text-muted">
                         Wenn Sie eine Adresse haben — von jemandem, der so einen Dienst betreibt —
                         genügt sie hier. Kein Programm, kein Terminal, kein Konto.
                       </p>
-                      <div className="mt-[11px] flex flex-wrap items-center gap-[9px]">
+                      <div className="mt-[12px] flex flex-wrap items-center gap-[8px]">
                         <TextInput
                           type="url"
                           inputMode="url"
@@ -1288,8 +1287,8 @@ export function AdvancedDownloader() {
                         </Button>
                       </div>
                       {known.length > 0 ? (
-                        <div className="mt-[9px] flex flex-wrap items-center gap-[7px]">
-                          <span className="text-[12px] text-muted">Zuletzt benutzt</span>
+                        <div className="mt-[8px] flex flex-wrap items-center gap-[8px]">
+                          <span className="text-small text-muted">Zuletzt benutzt</span>
                           {known.map((entry) => (
                             <button
                               key={entry}
@@ -1299,7 +1298,7 @@ export function AdvancedDownloader() {
                                 setServiceInfo(null)
                               }}
                               title={entry}
-                              className="max-w-[200px] truncate rounded-pill bg-panel-soft px-[11px] py-[5px] text-[12px] text-ink hover:bg-panel-mid"
+                              className="max-w-[200px] truncate rounded-pill bg-panel-soft px-[12px] py-[4px] text-small text-ink hover:bg-panel-mid"
                             >
                               {entry.replace(/^https?:\/\//, '').replace(/\/$/, '')}
                             </button>
@@ -1308,11 +1307,11 @@ export function AdvancedDownloader() {
                       ) : null}
 
 
-                      <details className="mt-[9px] border-t border-line pt-[9px]">
-                        <summary className="cursor-pointer list-none text-[12px] text-muted underline underline-offset-2 hover:text-ink">
+                      <details className="mt-[8px] border-t border-line pt-[8px]">
+                        <summary className="cursor-pointer list-none text-small text-muted underline underline-offset-2 hover:text-ink">
                           Warum gibt es nichts Leichteres?
                         </summary>
-                        <p className="mt-[7px] text-[12px] leading-[1.5] text-muted">
+                        <p className="mt-[8px] text-small leading-[1.5] text-muted">
                         Ein Browser kommt an YouTube nicht heran.
                         Die Server, auf denen die Videodaten liegen, nehmen Anfragen nur von
                         youtube.com selbst an — mit oder ohne Link in der Hand. Holen muss also
@@ -1326,13 +1325,13 @@ export function AdvancedDownloader() {
                       </p>
                       </details>
                     </div>
-                    <div className="rounded-card bg-raised p-[21px]">
-                      <p className="mb-[11px] text-[13px] font-semibold text-ink">
+                    <div className="rounded-card bg-raised p-[20px]">
+                      <p className="mb-[12px] text-small font-semibold text-ink">
                         Eigenen Dienst betreiben
                       </p>
                       {/* No fold in here: the dialog is already the fold. */}
                       <>
-                        <div className="mt-[11px]">
+                        <div className="mt-[12px]">
                           {/* Two ways to the same service. Node leads because it is
                               the one that cannot fail for reasons outside your
                               control: Docker Desktop on Windows needs WSL2, which
@@ -1341,7 +1340,7 @@ export function AdvancedDownloader() {
                           <div
                             role="radiogroup"
                             aria-label="Art der Installation"
-                            className="flex flex-wrap gap-[2px] rounded-pill bg-panel-soft p-[3px]"
+                            className="flex flex-wrap gap-[2px] rounded-pill bg-panel-soft p-[4px]"
                           >
                             {(
                               [
@@ -1356,7 +1355,7 @@ export function AdvancedDownloader() {
                                 role="radio"
                                 aria-checked={localWay === choice.id}
                                 onClick={() => setLocalWay(choice.id)}
-                                className={`rounded-pill px-[14px] py-[6px] text-[13px] transition-colors ${
+                                className={`rounded-pill px-[16px] py-[8px] text-small transition-colors ${
                                   localWay === choice.id ? 'bg-ink text-on-ink' : 'text-ink hover:bg-panel-mid'
                                 }`}
                               >
@@ -1371,10 +1370,10 @@ export function AdvancedDownloader() {
                                can be pasted start to finish without anyone having
                                to work out which half applies to them. */
                             <div className="mt-[16px] rounded-nav bg-panel-soft p-[16px]">
-                              <p className="mb-[9px] text-[12px] font-semibold text-ink">
+                              <p className="mb-[8px] text-small font-semibold text-ink">
                                 Was ist auf diesem Rechner schon da?
                               </p>
-                              <div className="flex flex-col gap-[9px]">
+                              <div className="flex flex-col gap-[8px]">
                                 <Toggle
                                   label="Node.js"
                                   hint={
@@ -1398,12 +1397,12 @@ export function AdvancedDownloader() {
                                   />
                                 ) : null}
                               </div>
-                              <p className="mt-[9px] text-[12px] leading-[1.5] text-muted">
+                              <p className="mt-[8px] text-small leading-[1.5] text-muted">
                                 Nicht sicher? Beide aus lassen — dann steht alles da, und ein Schritt,
                                 der schon erledigt ist, schadet nicht.
                               </p>
                               {!pageIsLocal() ? (
-                                <p className="mt-[9px] border-t border-line pt-[9px] text-[12px] leading-[1.5] text-prose/85">
+                                <p className="mt-[8px] border-t border-line pt-[8px] text-small leading-[1.5] text-prose/85">
                                   Noch eines vorweg: Sobald der Dienst läuft, fragt der Browser,
                                   ob diese Seite auf Ihren Rechner zugreifen darf. Erlauben Sie
                                   es — ohne diese Erlaubnis bleibt der Dienst unerreichbar, egal
@@ -1413,7 +1412,7 @@ export function AdvancedDownloader() {
                             </div>
                           ) : null}
 
-                          <p className="mt-[11px] text-[12px] leading-[1.5] text-muted">
+                          <p className="mt-[12px] text-small leading-[1.5] text-muted">
                             {localWay === 'ytdlp' ? (
                               <>
                                 Der kürzeste Weg: yt-dlp ist{' '}
@@ -1465,8 +1464,8 @@ export function AdvancedDownloader() {
                           </p>
 
                           {waiting ? (
-                            <div className="mt-[11px] flex flex-wrap items-center gap-[11px]">
-                              <p className="min-w-0 flex-1 text-[12px] leading-[1.5] text-prose/85">
+                            <div className="mt-[12px] flex flex-wrap items-center gap-[12px]">
+                              <p className="min-w-0 flex-1 text-small leading-[1.5] text-prose/85">
                                 Ist kopiert. Jetzt ins Terminal einfügen und ausführen — Sondra schaut
                                 weiter nach und verbindet sich selbst, sobald der Dienst antwortet.
                               </p>
@@ -1475,7 +1474,7 @@ export function AdvancedDownloader() {
                               </Button>
                             </div>
                           ) : (
-                            <div className="mt-[11px] flex flex-wrap items-center gap-[7px]">
+                            <div className="mt-[12px] flex flex-wrap items-center gap-[8px]">
                               <Button size="sm" onClick={startAndWait} disabled={searching}>
                                 {copied
                                   ? 'Kopiert — einfügen und ausführen'
@@ -1494,8 +1493,8 @@ export function AdvancedDownloader() {
                             /* No package manager worth guessing at on this system,
                                so the one step that cannot be a command says so
                                plainly instead of being silently left out. */
-                            <div className="mt-[9px] flex flex-wrap items-center gap-[11px] rounded-nav bg-panel-soft px-[11px] py-[9px]">
-                              <p className="min-w-0 flex-1 text-[12px] leading-[1.5] text-prose/85">
+                            <div className="mt-[8px] flex flex-wrap items-center gap-[12px] rounded-nav bg-panel-soft px-[12px] py-[8px]">
+                              <p className="min-w-0 flex-1 text-small leading-[1.5] text-prose/85">
                                 Zuerst Node.js installieren — über die Paketverwaltung Ihres Systems
                                 oder mit dem LTS-Installer. Danach gelten die Befehle darunter.
                               </p>
@@ -1514,16 +1513,16 @@ export function AdvancedDownloader() {
                                "open a terminal" is where most people stop. One
                                file that does all of it is the same setup with
                                the part that scares people removed. */
-                            <div className="mt-[11px] rounded-card bg-panel-mid p-[16px]">
-                              <p className="text-[13px] font-semibold text-ink">
+                            <div className="mt-[12px] rounded-card bg-panel-mid p-[16px]">
+                              <p className="text-small font-semibold text-ink">
                                 Der kurze Weg: eine Datei
                               </p>
-                              <p className="mt-[6px] text-[12px] leading-[1.5] text-prose/85">
+                              <p className="mt-[8px] text-small leading-[1.5] text-prose/85">
                                 {platform === 'windows'
                                   ? 'Herunterladen, doppelklicken, fertig. Die Datei holt yt-dlp und startet alles; der Browser öffnet sich von selbst.'
                                   : 'Herunterladen, dann im Terminal einmal starten. Die Datei holt yt-dlp und startet alles; der Browser öffnet sich von selbst.'}
                               </p>
-                              <div className="mt-[11px] flex flex-wrap items-center gap-[9px]">
+                              <div className="mt-[12px] flex flex-wrap items-center gap-[8px]">
                                 <Button
                                   size="sm"
                                   onClick={() =>
@@ -1542,12 +1541,12 @@ export function AdvancedDownloader() {
                                   <ArrowRight />
                                 </Button>
                                 {platform !== 'windows' ? (
-                                  <code className="rounded-nav bg-raised px-[9px] py-[6px] font-mono text-[11px] text-prose">
+                                  <code className="rounded-nav bg-raised px-[8px] py-[8px] font-mono text-micro text-prose">
                                     bash {launcherFilename(platform)}
                                   </code>
                                 ) : null}
                               </div>
-                              <p className="mt-[9px] text-[12px] leading-[1.5] text-muted">
+                              <p className="mt-[8px] text-small leading-[1.5] text-muted">
                                 Node.js muss auf dem Rechner sein — das ist das Einzige, was die
                                 Datei nicht selbst holen kann. Fehlt es, sagt sie es und öffnet die
                                 richtige Seite.
@@ -1555,7 +1554,7 @@ export function AdvancedDownloader() {
                               {/* The route with nothing to run at all. Worth
                                   naming, because for a one-off download it is
                                   genuinely less work than any setup. */}
-                              <p className="mt-[7px] border-t border-ink/10 pt-[9px] text-[12px] leading-[1.5] text-muted">
+                              <p className="mt-[8px] border-t border-ink/10 pt-[8px] text-small leading-[1.5] text-muted">
                                 Gar kein Node? Dann reicht auch{' '}
                                 <a
                                   className="text-ink underline underline-offset-2"
@@ -1572,7 +1571,7 @@ export function AdvancedDownloader() {
                           ) : null}
 
                           <code
-                            className={`mt-[9px] block rounded-nav bg-panel-soft px-[11px] py-[9px] font-mono text-[11px] leading-[1.6] whitespace-pre-wrap text-prose ${
+                            className={`mt-[8px] block rounded-nav bg-panel-soft px-[12px] py-[8px] font-mono text-micro leading-[1.6] whitespace-pre-wrap text-prose ${
                               localWay === 'ytdlp' ? 'hidden' : ''
                             }`}
                           >
@@ -1580,8 +1579,8 @@ export function AdvancedDownloader() {
                           </code>
 
                           {localWay === 'ytdlp' ? (
-                            <Reveal label="Lieber die Befehle selbst eingeben" className="mt-[11px]">
-                              <code className="block rounded-nav bg-panel-soft px-[11px] py-[9px] font-mono text-[11px] leading-[1.6] whitespace-pre-wrap text-prose">
+                            <Reveal label="Lieber die Befehle selbst eingeben" className="mt-[12px]">
+                              <code className="block rounded-nav bg-panel-soft px-[12px] py-[8px] font-mono text-micro leading-[1.6] whitespace-pre-wrap text-prose">
                                 {localCommand}
                               </code>
                             </Reveal>
@@ -1590,19 +1589,19 @@ export function AdvancedDownloader() {
                           {localWay === 'ytdlp' ? (
                             /* The one failure everybody hits, with its remedy
                                next to it rather than after a web search. */
-                            <details className="mt-[9px] rounded-nav bg-panel-soft px-[11px] py-[9px]">
-                              <summary className="cursor-pointer list-none text-[12px] text-ink underline underline-offset-2">
+                            <details className="mt-[8px] rounded-nav bg-panel-soft px-[12px] py-[8px]">
+                              <summary className="cursor-pointer list-none text-small text-ink underline underline-offset-2">
                                 Falls YouTube „bestätigen, dass Sie kein Bot sind" verlangt
                               </summary>
-                              <p className="mt-[7px] text-[12px] leading-[1.5] text-prose/85">
+                              <p className="mt-[8px] text-small leading-[1.5] text-prose/85">
                                 Dann will YouTube eine Anmeldung sehen. yt-dlp darf die Sitzung aus
                                 einem Browser auf diesem Rechner lesen — starten Sie die Brücke mit
                                 dem Browser, in dem Sie bei YouTube angemeldet sind:
                               </p>
-                              <code className="mt-[7px] block rounded-nav bg-raised px-[9px] py-[7px] font-mono text-[11px] leading-[1.6] whitespace-pre-wrap text-prose">
+                              <code className="mt-[8px] block rounded-nav bg-raised px-[8px] py-[8px] font-mono text-micro leading-[1.6] whitespace-pre-wrap text-prose">
                                 {ytdlpCookieCommand(window.location.origin)}
                               </code>
-                              <p className="mt-[7px] text-[12px] leading-[1.5] text-muted">
+                              <p className="mt-[8px] text-small leading-[1.5] text-muted">
                                 Statt <code className="font-mono">firefox</code> geht auch chrome,
                                 edge, brave, opera oder safari. Das heißt allerdings, dass der Abruf
                                 als Sie geschieht — angemeldet, Ihrem Konto zurechenbar.
@@ -1610,7 +1609,7 @@ export function AdvancedDownloader() {
                             </details>
                           ) : null}
 
-                          <p className="mt-[9px] text-[12px] leading-[1.5] text-muted">
+                          <p className="mt-[8px] text-small leading-[1.5] text-muted">
                             {localWay === 'ytdlp' ? (
                               <>
                                 Der Dienst hört danach nur auf{' '}
@@ -1636,7 +1635,7 @@ export function AdvancedDownloader() {
                           </p>
 
                           {localWay === 'node' ? (
-                            <p className="mt-[7px] text-[12px] leading-[1.5] text-muted">
+                            <p className="mt-[8px] text-small leading-[1.5] text-muted">
                               Meldet <code className="font-mono">corepack</code> einen Fehler — etwa{' '}
                               <code className="font-mono">EPERM</code>, wenn Node über nvm verwaltet
                               wird —, einfach weitermachen. Die Zeile besorgt nur pnpm; ist es schon
@@ -1652,18 +1651,18 @@ export function AdvancedDownloader() {
                                screen. A script file to run three lines is a
                                file to explain, verify and delete. */
                             hidden={localWay === 'ytdlp'}
-                            className="mt-[9px] rounded-nav text-[12px] text-muted underline underline-offset-2 hover:text-ink"
+                            className="mt-[8px] rounded-nav text-small text-muted underline underline-offset-2 hover:text-ink"
                           >
                             {setupOpen ? 'Weniger' : 'Lieber fertige Dateien statt Befehlen?'}
                           </button>
 
                           {setupOpen && localWay !== 'ytdlp' ? (
-                            <div className="mt-[9px] flex flex-col gap-[9px] text-[12px] leading-[1.5] text-prose/85">
+                            <div className="mt-[8px] flex flex-col gap-[8px] text-small leading-[1.5] text-prose/85">
                               <p className="text-muted">
                                 Ein Skript, das den Ordner anlegt und den Dienst startet. Alles hier
                                 entsteht im Browser, nichts wird nachgeladen.
                               </p>
-                              <div className="flex flex-wrap gap-[7px]">
+                              <div className="flex flex-wrap gap-[8px]">
                                 {localWay === 'node' ? (
                                   <>
                                     <Button
@@ -1747,10 +1746,10 @@ export function AdvancedDownloader() {
                               </div>
                               {!pageIsLocal() ? (
                                 <div className="rounded-nav bg-panel-soft p-[16px] ring-1 ring-inset ring-ink/20">
-                                  <p className="text-[13px] font-semibold text-ink">
+                                  <p className="text-small font-semibold text-ink">
                                     Sondra lokal öffnen — der sichere Weg
                                   </p>
-                                  <p className="mt-[4px] text-[12px] leading-[1.5] text-muted">
+                                  <p className="mt-[4px] text-small leading-[1.5] text-muted">
                                     Solange diese Seite aus dem Netz kommt und der Dienst auf Ihrem
                                     Rechner läuft, steht eine Browsersperre dazwischen. Der Spiegel
                                     liefert dieselbe Seite von Ihrem Rechner aus — dann liegen beide
@@ -1758,15 +1757,15 @@ export function AdvancedDownloader() {
                                     Abhängigkeiten, nichts wird gespeichert, und der mehrfädige
                                     FFmpeg-Kern bleibt erhalten.
                                   </p>
-                                  <div className="mt-[11px] flex flex-wrap items-center gap-[9px]">
+                                  <div className="mt-[12px] flex flex-wrap items-center gap-[8px]">
                                     <Button size="sm" onClick={saveMirror}>
                                       Spiegel herunterladen
                                     </Button>
-                                    <code className="rounded-nav bg-raised px-[9px] py-[5px] font-mono text-[11px] text-prose">
+                                    <code className="rounded-nav bg-raised px-[8px] py-[4px] font-mono text-micro text-prose">
                                       node sondra-spiegel.mjs
                                     </code>
                                   </div>
-                                  <p className="mt-[9px] text-[12px] leading-[1.5] text-muted">
+                                  <p className="mt-[8px] text-small leading-[1.5] text-muted">
                                     Dann <code className="font-mono">localhost:{MIRROR_PORT}</code>{' '}
                                     öffnen. Von dort aus findet Sondra den Dienst ohne jede
                                     Erlaubnis.
@@ -1776,16 +1775,16 @@ export function AdvancedDownloader() {
 
                               {!pageIsLocal() ? (
                                 <div className="rounded-nav bg-panel-soft p-[16px]">
-                                  <p className="text-[13px] font-semibold text-ink">
+                                  <p className="text-small font-semibold text-ink">
                                     Falls der Browser nicht nach Erlaubnis fragt
                                   </p>
-                                  <p className="mt-[4px] text-[12px] leading-[1.5] text-muted">
+                                  <p className="mt-[4px] text-small leading-[1.5] text-muted">
                                     Ältere Browser kennen die Abfrage nicht. Dann muss der Dienst
                                     selbst für die Anfrage bürgen, und dafür gibt es diese Brücke:
                                     eine Datei, ein Befehl, keine Abhängigkeiten. Sie läuft vor dem
                                     Dienst und beantwortet die Rückfrage des Browsers.
                                   </p>
-                                  <div className="mt-[11px] flex flex-wrap items-center gap-[9px]">
+                                  <div className="mt-[12px] flex flex-wrap items-center gap-[8px]">
                                     <Button
                                       size="sm"
                                       variant="quiet"
@@ -1799,11 +1798,11 @@ export function AdvancedDownloader() {
                                     >
                                       Brücke herunterladen
                                     </Button>
-                                    <code className="rounded-nav bg-raised px-[9px] py-[5px] font-mono text-[11px] text-prose">
+                                    <code className="rounded-nav bg-raised px-[8px] py-[4px] font-mono text-micro text-prose">
                                       node sondra-bruecke.mjs
                                     </code>
                                   </div>
-                                  <p className="mt-[9px] text-[12px] leading-[1.5] text-muted">
+                                  <p className="mt-[8px] text-small leading-[1.5] text-muted">
                                     Läuft dann auf{' '}
                                     <code className="font-mono">localhost:{BRIDGE_PORT}</code> —
                                     Sondra sucht dort von selbst mit, es ist nichts einzutragen.
@@ -1841,14 +1840,14 @@ export function AdvancedDownloader() {
                       ? LOCAL_SERVICE_DISCLAIMER
                       : SERVICE_DISCLAIMER
                   return (
-                    <div className="rounded-card bg-raised p-[21px] text-[12px] leading-[1.5] ring-1 ring-inset ring-ink/30">
-                      <p className="mb-[7px] font-semibold text-ink">{terms.title}</p>
+                    <div className="rounded-card bg-raised p-[20px] text-small leading-[1.5] ring-1 ring-inset ring-ink/30">
+                      <p className="mb-[8px] font-semibold text-ink">{terms.title}</p>
                       {terms.paragraphs.map((paragraph) => (
-                        <p key={paragraph.slice(0, 24)} className="mb-[7px] text-prose/85">
+                        <p key={paragraph.slice(0, 24)} className="mb-[8px] text-prose/85">
                           {paragraph}
                         </p>
                       ))}
-                      <p className="mt-[9px] border-t border-line pt-[9px] text-muted">
+                      <p className="mt-[8px] border-t border-line pt-[8px] text-muted">
                         {terms.liability}
                       </p>
                     </div>

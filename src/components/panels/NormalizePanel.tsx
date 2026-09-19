@@ -42,7 +42,7 @@ function LoudnessGauge({ report, target }: { report: LoudnessReport; target: num
   const position = (value: number) => `${Math.max(0, Math.min(100, ((value - low) / (high - low)) * 100))}%`
 
   return (
-    <div className="flex flex-col gap-[11px]">
+    <div className="flex flex-col gap-[12px]">
       <div className="relative h-[28px] rounded-pill bg-ink/10">
         <div
           className="absolute inset-y-0 left-0 rounded-pill bg-ink/70"
@@ -54,7 +54,7 @@ function LoudnessGauge({ report, target }: { report: LoudnessReport; target: num
           aria-hidden
         />
       </div>
-      <div className="flex justify-between text-[11px] text-muted">
+      <div className="flex justify-between text-micro text-muted">
         <span className="numeric">−40</span>
         <span className="numeric">Ziel {target} LUFS</span>
         <span className="numeric">0</span>
@@ -65,7 +65,7 @@ function LoudnessGauge({ report, target }: { report: LoudnessReport; target: num
 
 function ReportGrid({ report }: { report: LoudnessReport }) {
   return (
-    <div className="grid gap-[21px] rounded-card bg-raised p-[28px] sm:grid-cols-3">
+    <div className="grid gap-[20px] rounded-card bg-raised p-[28px] sm:grid-cols-3">
       <Stat label="Integriert" value={formatLufs(report.integratedLufs)} emphasis />
       <Stat label="Loudness Range" value={`${report.loudnessRangeLu.toFixed(1)} LU`} />
       <Stat label="True Peak" value={`${report.truePeakDbtp.toFixed(2)} dBTP`} />
@@ -185,16 +185,15 @@ export function NormalizePanel() {
   const running = busy !== 'idle'
 
   return (
-    <div className="grid gap-[21px] lg:grid-cols-[minmax(0,1fr)_360px]">
-      <div className="flex flex-col gap-[21px]">
+    <div className="grid gap-[20px] lg:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="flex flex-col gap-[20px]">
         <Card tone="keylime">
-          <Eyebrow>Lautstärke</Eyebrow>
           <h2 className="display-md mt-[8px] mb-[12px]">So laut wie im Radio</h2>
           <details className="max-w-[60ch]">
-            <summary className="cursor-pointer list-none text-[13px] text-muted underline underline-offset-2 hover:text-ink">
+            <summary className="cursor-pointer list-none text-small text-muted underline underline-offset-2 hover:text-ink">
               Wie gemessen wird
             </summary>
-            <p className="mt-[9px] text-[13px] leading-[1.6] text-prose/85">
+            <p className="mt-[8px] text-small leading-[1.6] text-prose/85">
               Gemessen wird die integrierte Lautheit mit K-Bewertung und zweistufigem Gate, dazu die
               Loudness Range und der True Peak bei vierfacher Überabtastung. Die Rechnung läuft in einem
               Web Worker, damit die Oberfläche bedienbar bleibt.
@@ -207,11 +206,11 @@ export function NormalizePanel() {
             </div>
           ) : (
             <>
-              <div className="mt-[28px] rounded-card bg-panel-soft p-[21px]">
+              <div className="mt-[28px] rounded-card bg-panel-soft p-[20px]">
                 <Waveform audio={audio} height={84} />
               </div>
 
-              <div className="mt-[21px] grid gap-[18px] sm:grid-cols-2">
+              <div className="mt-[20px] grid gap-[16px] sm:grid-cols-2">
                 <Field label="Verfahren">
                   <Select
                     value={settings.mode}
@@ -255,15 +254,15 @@ export function NormalizePanel() {
                 {/* The method and the preset are real choices; these refine
                    them. Folded, because a preset that is about to be adjusted
                    by hand is not much of a preset. */}
-                <details className="sm:col-span-2 rounded-card bg-panel-soft p-[18px]">
-                  <summary className="cursor-pointer list-none text-[13px] font-semibold text-ink">
+                <details className="sm:col-span-2 rounded-card bg-panel-soft p-[16px]">
+                  <summary className="cursor-pointer list-none text-small font-semibold text-ink">
                     Feineinstellungen
-                    <span className="ml-[7px] font-normal text-muted">
+                    <span className="ml-[8px] font-normal text-muted">
                       Zielwert, Grenze und wie Spitzen behandelt werden
                     </span>
                   </summary>
-                  <div className="mt-[18px] flex flex-col gap-[21px]">
-                  <div className="sm:col-span-2 grid gap-[21px] sm:grid-cols-2">
+                  <div className="mt-[16px] flex flex-col gap-[20px]">
+                  <div className="sm:col-span-2 grid gap-[20px] sm:grid-cols-2">
                     {settings.mode === 'lufs' ? (
                       <Slider
                         label="Zielwert"
@@ -314,7 +313,7 @@ export function NormalizePanel() {
                 </details>
               </div>
 
-              <div className="mt-[28px] flex flex-wrap items-center gap-[11px]">
+              <div className="mt-[28px] flex flex-wrap items-center gap-[12px]">
                 <Button onClick={normalize} disabled={running}>
                   {busy === 'normalizing' ? 'Läuft…' : 'Messen und normalisieren'}
                   {!running ? <ArrowRight /> : null}
@@ -330,7 +329,7 @@ export function NormalizePanel() {
               </div>
 
               {running || decodeStatus === 'decoding' ? (
-                <div className="mt-[18px]">
+                <div className="mt-[16px]">
                   <Progress value={progress} label={note ?? 'Wird dekodiert'} />
                 </div>
               ) : null}
@@ -350,10 +349,10 @@ export function NormalizePanel() {
               <Eyebrow>{after ? 'Vorher' : 'Messung'}</Eyebrow>
               {after ? null : <Badge>{settings.targetLufs} LUFS angestrebt</Badge>}
             </div>
-            <div className="mt-[18px]">
+            <div className="mt-[16px]">
               <ReportGrid report={before} />
             </div>
-            <div className="mt-[21px] rounded-card bg-raised p-[28px]">
+            <div className="mt-[20px] rounded-card bg-raised p-[28px]">
               <LoudnessGauge report={before} target={settings.targetLufs} />
             </div>
           </Card>
@@ -362,11 +361,11 @@ export function NormalizePanel() {
         {after && plan ? (
           <Card tone="sage">
             <Eyebrow>Nachher</Eyebrow>
-            <div className="mt-[18px]">
+            <div className="mt-[16px]">
               <ReportGrid report={after} />
             </div>
 
-            <div className="mt-[21px] flex flex-wrap gap-[7px]">
+            <div className="mt-[20px] flex flex-wrap gap-[8px]">
               <Badge tone="forest">{formatDb(plan.appliedDb)} angewandt</Badge>
               {plan.reducedByCeiling ? (
                 <Badge>
@@ -377,8 +376,8 @@ export function NormalizePanel() {
             </div>
 
             {processed && audio ? (
-              <div className="mt-[21px] rounded-card bg-raised p-[18px]">
-                <p className="mb-[11px] text-[11px] font-semibold uppercase tracking-[0.08em] text-ink">
+              <div className="mt-[20px] rounded-card bg-raised p-[16px]">
+                <p className="mb-[12px] text-micro font-semibold uppercase tracking-[0.08em] text-ink">
                   Anhören
                 </p>
                 {/* Umschalten hält die Abspielposition — anders lässt sich ein
@@ -393,7 +392,7 @@ export function NormalizePanel() {
             ) : null}
 
             {result ? (
-              <div className="mt-[21px] flex flex-wrap gap-[11px]">
+              <div className="mt-[20px] flex flex-wrap gap-[12px]">
                 <Button
                   onClick={() => saveBytes(result, withExtension(asset?.name ?? 'audio', 'wav'), 'audio/wav')}
                 >
@@ -425,11 +424,11 @@ export function NormalizePanel() {
         ) : null}
       </div>
 
-      <aside className="flex flex-col gap-[21px]">
+      <aside className="flex flex-col gap-[20px]">
         <SessionCard />
         <Card tone="cream">
           <Eyebrow>Zielwerte</Eyebrow>
-          <dl className="mt-[14px] flex flex-col gap-[11px] text-[13px]">
+          <dl className="mt-[16px] flex flex-col gap-[12px] text-small">
             {LOUDNESS_PRESETS.map((preset) => (
               <div key={preset.id} className="flex items-baseline justify-between gap-3">
                 <dt className="text-prose/85">{preset.label}</dt>

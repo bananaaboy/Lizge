@@ -236,7 +236,6 @@ export function AudioEditorPanel() {
   if (!asset) {
     return (
       <Card tone="keylime">
-        <Eyebrow>Ton bearbeiten</Eyebrow>
         <h2 className="display-md mt-[8px] mb-[12px]">Schneiden, blenden, angleichen</h2>
         <p className="mb-[16px] max-w-[62ch] text-body leading-[1.55] text-prose/85">
           In der Sitzung liegt noch keine Tondatei. Alles hier rechnet direkt auf den Abtastwerten —
@@ -250,8 +249,7 @@ export function AudioEditorPanel() {
   if (!current) {
     return (
       <Card tone="keylime">
-        <Eyebrow>Ton bearbeiten</Eyebrow>
-        <p className="mt-[14px] text-[13px] text-muted">
+        <p className="mt-[16px] text-small text-muted">
           {status === 'decoding' ? 'Wird dekodiert…' : status === 'error' ? 'Diese Datei lässt sich nicht dekodieren.' : 'Wird vorbereitet…'}
         </p>
       </Card>
@@ -261,12 +259,11 @@ export function AudioEditorPanel() {
   const silence = detectSilence(current)
 
   return (
-    <div className="grid gap-[18px] lg:grid-cols-[minmax(0,1fr)_320px]">
+    <div className="grid gap-[16px] lg:grid-cols-[minmax(0,1fr)_320px]">
       <div className="flex flex-col gap-[16px]">
         <Card tone="keylime">
           <div className="flex flex-wrap items-baseline justify-between gap-[12px]">
-            <Eyebrow>Ton bearbeiten</Eyebrow>
-            <span className="numeric text-[12px] text-muted">
+            <span className="numeric text-small text-muted">
               {formatTimecode(duration)} · {current.channels.length === 1 ? 'Mono' : 'Stereo'} ·{' '}
               {(current.sampleRate / 1000).toFixed(1)} kHz · Spitze {peakDb(current).toFixed(1)} dBFS
             </span>
@@ -294,24 +291,24 @@ export function AudioEditorPanel() {
               // A click rather than a drag clears the selection.
               setSelection(next.end - next.start < 0.02 ? null : next)
             }}
-            className="mt-[14px] cursor-text touch-none rounded-card bg-panel-soft p-[12px] select-none"
+            className="mt-[16px] cursor-text touch-none rounded-card bg-panel-soft p-[12px] select-none"
           >
             <Waveform audio={current} height={130} position={position} selection={live} />
           </div>
 
-          <div className="mt-[10px] flex flex-wrap items-center gap-[9px]">
+          <div className="mt-[8px] flex flex-wrap items-center gap-[8px]">
             <Button size="sm" onClick={() => void play()}>
               {hasSelection ? 'Auswahl hören' : 'Alles hören'}
             </Button>
             <Button size="sm" variant="quiet" onClick={stop}>
               Stopp
             </Button>
-            <span className="numeric text-[12px] text-muted">
+            <span className="numeric text-small text-muted">
               {hasSelection
                 ? `${formatTimecode(span.start)} – ${formatTimecode(span.end)} · ${(span.end - span.start).toFixed(2)} s`
                 : 'Über die Wellenform ziehen wählt einen Ausschnitt'}
             </span>
-            <div className="ml-auto flex gap-[6px]">
+            <div className="ml-auto flex gap-[8px]">
               <Button size="sm" variant="ghost" disabled={history.length === 0} onClick={undo}>
                 Rückgängig
               </Button>
@@ -322,13 +319,13 @@ export function AudioEditorPanel() {
           </div>
 
           {error ? (
-            <div className="mt-[14px]">
+            <div className="mt-[16px]">
               <Notice tone="error" title="Ging nicht">{error}</Notice>
             </div>
           ) : null}
 
           {/* -- cutting ------------------------------------------------------ */}
-          <div className="mt-[18px] flex flex-wrap gap-[7px]">
+          <div className="mt-[16px] flex flex-wrap gap-[8px]">
             <Button size="sm" disabled={!hasSelection || busy !== null}
               onClick={() => void apply('Ausschnitt behalten', (a) => sliceAudio(a, span.start, span.end))}>
               Nur den Ausschnitt behalten
@@ -349,7 +346,7 @@ export function AudioEditorPanel() {
           </div>
 
           {/* -- level and shape ---------------------------------------------- */}
-          <div className="mt-[18px] grid gap-[16px] rounded-card bg-panel-soft p-[16px] sm:grid-cols-2">
+          <div className="mt-[16px] grid gap-[16px] rounded-card bg-panel-soft p-[16px] sm:grid-cols-2">
             <div>
               <Slider
                 label={hasSelection ? 'Pegel im Ausschnitt' : 'Pegel'}
@@ -357,7 +354,7 @@ export function AudioEditorPanel() {
                 min={-24} max={12} step={0.5} value={gain}
                 onChange={(event) => setGain(Number(event.target.value))}
               />
-              <div className="mt-[9px] flex gap-[6px]">
+              <div className="mt-[8px] flex gap-[8px]">
                 <Button size="sm" variant="quiet" disabled={busy !== null || gain === 0}
                   onClick={() => void apply(`Pegel ${gain > 0 ? '+' : ''}${gain} dB`,
                     (a) => applyGain(a, gain, hasSelection ? span.start : 0, hasSelection ? span.end : Infinity))}>
@@ -379,7 +376,7 @@ export function AudioEditorPanel() {
                   min={0} max={5} step={0.05} value={fadeOut}
                   onChange={(event) => setFadeOut(Number(event.target.value))} />
               </div>
-              <div className="mt-[9px]">
+              <div className="mt-[8px]">
                 <Button size="sm" variant="quiet" disabled={busy !== null || (fadeIn === 0 && fadeOut === 0)}
                   onClick={() => void apply('Blenden gesetzt', (a) => applyFades(a, fadeIn, fadeOut))}>
                   Blenden anwenden
@@ -389,16 +386,16 @@ export function AudioEditorPanel() {
           </div>
 
           {/* -- silence ------------------------------------------------------- */}
-          <div className="mt-[14px] flex flex-wrap items-center gap-[9px] rounded-card bg-panel-soft p-[16px]">
+          <div className="mt-[16px] flex flex-wrap items-center gap-[8px] rounded-card bg-panel-soft p-[16px]">
             <div className="min-w-0 flex-1">
-              <p className="text-[13px] text-ink">
+              <p className="text-small text-ink">
                 {silence.length === 0
                   ? 'Keine nennenswerte Stille gefunden.'
                   : `${silence.length} stille Stelle${silence.length === 1 ? '' : 'n'} gefunden — zusammen ${
                       silence.reduce((sum, r) => sum + (r.endSeconds - r.startSeconds), 0).toFixed(1)
                     } s.`}
               </p>
-              <p className="mt-[3px] text-[12px] leading-[1.45] text-muted">
+              <p className="mt-[4px] text-small leading-[1.45] text-muted">
                 Unter −50 dBFS und länger als 0,35 s. An den Rändern bleiben 50 ms stehen, sonst
                 klingt der Schnitt abgehackt.
               </p>
@@ -416,14 +413,14 @@ export function AudioEditorPanel() {
                 <Slider label="Tonhöhe" display={`${semitones > 0 ? '+' : ''}${semitones} Halbtöne`}
                   min={-12} max={12} step={1} value={semitones}
                   onChange={(event) => setSemitones(Number(event.target.value))} />
-                <div className="mt-[9px]">
+                <div className="mt-[8px]">
                   <Button size="sm" variant="quiet" disabled={busy !== null || semitones === 0}
                     onClick={() => void apply(`Tonhöhe ${semitones > 0 ? '+' : ''}${semitones}`,
                       (a) => pitchShift(a, { semitones, preserveDuration: true }))}>
                     Transponieren
                   </Button>
                 </div>
-                <p className="mt-[7px] text-[12px] leading-[1.45] text-muted">
+                <p className="mt-[8px] text-small leading-[1.45] text-muted">
                   Länge bleibt gleich — ein Phasenvocoder, kein schnelleres Abspielen.
                 </p>
               </div>
@@ -432,19 +429,19 @@ export function AudioEditorPanel() {
                 <Slider label="Tempo" display={tempo === 1 ? 'unverändert' : `${tempo.toFixed(2)}×`}
                   min={0.5} max={2} step={0.05} value={tempo}
                   onChange={(event) => setTempo(Number(event.target.value))} />
-                <div className="mt-[9px]">
+                <div className="mt-[8px]">
                   <Button size="sm" variant="quiet" disabled={busy !== null || tempo === 1}
                     onClick={() => void apply(`Tempo ${tempo.toFixed(2)}×`, (a) => stretchAudio(a, 1 / tempo))}>
                     Dehnen
                   </Button>
                 </div>
-                <p className="mt-[7px] text-[12px] leading-[1.45] text-muted">
+                <p className="mt-[8px] text-small leading-[1.45] text-muted">
                   Tonhöhe bleibt gleich.
                 </p>
               </div>
 
               <Field label="Kanäle" hint="Mono spart die Hälfte; Stereo verdoppelt einen Mono-Kanal.">
-                <div className="flex flex-wrap gap-[6px]">
+                <div className="flex flex-wrap gap-[8px]">
                   <Button size="sm" variant="quiet" disabled={busy !== null || current.channels.length === 1}
                     onClick={() => void apply('Auf Mono gelegt', (a) => setChannels(a, 1))}>
                     Mono
@@ -463,7 +460,7 @@ export function AudioEditorPanel() {
               </Field>
 
               <Field label="Abtastrate" hint="Lineare Interpolation — gut fürs Musikalische, kein Studio-Konverter.">
-                <div className="flex flex-wrap gap-[6px]">
+                <div className="flex flex-wrap gap-[8px]">
                   {[22050, 44100, 48000].map((rate) => (
                     <Button key={rate} size="sm" variant="quiet"
                       disabled={busy !== null || current.sampleRate === rate}
@@ -477,7 +474,7 @@ export function AudioEditorPanel() {
           </Reveal>
 
           {/* -- export --------------------------------------------------------- */}
-          <div className="mt-[18px] flex flex-wrap items-center gap-[10px]">
+          <div className="mt-[16px] flex flex-wrap items-center gap-[8px]">
             <Button disabled={!bytes || busy !== null}
               onClick={() => bytes && saveBytes(bytes, outputName, 'audio/wav')}>
               Als WAV speichern
@@ -490,14 +487,14 @@ export function AudioEditorPanel() {
               value={bitDepth}
               onChange={(event) => setBitDepth(Number(event.target.value) as WavBitDepth)}
               aria-label="Bittiefe"
-              className="w-auto py-[8px] text-[13px]"
+              className="w-auto py-[8px] text-small"
             >
               <option value={16}>16 bit</option>
               <option value={24}>24 bit</option>
               <option value={32}>32 bit Float</option>
             </Select>
-            {bytes ? <span className="numeric text-[12px] text-muted">{formatBytes(bytes.byteLength)}</span> : null}
-            {busy ? <span className="text-[12px] text-muted">{busy}…</span> : null}
+            {bytes ? <span className="numeric text-small text-muted">{formatBytes(bytes.byteLength)}</span> : null}
+            {busy ? <span className="text-small text-muted">{busy}…</span> : null}
           </div>
         </Card>
       </div>
@@ -506,12 +503,12 @@ export function AudioEditorPanel() {
         <Card tone="mint" size="compact">
           <Eyebrow>Verlauf</Eyebrow>
           {history.length === 0 ? (
-            <p className="mt-[9px] text-[13px] leading-[1.5] text-prose/85">
+            <p className="mt-[8px] text-small leading-[1.5] text-prose/85">
               Noch unverändert. Jeder Schritt landet hier, und Strg/Cmd + Z nimmt ihn zurück — die
               Ausgangsdatei in der Sitzung bleibt in jedem Fall unangetastet.
             </p>
           ) : (
-            <ol className="mt-[9px] flex flex-col gap-[4px] text-[12px]">
+            <ol className="mt-[8px] flex flex-col gap-[4px] text-small">
               {history.map((step, index) => (
                 <li key={`${step.label}-${index}`} className="flex gap-[8px] text-muted">
                   <span className="numeric shrink-0">{index + 1}.</span>
@@ -525,10 +522,10 @@ export function AudioEditorPanel() {
         {others.length > 1 ? (
           <Card tone="cream" size="compact">
             <Eyebrow>Anhängen</Eyebrow>
-            <p className="mt-[9px] text-[13px] leading-[1.5] text-prose/85">
+            <p className="mt-[8px] text-small leading-[1.5] text-prose/85">
               Eine zweite Aufnahme hinten anfügen, mit kurzer Überblendung.
             </p>
-            <div className="mt-[11px] flex flex-col gap-[9px]">
+            <div className="mt-[12px] flex flex-col gap-[8px]">
               <Select value={joinWith} onChange={(event) => setJoinWith(event.target.value)}>
                 <option value="">Datei wählen…</option>
                 {others.filter((entry) => entry.id !== asset.id).map((entry) => (

@@ -142,7 +142,7 @@ function Timeline({
   const percent = (seconds: number) => (duration > 0 ? (seconds / duration) * 100 : 0)
 
   return (
-    <div className="px-[14px] py-[12px]">
+    <div className="px-[16px] py-[12px]">
       <div
         ref={ref}
         onPointerDown={(event) => {
@@ -193,7 +193,7 @@ function Timeline({
         />
       </div>
 
-      <div className="mt-[6px] flex items-center justify-between text-[12px] text-muted">
+      <div className="mt-[8px] flex items-center justify-between text-small text-muted">
         <span className="numeric">{formatTimecode(start)}</span>
         <span className="numeric text-ink">Auswahl {formatTimecode(Math.max(0, end - start))}</span>
         <span className="numeric">{formatTimecode(end)}</span>
@@ -412,7 +412,7 @@ export function VideoPanel() {
     return (
       <div className="flex flex-col gap-[16px]">
         <FileDrop />
-        <p className="text-center text-[13px] text-muted">
+        <p className="text-center text-small text-muted">
           MP4, MOV, MKV, WebM und AVI. Gerechnet wird mit FFmpeg als WebAssembly, also auf Ihrem Gerät.
         </p>
       </div>
@@ -434,7 +434,7 @@ export function VideoPanel() {
   const ratio = ASPECTS.find((entry) => entry.id === aspect)?.ratio ?? null
 
   return (
-    <div className="flex flex-col gap-[14px]">
+    <div className="flex flex-col gap-[16px]">
       <EditorShell
         title={asset.name}
         subtitle={
@@ -460,7 +460,7 @@ export function VideoPanel() {
                 <path d="M4 10a6 6 0 106-6 6 6 0 00-4.6 2.2M5.4 3.4v2.9h2.9" />
               </svg>
             </IconButton>
-            <Button size="sm" disabled={running} onClick={() => setTool('export')} className="ml-[6px]">
+            <Button size="sm" disabled={running} onClick={() => setTool('export')} className="ml-[8px]">
               {running ? 'Läuft …' : 'Fertigstellen'}
             </Button>
           </>
@@ -523,7 +523,7 @@ export function VideoPanel() {
                 />
               ) : null}
               {unplayable ? (
-                <p className="absolute inset-0 grid place-items-center p-[18px] text-center text-[12px] leading-[1.5] text-stage-muted">
+                <p className="absolute inset-0 grid place-items-center p-[16px] text-center text-small leading-[1.5] text-stage-muted">
                   Dieser Browser spielt die Datei nicht ab — der Schnitt geht trotzdem, nur ohne Bild.
                 </p>
               ) : null}
@@ -544,7 +544,7 @@ export function VideoPanel() {
                 </svg>
               )}
             </IconButton>
-            <span className="numeric px-[8px] text-[12px] text-stage-ink">
+            <span className="numeric px-[8px] text-small text-stage-ink">
               {formatTimecode(position)} / {formatTimecode(duration)}
             </span>
             <IconButton label="Ton im Vorhören" onStage active={!ops.mute} onClick={() => patch({ mute: !ops.mute })}>
@@ -626,11 +626,11 @@ export function VideoPanel() {
       ) : null}
 
       {outcome ? (
-        <div className="rise flex flex-col gap-[14px] rounded-card bg-raised p-[18px] ring-1 ring-inset ring-line elevate sm:flex-row sm:items-center">
+        <div className="rise flex flex-col gap-[16px] rounded-card bg-raised p-[16px] ring-1 ring-inset ring-line elevate sm:flex-row sm:items-center">
           <div className="min-w-0 flex-1">
             <p className="eyebrow">Ergebnis</p>
-            <p className="mt-[4px] truncate text-[14px] text-ink">{outcome.name}</p>
-            <p className="numeric text-[12px] text-muted">
+            <p className="mt-[4px] truncate text-body text-ink">{outcome.name}</p>
+            <p className="numeric text-small text-muted">
               {formatBytes(outcome.bytes.byteLength)}
               {asset.sizeBytes > 0 && outcome.kind === 'video'
                 ? ` · ${Math.round((outcome.bytes.byteLength / asset.sizeBytes) * 100)} % der Quelle`
@@ -643,7 +643,7 @@ export function VideoPanel() {
           {outcomeUrl && outcome.kind === 'audio' ? (
             <audio src={outcomeUrl} controls className="w-full sm:w-[260px]" />
           ) : null}
-          <div className="flex shrink-0 gap-[6px]">
+          <div className="flex shrink-0 gap-[8px]">
             <Button size="sm" onClick={() => saveBytes(outcome.bytes, outcome.name, outcome.mime)}>
               Speichern
             </Button>
@@ -707,7 +707,7 @@ function VideoInspector({
     return (
       <>
         <ToolHeading title="Schneiden" hint="Am Balken unter dem Bild ziehen, oder hier auf den Abspielkopf setzen." />
-        <div className="grid grid-cols-2 gap-[5px]">
+        <div className="grid grid-cols-2 gap-[4px]">
           <Button size="sm" variant="quiet" onClick={() => patch({ start: Math.min(position, selectionEnd - 0.25) })}>
             Anfang hier
           </Button>
@@ -715,9 +715,9 @@ function VideoInspector({
             Ende hier
           </Button>
         </div>
-        <div className="numeric rounded-nav bg-panel-soft px-[12px] py-[10px] text-[12px] text-prose">
+        <div className="numeric rounded-nav bg-panel-soft px-[12px] py-[8px] text-small text-prose">
           {formatTimecode(ops.start)} – {formatTimecode(selectionEnd)}
-          <span className="mt-[3px] block text-muted">
+          <span className="mt-[4px] block text-muted">
             {formatTimecode(Math.max(0, selectionEnd - ops.start))} von {formatTimecode(duration)}
           </span>
         </div>
@@ -729,7 +729,7 @@ function VideoInspector({
         >
           Ganzes Video
         </Button>
-        <p className="text-[12px] leading-[1.45] text-muted">
+        <p className="text-small leading-[1.45] text-muted">
           Ein reiner Schnitt kopiert die Spuren, statt sie neu zu rechnen — das dauert Sekunden statt
           Minuten und das Bild bleibt bitgenau das Original.
         </p>
@@ -747,7 +747,7 @@ function VideoInspector({
           onChange={chooseAspect}
           options={ASPECTS.map((entry) => ({ value: entry.id, label: entry.label }))}
         />
-        <div className="numeric rounded-nav bg-panel-soft px-[12px] py-[10px] text-[12px] text-prose">
+        <div className="numeric rounded-nav bg-panel-soft px-[12px] py-[8px] text-small text-prose">
           {ops.crop
             ? `${Math.round(ops.crop.width * frame.width)} × ${Math.round(ops.crop.height * frame.height)} px`
             : `Ganzes Bild — ${frame.width} × ${frame.height} px`}
@@ -771,7 +771,7 @@ function VideoInspector({
     return (
       <>
         <ToolHeading title="Drehen und spiegeln" hint="Für hochkant aufgenommene Handyvideos." />
-        <div className="grid grid-cols-2 gap-[5px]">
+        <div className="grid grid-cols-2 gap-[4px]">
           <Button size="sm" variant="quiet" onClick={() => turn(270)}>
             ↺ Links
           </Button>
@@ -781,7 +781,7 @@ function VideoInspector({
         </div>
         <Toggle label="Waagrecht spiegeln" checked={ops.flipH} onChange={() => mirror('h')} />
         <Toggle label="Senkrecht spiegeln" checked={ops.flipV} onChange={() => mirror('v')} />
-        <p className="text-[12px] text-muted">Aktuell {ops.rotate}°.</p>
+        <p className="text-small text-muted">Aktuell {ops.rotate}°.</p>
       </>
     )
   }
@@ -790,14 +790,14 @@ function VideoInspector({
     return (
       <>
         <ToolHeading title="Größe und Qualität" hint="Kleiner heißt hier: weniger Pixel und mehr Kompression." />
-        <div className="flex flex-col gap-[5px]">
+        <div className="flex flex-col gap-[4px]">
           {VIDEO_PRESETS.map((preset) => (
             <button
               key={preset.id}
               type="button"
               onClick={() => patch({ preset: preset.id })}
               aria-pressed={ops.preset === preset.id}
-              className={`press rounded-nav px-[12px] py-[9px] text-left text-[12px] ${
+              className={`press rounded-nav px-[12px] py-[8px] text-left text-small ${
                 ops.preset === preset.id
                   ? 'bg-ink text-on-ink'
                   : 'bg-panel-soft text-prose ring-1 ring-inset ring-line hover:bg-panel-mid'
@@ -810,7 +810,7 @@ function VideoInspector({
             </button>
           ))}
         </div>
-        <p className="text-[12px] leading-[1.45] text-muted">
+        <p className="text-small leading-[1.45] text-muted">
           Kleiner als die Quelle wird nie hochskaliert — die Voreinstellung nimmt immer den kleineren
           der beiden Werte.
         </p>
@@ -837,9 +837,9 @@ function VideoInspector({
           display={`${ops.speed.toFixed(2)}×`}
           onChange={(event) => patch({ speed: Number(event.target.value) })}
         />
-        <div className="numeric rounded-nav bg-panel-soft px-[12px] py-[10px] text-[12px] text-prose">
+        <div className="numeric rounded-nav bg-panel-soft px-[12px] py-[8px] text-small text-prose">
           {duration > 0 ? formatTimecode((selectionEnd - ops.start) / ops.speed) : '—'}
-          <span className="mt-[3px] block text-muted">Länge danach</span>
+          <span className="mt-[4px] block text-muted">Länge danach</span>
         </div>
       </>
     )
@@ -858,7 +858,7 @@ function VideoInspector({
         <div className="h-px bg-line" />
         <ToolHeading title="Ton ersetzen" hint="Bild wird kopiert, nur der Ton wird neu geschrieben." />
         {audioAssets.length === 0 ? (
-          <p className="text-[12px] text-muted">
+          <p className="text-small text-muted">
             In der Sitzung liegt noch keine Tonaufnahme. Öffnen Sie eine Datei, dann steht sie hier.
           </p>
         ) : (
@@ -901,7 +901,7 @@ function VideoInspector({
           title="Aus diesem Video"
           hint="Landet in der Sitzung und lässt sich danach mit den übrigen Werkzeugen weiterbearbeiten."
         />
-        <div className="flex flex-col gap-[5px]">
+        <div className="flex flex-col gap-[4px]">
           <Button size="sm" variant="quiet" disabled={running} onClick={() => void run((input) => buildAudioExtraction(input, 'copy'), 'Ton wird herausgelöst', 'audio')}>
             Ton herauslösen — unverändert
           </Button>
@@ -923,7 +923,7 @@ function VideoInspector({
             Auswahl als GIF
           </Button>
         </div>
-        <p className="text-[12px] leading-[1.45] text-muted">
+        <p className="text-small leading-[1.45] text-muted">
           Das GIF übernimmt Schnitt, Ausschnitt und Drehung — aber keinen Ton, und es wird auf 15
           Bilder pro Sekunde und 640 Pixel Breite gebracht.
         </p>
@@ -946,7 +946,7 @@ function VideoInspector({
         onChange={(value) => patch({ container: value })}
         options={containers}
       />
-      <p className="text-[12px] leading-[1.45] text-muted">
+      <p className="text-small leading-[1.45] text-muted">
         {ops.container === 'mp4'
           ? 'H.264 in MP4 — läuft überall, auch auf älteren Geräten.'
           : ops.container === 'webm'
@@ -960,10 +960,10 @@ function VideoInspector({
         {running ? 'Läuft …' : 'Jetzt rechnen'}
       </Button>
       <details className="group">
-        <summary className="press inline-flex cursor-pointer list-none items-center gap-[6px] rounded-nav text-[12px] text-muted hover:text-ink">
+        <summary className="press inline-flex cursor-pointer list-none items-center gap-[8px] rounded-nav text-small text-muted hover:text-ink">
           FFmpeg-Befehl
         </summary>
-        <pre className="mt-[8px] overflow-x-auto rounded-nav bg-panel-soft p-[10px] font-mono text-[11px] leading-[1.5] text-prose">
+        <pre className="mt-[8px] overflow-x-auto rounded-nav bg-panel-soft p-[8px] font-mono text-micro leading-[1.5] text-prose">
           ffmpeg {command}
         </pre>
       </details>

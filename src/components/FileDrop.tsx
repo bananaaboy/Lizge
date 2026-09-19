@@ -32,7 +32,7 @@ export function FileDrop({ compact = false }: { compact?: boolean }) {
         dragging
           ? 'bg-panel-mid ring-2 ring-inset ring-ink'
           : 'bg-panel-soft ring-1 ring-inset ring-line'
-      } ${compact ? 'p-[18px]' : 'p-[28px]'}`}
+      } ${compact ? 'p-[16px]' : 'p-[28px]'}`}
     >
       {input}
       {!compact ? (

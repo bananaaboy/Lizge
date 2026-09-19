@@ -6,7 +6,14 @@
  * file, never stores a URL, and never sees what the browser does next.
  */
 
-import { allowedTarget, resolveYoutube, sign, youtubeId } from './_shared.js'
+import {
+  allowedTarget,
+  hasProvider,
+  resolveViaProvider,
+  resolveYoutube,
+  sign,
+  youtubeId,
+} from './_shared.js'
 
 const MEDIA = /^(audio|video|image)\//i
 
@@ -42,6 +49,22 @@ export default async function handler(request, response) {
   // their own signed, expiring addresses.
   response.setHeader('Cache-Control', 'no-store')
 
+  /**
+   * The provider first, when the deployment has one.
+   *
+   * It reaches further than anything here can: full resolution on YouTube, and
+   * the portals this file has no extractor for. Only when it is absent, or it
+   * comes back empty, do the two built-in routes below get a turn — so a
+   * deployment without one still works, just within narrower limits.
+   */
+  if (hasProvider()) {
+    const viaProvider = await resolveViaProvider(target.toString())
+    if (viaProvider && !viaProvider.error) {
+      response.status(200).json({ ...viaProvider, source: 'provider' })
+      return
+    }
+  }
+
   const id = youtubeId(raw)
   if (id) {
     try {
@@ -50,13 +73,13 @@ export default async function handler(request, response) {
         response.status(422).json({
           error: 'youtube.sabr',
           message:
-            'Für dieses Video gibt YouTube einem Server keine einzige herunterladbare Adresse — ' +
-            'alle Spuren laufen über SABR und haben gar keine. Dafür gibt es nur den Weg über das ' +
-            'eigene Gerät.',
+            'Für dieses Video gibt YouTube einem Server keine einzige herunterladbare Adresse: ' +
+            'alle Spuren laufen über SABR und haben gar keine. Hier hilft ein Anbieter ' +
+            '(SONDRA_PROVIDER_URL) oder der Weg über das eigene Gerät.',
         })
         return
       }
-      response.status(200).json(result)
+      response.status(200).json({ ...result, source: 'youtube' })
     } catch (failure) {
       const code = failure?.code ?? 'youtube'
       response.status(502).json({
@@ -87,14 +110,15 @@ export default async function handler(request, response) {
       response.status(422).json({
         error: 'no-extractor',
         message:
-          'Unter dieser Adresse liegt keine Mediendatei, sondern eine Webseite. Der eingebaute ' +
-          'Dienst kann YouTube und direkte Datei-Adressen — für alles andere braucht es yt-dlp auf ' +
-          'dem eigenen Gerät.',
+          'Unter dieser Adresse liegt keine Mediendatei, sondern eine Webseite. Ohne Anbieter kann ' +
+          'der eingebaute Dienst nur YouTube und direkte Datei-Adressen; für alles andere braucht ' +
+          'es einen Anbieter (SONDRA_PROVIDER_URL) oder yt-dlp auf dem eigenen Gerät.',
       })
       return
     }
     const length = Number(head.headers.get('content-length') ?? '0')
     response.status(200).json({
+      source: 'direct',
       kind: 'direct',
       title: nameFrom(target),
       author: target.hostname,

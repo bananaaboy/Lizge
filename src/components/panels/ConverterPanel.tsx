@@ -240,16 +240,15 @@ export function ConverterPanel() {
   const showVbr = format.id === 'mp3' || format.id === 'vorbis'
 
   return (
-    <div className="grid gap-[21px] lg:grid-cols-[minmax(0,1fr)_360px]">
-      <div className="flex flex-col gap-[21px]">
+    <div className="grid gap-[20px] lg:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="flex flex-col gap-[20px]">
         <Card tone="keylime">
-          <Eyebrow>Umwandeln</Eyebrow>
           <h2 className="display-md mt-[8px] mb-[12px]">In ein anderes Format bringen</h2>
           <details className="max-w-[56ch]">
-            <summary className="cursor-pointer list-none text-[13px] text-muted underline underline-offset-2 hover:text-ink">
+            <summary className="cursor-pointer list-none text-small text-muted underline underline-offset-2 hover:text-ink">
               Wie das funktioniert
             </summary>
-            <p className="mt-[9px] text-[13px] leading-[1.6] text-prose/85">
+            <p className="mt-[8px] text-small leading-[1.6] text-prose/85">
               FFmpeg läuft als WebAssembly in einem Web Worker dieses Tabs. Die Datei wird in ein
               In-Memory-Dateisystem geschrieben, dort transkodiert und wieder ausgelesen — sie
               verlässt den Arbeitsspeicher Ihres Rechners zu keinem Zeitpunkt.
@@ -262,7 +261,7 @@ export function ConverterPanel() {
             </div>
           ) : (
             <>
-              <div className="mt-[28px] grid gap-[18px] sm:grid-cols-2">
+              <div className="mt-[28px] grid gap-[16px] sm:grid-cols-2">
                 <Field label="Zielformat">
                   <Select
                     value={settings.formatId}
@@ -422,7 +421,7 @@ export function ConverterPanel() {
                         value={settings.videoCrf}
                         onChange={(event) => setConvert({ videoCrf: Number(event.target.value) })}
                       />
-                      <p className="mt-[7px] text-[12px] text-muted">
+                      <p className="mt-[8px] text-small text-muted">
                         Niedriger ist besser und größer. 18 gilt als sichtbar verlustfrei, 23 als guter
                         Kompromiss.
                       </p>
@@ -445,7 +444,7 @@ export function ConverterPanel() {
 
                 {trimOpen ? (
                   duration ? (
-                    <div className="mt-[18px] grid gap-[21px] sm:grid-cols-2">
+                    <div className="mt-[16px] grid gap-[20px] sm:grid-cols-2">
                       <Slider
                         label="Anfang"
                         display={formatTimecode(settings.trimStartSeconds ?? 0)}
@@ -477,7 +476,7 @@ export function ConverterPanel() {
                           })
                         }}
                       />
-                      <p className="numeric text-[12px] text-muted sm:col-span-2">
+                      <p className="numeric text-small text-muted sm:col-span-2">
                         Ausschnitt{' '}
                         {formatTimecode(
                           (settings.trimEndSeconds ?? duration) - (settings.trimStartSeconds ?? 0),
@@ -486,7 +485,7 @@ export function ConverterPanel() {
                       </p>
                     </div>
                   ) : (
-                    <p className="mt-[14px] text-[13px] text-muted">
+                    <p className="mt-[16px] text-small text-muted">
                       {decodeStatus === 'decoding' ? 'Länge wird ermittelt…' : 'Länge noch unbekannt.'}
                     </p>
                   )
@@ -494,14 +493,14 @@ export function ConverterPanel() {
               </div>
 
               {command ? (
-                <Reveal label="Welcher Befehl dabei läuft" className="mt-[21px]">
-                  <pre className="overflow-x-auto rounded-card bg-panel-soft p-[16px] font-mono text-[12px] leading-[1.6] text-prose">
+                <Reveal label="Welcher Befehl dabei läuft" className="mt-[20px]">
+                  <pre className="overflow-x-auto rounded-card bg-panel-soft p-[16px] font-mono text-small leading-[1.6] text-prose">
                     <code>{command}</code>
                   </pre>
                 </Reveal>
               ) : null}
 
-              <div className="mt-[21px]">
+              <div className="mt-[20px]">
                 <Toggle
                   label={`Alle ${assets.length} Dateien der Sitzung umwandeln`}
                   hint="Dieselben Einstellungen nacheinander auf jede Datei anwenden, Ergebnis als ZIP."
@@ -515,7 +514,7 @@ export function ConverterPanel() {
                 />
               </div>
 
-              <div className="mt-[21px] flex flex-wrap items-center gap-[11px]">
+              <div className="mt-[20px] flex flex-wrap items-center gap-[12px]">
                 <Button onClick={batch ? convertBatch : convert} disabled={running}>
                   {running ? 'Läuft…' : batch ? `${assets.length} Dateien umwandeln` : 'Umwandeln'}
                   {!running ? <ArrowRight /> : null}
@@ -528,7 +527,7 @@ export function ConverterPanel() {
               </div>
 
               {running ? (
-                <div className="mt-[18px]">
+                <div className="mt-[16px]">
                   <Progress value={progress} label="Transkodierung" />
                 </div>
               ) : null}
@@ -538,7 +537,7 @@ export function ConverterPanel() {
 
         {error ? (
           <Notice tone="error" title="Umwandlung fehlgeschlagen">
-            <pre className="whitespace-pre-wrap font-mono text-[12px] leading-[1.5]">{error}</pre>
+            <pre className="whitespace-pre-wrap font-mono text-small leading-[1.5]">{error}</pre>
           </Notice>
         ) : null}
 
@@ -546,20 +545,20 @@ export function ConverterPanel() {
           <Card tone="slate">
             <div className="flex flex-wrap items-baseline justify-between gap-3">
               <Eyebrow>Stapel</Eyebrow>
-              <span className="numeric text-[12px] text-muted">
+              <span className="numeric text-small text-muted">
                 {queue.filter((item) => item.state === 'done').length} von {queue.length} fertig
               </span>
             </div>
 
-            <ul className="mt-[18px] flex flex-col gap-[7px]">
+            <ul className="mt-[16px] flex flex-col gap-[8px]">
               {queue.map((item) => (
                 <li
                   key={item.id}
-                  className="flex flex-wrap items-center gap-[11px] rounded-card bg-raised px-[18px] py-[11px]"
+                  className="flex flex-wrap items-center gap-[12px] rounded-card bg-raised px-[16px] py-[12px]"
                 >
                   <span
                     aria-hidden
-                    className={`numeric w-[14px] shrink-0 text-center text-[13px] ${
+                    className={`numeric w-[14px] shrink-0 text-center text-small ${
                       item.state === 'running' ? 'text-ink pulse-dot' : 'text-muted'
                     }`}
                   >
@@ -567,19 +566,19 @@ export function ConverterPanel() {
                   </span>
                   <span className="min-w-0 flex-1 truncate text-body text-ink">{item.name}</span>
                   {item.outputBytes !== null ? (
-                    <span className="numeric shrink-0 text-[12px] text-muted">
+                    <span className="numeric shrink-0 text-small text-muted">
                       {formatBytes(item.outputBytes)}
                     </span>
                   ) : null}
                   {item.message ? (
-                    <span className="w-full text-[12px] text-muted">{item.message}</span>
+                    <span className="w-full text-small text-muted">{item.message}</span>
                   ) : null}
                 </li>
               ))}
             </ul>
 
             {archive ? (
-              <div className="mt-[21px]">
+              <div className="mt-[20px]">
                 <Button
                   onClick={() =>
                     saveBytes(archive, `sondra-${format.extension}-${queue.length}.zip`, 'application/zip')
@@ -596,7 +595,7 @@ export function ConverterPanel() {
         {outcome ? (
           <Card tone="slate">
             <Eyebrow>Ergebnis</Eyebrow>
-            <div className="mt-[18px] grid gap-[21px] rounded-card bg-raised p-[28px] sm:grid-cols-3">
+            <div className="mt-[16px] grid gap-[20px] rounded-card bg-raised p-[28px] sm:grid-cols-3">
               <Stat label="Größe" value={formatBytes(outcome.bytes.byteLength)} emphasis />
               <Stat
                 label="Gegenüber Quelle"
@@ -606,8 +605,8 @@ export function ConverterPanel() {
               <Stat label="Dauer" value={`${(outcome.elapsedMs / 1000).toFixed(1)} s`} />
             </div>
             {preview ? (
-              <div className="mt-[18px] rounded-card bg-raised p-[18px]">
-                <p className="mb-[11px] text-[11px] font-semibold uppercase tracking-[0.08em] text-ink">
+              <div className="mt-[16px] rounded-card bg-raised p-[16px]">
+                <p className="mb-[12px] text-micro font-semibold uppercase tracking-[0.08em] text-ink">
                   Anhören
                 </p>
                 <AudioPreview
@@ -623,7 +622,7 @@ export function ConverterPanel() {
               </div>
             ) : null}
 
-            <div className="mt-[18px] flex flex-wrap gap-[11px]">
+            <div className="mt-[16px] flex flex-wrap gap-[12px]">
               <Button onClick={() => saveBytes(outcome.bytes, outcome.name, outcome.mime)}>
                 Speichern
                 <ArrowRight />

@@ -60,9 +60,9 @@ export function EditorIcon({ children }: { children: ReactNode }) {
 /** The heading above a group of controls in the inspector. */
 export function ToolHeading({ title, hint }: { title: string; hint?: string }) {
   return (
-    <div className="flex flex-col gap-[3px]">
-      <p className="text-[13px] font-semibold text-ink">{title}</p>
-      {hint ? <p className="text-[12px] leading-[1.45] text-muted">{hint}</p> : null}
+    <div className="flex flex-col gap-[4px]">
+      <p className="text-small font-semibold text-ink">{title}</p>
+      {hint ? <p className="text-small leading-[1.45] text-muted">{hint}</p> : null}
     </div>
   )
 }
@@ -88,7 +88,7 @@ export function ChoiceRow<T extends string | number>({
 }) {
   return (
     <div
-      className={columns > 0 ? 'grid gap-[5px]' : 'flex flex-wrap gap-[5px]'}
+      className={columns > 0 ? 'grid gap-[4px]' : 'flex flex-wrap gap-[4px]'}
       style={columns > 0 ? { gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` } : undefined}
     >
       {options.map((option) => {
@@ -100,7 +100,7 @@ export function ChoiceRow<T extends string | number>({
             title={option.title}
             aria-pressed={active}
             onClick={() => onChange(option.value)}
-            className={`press rounded-nav px-[10px] py-[8px] text-[12px] leading-none ${
+            className={`press rounded-nav px-[8px] py-[8px] text-small leading-none ${
               active
                 ? 'bg-ink text-on-ink'
                 : 'bg-panel-soft text-prose ring-1 ring-inset ring-line hover:bg-panel-mid'
@@ -173,7 +173,7 @@ function Rail({
       className={
         vertical
           ? 'flex w-[84px] shrink-0 flex-col gap-[4px] border-r border-line bg-raised p-[8px]'
-          : 'flex gap-[5px] overflow-x-auto border-t border-line bg-raised p-[8px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
+          : 'flex gap-[4px] overflow-x-auto border-t border-line bg-raised p-[8px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
       }
     >
       {tools.map((entry) => {
@@ -188,12 +188,12 @@ function Rail({
             title={entry.label}
             className={`press relative flex shrink-0 items-center rounded-nav ${
               vertical
-                ? 'flex-col gap-[5px] px-[4px] py-[10px]'
+                ? 'flex-col gap-[4px] px-[4px] py-[8px]'
                 : 'flex-col gap-[4px] px-[12px] py-[8px]'
             } ${active ? 'bg-ink text-on-ink' : 'text-prose hover:bg-panel-soft'}`}
           >
             {entry.icon}
-            <span className="text-[10.5px] leading-none">{entry.label}</span>
+            <span className="text-micro leading-none">{entry.label}</span>
             {/* A tool that holds a change says so without being opened. */}
             {entry.touched ? (
               <span
@@ -240,10 +240,10 @@ export function EditorShell({
 }) {
   return (
     <div className="elevate flex flex-col overflow-hidden rounded-card bg-raised ring-1 ring-inset ring-line">
-      <header className="flex flex-wrap items-center gap-x-[14px] gap-y-[8px] border-b border-line px-[14px] py-[10px]">
+      <header className="flex flex-wrap items-center gap-x-[16px] gap-y-[8px] border-b border-line px-[16px] py-[8px]">
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[13px] font-semibold text-ink">{title}</p>
-          {subtitle ? <p className="numeric truncate text-[12px] text-muted">{subtitle}</p> : null}
+          <p className="truncate text-small font-semibold text-ink">{title}</p>
+          {subtitle ? <p className="numeric truncate text-small text-muted">{subtitle}</p> : null}
         </div>
         {actions ? <div className="flex shrink-0 items-center gap-[4px]">{actions}</div> : null}
       </header>
@@ -290,7 +290,7 @@ export function EditorShell({
       </div>
 
       {status ? (
-        <footer className="flex flex-wrap items-center gap-x-[14px] gap-y-[4px] border-t border-line px-[14px] py-[8px] text-[12px] text-muted">
+        <footer className="flex flex-wrap items-center gap-x-[16px] gap-y-[4px] border-t border-line px-[16px] py-[8px] text-small text-muted">
           {status}
         </footer>
       ) : null}

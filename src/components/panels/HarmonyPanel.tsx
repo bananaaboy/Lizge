@@ -59,7 +59,7 @@ function neighbours(camelot: string): string[] {
 function ChromaChart({ chroma }: { chroma: Float32Array }) {
   const peak = Math.max(...chroma, 1e-6)
   return (
-    <div className="flex items-stretch gap-[3px]" style={{ height: 72 }}>
+    <div className="flex items-stretch gap-[4px]" style={{ height: 72 }}>
       {PITCH_CLASSES.map((name, index) => (
         <div key={name} className="flex h-full flex-1 flex-col items-center justify-end gap-[4px]">
           <div
@@ -67,7 +67,7 @@ function ChromaChart({ chroma }: { chroma: Float32Array }) {
             style={{ height: `${Math.max(2, (chroma[index] / peak) * 100)}%` }}
             title={`${name}: ${(chroma[index] / peak).toFixed(2)}`}
           />
-          <span className="shrink-0 text-[9px] leading-none text-muted">{name}</span>
+          <span className="shrink-0 text-micro leading-none text-muted">{name}</span>
         </div>
       ))}
     </div>
@@ -197,12 +197,11 @@ export function HarmonyPanel() {
   const confident = (result?.key.confidence ?? 0) >= 0.4
 
   return (
-    <div className="grid gap-[18px] lg:grid-cols-[minmax(0,1fr)_320px]">
-      <div className="flex flex-col gap-[18px]">
+    <div className="grid gap-[16px] lg:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="flex flex-col gap-[16px]">
         <Card tone="keylime" size="compact">
-          <div className="flex flex-wrap items-center justify-between gap-x-[14px] gap-y-[9px]">
-            <Eyebrow>Tonart</Eyebrow>
-            <div role="radiogroup" aria-label="Ansicht" className="flex gap-[3px] rounded-pill bg-panel-soft p-[3px]">
+          <div className="flex flex-wrap items-center justify-between gap-x-[16px] gap-y-[8px]">
+            <div role="radiogroup" aria-label="Ansicht" className="flex gap-[4px] rounded-pill bg-panel-soft p-[4px]">
               {(['einfach', 'detail'] as ViewMode[]).map((entry) => (
                 <button
                   key={entry}
@@ -210,7 +209,7 @@ export function HarmonyPanel() {
                   role="radio"
                   aria-checked={mode === entry}
                   onClick={() => setMode(entry)}
-                  className={`rounded-pill px-[14px] py-[5px] text-[12px] transition-colors ${
+                  className={`rounded-pill px-[16px] py-[4px] text-small transition-colors ${
                     mode === entry ? 'bg-ink text-on-ink' : 'text-ink hover:bg-panel-mid'
                   }`}
                 >
@@ -221,25 +220,25 @@ export function HarmonyPanel() {
           </div>
 
           {!asset ? (
-            <div className="mt-[14px]">
+            <div className="mt-[16px]">
               <FileDrop />
             </div>
           ) : (
             <>
               {mode === 'detail' ? (
-                <p className="mt-[11px] max-w-[62ch] text-[13px] leading-[1.55] text-prose/85">
+                <p className="mt-[12px] max-w-[62ch] text-small leading-[1.55] text-prose/85">
                   Die Tonart wird aus der Verteilung der zwölf Tonklassen geschätzt und mit den
                   Profilen von Krumhansl und Kessler verglichen. Die Melodieerkennung ist
                   einstimmig — für eine Basslinie, ein Hook oder eine Gesangsspur, nicht für den
                   ganzen Mix.
                 </p>
               ) : (
-                <p className="mt-[11px] text-[13px] leading-[1.55] text-muted">
+                <p className="mt-[12px] text-small leading-[1.55] text-muted">
                   Tempo und Tonart. Für Akkorde, Tonklassen und die Melodie auf „Detail“ wechseln.
                 </p>
               )}
 
-              <div className="mt-[14px] flex flex-wrap items-center gap-[9px]">
+              <div className="mt-[16px] flex flex-wrap items-center gap-[8px]">
                 <Button size="sm" onClick={analyse} disabled={running}>
                   {running ? 'Analysiert…' : 'Analysieren'}
                   {!running ? <ArrowRight /> : null}
@@ -257,7 +256,7 @@ export function HarmonyPanel() {
               </div>
 
               {running || decodeStatus === 'decoding' ? (
-                <div className="mt-[11px]">
+                <div className="mt-[12px]">
                   <Progress value={progress} label={note ?? 'Wird dekodiert'} />
                 </div>
               ) : null}
@@ -273,7 +272,7 @@ export function HarmonyPanel() {
 
         {result && mode === 'einfach' ? (
           <Card tone="slate" size="compact">
-            <div className="grid gap-[14px] rounded-card bg-raised p-[21px] sm:grid-cols-3">
+            <div className="grid gap-[16px] rounded-card bg-raised p-[20px] sm:grid-cols-3">
               <Stat label="Tempo" value={`${Math.round(bpm)} BPM`} emphasis />
               <Stat label="Tonart" value={result.key.label} emphasis />
               <Stat
@@ -284,7 +283,7 @@ export function HarmonyPanel() {
               />
             </div>
             {audio ? (
-              <div className="mt-[14px]">
+              <div className="mt-[16px]">
                 <AudioPreview sources={[{ id: 'source', label: 'Original', audio }]} waveHeight={44} />
               </div>
             ) : null}
@@ -294,8 +293,7 @@ export function HarmonyPanel() {
         {result && mode === 'detail' ? (
           <>
             <Card tone="slate" size="compact">
-              <Eyebrow>Tonart</Eyebrow>
-              <div className="mt-[14px] grid gap-[14px] rounded-card bg-raised p-[18px] sm:grid-cols-4">
+              <div className="mt-[16px] grid gap-[16px] rounded-card bg-raised p-[16px] sm:grid-cols-4">
                 <Stat label="Tempo" value={`${Math.round(bpm)} BPM`} emphasis />
                 <Stat label="Tonart" value={result.key.label} emphasis />
                 <Stat label="Camelot" value={result.key.camelot} emphasis note="für harmonisches Mixen" />
@@ -307,13 +305,13 @@ export function HarmonyPanel() {
               </div>
 
               {audio ? (
-                <div className="mt-[14px] rounded-card bg-raised p-[18px]">
+                <div className="mt-[16px] rounded-card bg-raised p-[16px]">
                   <AudioPreview sources={[{ id: 'source', label: 'Original', audio }]} waveHeight={44} />
                 </div>
               ) : null}
 
               {!confident ? (
-                <p className="mt-[11px] text-[12px] leading-[1.5] text-muted">
+                <p className="mt-[12px] text-small leading-[1.5] text-muted">
                   Dicht dahinter liegt {result.key.alternative.label} ({result.key.alternative.camelot}).
                   Parallele Dur- und Moll-Tonarten enthalten dieselben zwölf Töne — welche von beiden
                   gemeint ist, entscheidet sich am Grundton, nicht am Tonvorrat. Im Zweifel beide
@@ -321,15 +319,15 @@ export function HarmonyPanel() {
                 </p>
               ) : null}
 
-              <div className="mt-[14px] flex flex-wrap items-center gap-[7px]">
-                <span className="text-[12px] text-muted">Passt zu</span>
+              <div className="mt-[16px] flex flex-wrap items-center gap-[8px]">
+                <span className="text-small text-muted">Passt zu</span>
                 {neighbours(result.key.camelot).map((code) => (
                   <Badge key={code}>{code}</Badge>
                 ))}
               </div>
 
-              <div className="mt-[18px] rounded-card bg-raised p-[18px]">
-                <p className="mb-[11px] text-[11px] font-semibold uppercase tracking-[0.08em] text-ink">
+              <div className="mt-[16px] rounded-card bg-raised p-[16px]">
+                <p className="mb-[12px] text-micro font-semibold uppercase tracking-[0.08em] text-ink">
                   Tonklassen
                 </p>
                 <ChromaChart chroma={result.chroma} />
@@ -339,12 +337,12 @@ export function HarmonyPanel() {
             {result.chords.length > 0 ? (
               <Card tone="mint" size="compact">
                 <Eyebrow>Akkorde · {result.chords.filter((span) => span.root !== null).length}</Eyebrow>
-                <div className="mt-[14px] flex flex-wrap gap-[4px]">
+                <div className="mt-[16px] flex flex-wrap gap-[4px]">
                   {result.chords.map((span, index) => (
                     <span
                       key={`${span.label}-${span.startSeconds}-${index}`}
                       title={`${formatTimecode(span.startSeconds)} – ${formatTimecode(span.endSeconds)}`}
-                      className={`numeric rounded-nav px-[11px] py-[6px] text-[13px] ${
+                      className={`numeric rounded-nav px-[12px] py-[8px] text-small ${
                         span.root === null ? 'bg-raised text-muted' : 'bg-raised text-ink'
                       }`}
                     >
@@ -359,15 +357,15 @@ export function HarmonyPanel() {
               <Card tone="slate" size="compact">
                 <div className="flex flex-wrap items-baseline justify-between gap-3">
                   <Eyebrow>Melodie · {result.notes.length} Noten</Eyebrow>
-                  <span className="numeric text-[12px] text-muted">
+                  <span className="numeric text-small text-muted">
                     {midiName(Math.min(...result.notes.map((n) => n.midi)))} –{' '}
                     {midiName(Math.max(...result.notes.map((n) => n.midi)))} · {bpm} BPM
                   </span>
                 </div>
-                <div className="mt-[14px]">
+                <div className="mt-[16px]">
                   <NoteRoll notes={result.notes} />
                 </div>
-                <div className="mt-[14px]">
+                <div className="mt-[16px]">
                   <Button size="sm" onClick={exportMidi}>
                     Als MIDI speichern
                     <ArrowRight />
@@ -390,11 +388,11 @@ export function HarmonyPanel() {
         ) : null}
       </div>
 
-      <aside className="flex flex-col gap-[18px]">
+      <aside className="flex flex-col gap-[16px]">
         {mode === 'detail' ? (
         <Card tone="mint" size="compact">
           <Eyebrow>Einstellungen</Eyebrow>
-          <div className="mt-[11px] flex flex-col gap-[14px]">
+          <div className="mt-[12px] flex flex-col gap-[16px]">
             <Field label="Akkordfenster" hint="Kürzer folgt schnellen Wechseln, länger ist ruhiger.">
               <Select value={chordWindow} onChange={(event) => setChordWindow(Number(event.target.value))}>
                 <option value={0.25}>0,25 s</option>
@@ -448,7 +446,7 @@ export function HarmonyPanel() {
         {result && mode === 'detail' ? (
           <Card tone="cream" size="compact">
             <Eyebrow>Nächstbeste</Eyebrow>
-            <ul className="mt-[11px] flex flex-col gap-[7px] text-[13px]">
+            <ul className="mt-[12px] flex flex-col gap-[8px] text-small">
               {result.key.scores.map((entry) => (
                 <li key={entry.label} className="flex items-baseline justify-between gap-3">
                   <span className="text-prose/85">

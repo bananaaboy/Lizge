@@ -152,16 +152,15 @@ export function StemsPanel() {
   const isMono = (audio?.channels.length ?? 2) < 2
 
   return (
-    <div className="grid gap-[21px] lg:grid-cols-[minmax(0,1fr)_360px]">
-      <div className="flex flex-col gap-[21px]">
+    <div className="grid gap-[20px] lg:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="flex flex-col gap-[20px]">
         <Card tone="keylime">
-          <Eyebrow>Spuren trennen</Eyebrow>
           <h2 className="display-md mt-[8px] mb-[12px]">Gesang, Schlagzeug, Bass und Rest</h2>
           <details className="max-w-[60ch]">
-            <summary className="cursor-pointer list-none text-[13px] text-muted underline underline-offset-2 hover:text-ink">
+            <summary className="cursor-pointer list-none text-small text-muted underline underline-offset-2 hover:text-ink">
               Wie die Trennung rechnet
             </summary>
-            <p className="mt-[9px] text-[13px] leading-[1.6] text-prose/85">
+            <p className="mt-[8px] text-small leading-[1.6] text-prose/85">
               Das eingebaute Verfahren trennt harmonische von perkussiven Anteilen über Medianfilter im
               Spektrogramm und schätzt den Gesang aus der Mittenkohärenz zwischen links und rechts. Vier
               Masken, die sich zu eins ergänzen — die Spuren addieren sich exakt zum Original zurück.
@@ -175,7 +174,7 @@ export function StemsPanel() {
           ) : (
             <>
               {isMono && audio ? (
-                <div className="mt-[21px]">
+                <div className="mt-[20px]">
                   <Notice tone="warn" title="Mono-Material">
                     Ohne Stereobild gibt es keine Mitteninformation, aus der sich der Gesang ableiten
                     ließe. Die Trennung stützt sich dann allein auf Frequenzbänder und
@@ -188,14 +187,14 @@ export function StemsPanel() {
                   used to be the first thing on screen, ahead of the button
                   that uses them — which puts a decision in front of anyone
                   who only wanted the thing to run. */}
-              <details className="mt-[21px] rounded-card bg-panel-soft p-[18px]">
-                <summary className="cursor-pointer list-none text-[13px] font-semibold text-ink">
+              <details className="mt-[20px] rounded-card bg-panel-soft p-[16px]">
+                <summary className="cursor-pointer list-none text-small font-semibold text-ink">
                   Feineinstellungen
-                  <span className="ml-[7px] font-normal text-muted">
+                  <span className="ml-[8px] font-normal text-muted">
                     für Ausnahmefälle — die Vorgaben passen meistens
                   </span>
                 </summary>
-                <div className="mt-[18px] grid gap-[21px] sm:grid-cols-2">
+                <div className="mt-[16px] grid gap-[20px] sm:grid-cols-2">
                   <Slider
                     label="Mittenschärfe"
                     display={options.vocalFocus.toFixed(2)}
@@ -243,7 +242,7 @@ export function StemsPanel() {
                 </div>
               </details>
 
-              <div className="mt-[28px] flex flex-wrap items-center gap-[11px]">
+              <div className="mt-[28px] flex flex-wrap items-center gap-[12px]">
                 <Button onClick={run} disabled={running}>
                   {running ? 'Wird getrennt…' : 'Spuren trennen'}
                   {!running ? <ArrowRight /> : null}
@@ -256,7 +255,7 @@ export function StemsPanel() {
               </div>
 
               {running ? (
-                <div className="mt-[18px]">
+                <div className="mt-[16px]">
                   <Progress value={progress} label={note ?? 'Analyse'} />
                 </div>
               ) : null}
@@ -274,7 +273,7 @@ export function StemsPanel() {
           <Card tone="slate">
             <div className="flex flex-wrap items-baseline justify-between gap-3">
               <Eyebrow>Spuren</Eyebrow>
-              <div className="flex flex-wrap items-center gap-[7px]">
+              <div className="flex flex-wrap items-center gap-[8px]">
                 {engine ? <Badge>{engine}</Badge> : null}
                 <Button size="sm" onClick={exportAll}>
                   Alle als ZIP
@@ -282,12 +281,12 @@ export function StemsPanel() {
               </div>
             </div>
 
-            <div className="mt-[18px] flex flex-col gap-[11px]">
+            <div className="mt-[16px] flex flex-col gap-[12px]">
               {STEM_IDS.map((id) => (
-                <div key={id} className="rounded-card bg-raised p-[18px]">
-                  <div className="mb-[11px] flex flex-wrap items-center justify-between gap-3">
+                <div key={id} className="rounded-card bg-raised p-[16px]">
+                  <div className="mb-[12px] flex flex-wrap items-center justify-between gap-3">
                     <span className="text-subheading text-ink">{STEM_LABELS[id]}</span>
-                    <div className="flex gap-[7px]">
+                    <div className="flex gap-[8px]">
                       <Button size="sm" variant="quiet" onClick={() => keepStem(id, stems[id])}>
                         Übernehmen
                       </Button>
@@ -312,15 +311,15 @@ export function StemsPanel() {
               ))}
 
               {instrumental ? (
-                <div className="rounded-card bg-raised p-[18px]">
-                  <div className="mb-[11px] flex flex-wrap items-center justify-between gap-3">
+                <div className="rounded-card bg-raised p-[16px]">
+                  <div className="mb-[12px] flex flex-wrap items-center justify-between gap-3">
                     <div className="flex flex-col gap-0.5">
                       <span className="text-subheading text-ink">Instrumental</span>
-                      <span className="text-[12px] text-muted">
+                      <span className="text-small text-muted">
                         Original minus Gesang — exakt, weil subtrahiert statt neu maskiert.
                       </span>
                     </div>
-                    <div className="flex gap-[7px]">
+                    <div className="flex gap-[8px]">
                       <Button size="sm" variant="quiet" onClick={() => keepStem('instrumental', instrumental)}>
                         Übernehmen
                       </Button>
@@ -346,19 +345,19 @@ export function StemsPanel() {
         ) : null}
       </div>
 
-      <aside className="flex flex-col gap-[21px]">
+      <aside className="flex flex-col gap-[20px]">
         <SessionCard />
 
         <Card tone="cream">
           <Eyebrow>Neuronales Modell</Eyebrow>
-          <p className="mt-[9px] text-[13px] leading-[1.55] text-prose/85">
+          <p className="mt-[8px] text-small leading-[1.55] text-prose/85">
             Optional. Ohne Modell rechnet das eingebaute Verfahren.
           </p>
-          <details className="mt-[7px]">
-            <summary className="cursor-pointer list-none text-[12px] text-muted underline underline-offset-2 hover:text-ink">
+          <details className="mt-[8px]">
+            <summary className="cursor-pointer list-none text-small text-muted underline underline-offset-2 hover:text-ink">
               Warum keins mitgeliefert wird
             </summary>
-            <p className="mt-[7px] text-[12px] leading-[1.55] text-prose/85">
+            <p className="mt-[8px] text-small leading-[1.55] text-prose/85">
               Ein Demucs-Export wiegt Hunderte Megabyte, die sonst jeder Besuch herunterlädt. Ihr
               eigenes <code>.onnx</code> wird lokal ausgeführt und verlässt das Gerät nicht.
             </p>
@@ -379,7 +378,7 @@ export function StemsPanel() {
             }}
           />
 
-          <div className="mt-[18px] flex flex-wrap gap-[7px]">
+          <div className="mt-[16px] flex flex-wrap gap-[8px]">
             <Button size="sm" variant="quiet" onClick={() => modelInputRef.current?.click()}>
               {model ? 'Anderes Modell' : 'Modell wählen'}
             </Button>
@@ -391,13 +390,13 @@ export function StemsPanel() {
           </div>
 
           {model ? (
-            <div className="mt-[14px] flex flex-wrap gap-[7px]">
+            <div className="mt-[16px] flex flex-wrap gap-[8px]">
               <Badge>{model.name}</Badge>
               <Badge>{formatBytes(model.bytes.byteLength)}</Badge>
             </div>
           ) : null}
 
-          <div className="mt-[18px]">
+          <div className="mt-[16px]">
             <Toggle
               label="WebGPU bevorzugen"
               hint={
