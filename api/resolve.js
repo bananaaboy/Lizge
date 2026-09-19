@@ -15,7 +15,30 @@ import {
   youtubeId,
 } from './_shared.js'
 
-const MEDIA = /^(audio|video|image)\//i
+/**
+ * What counts as "there is already a file here".
+ *
+ * Not just `audio/`, `video/` and `image/`: plenty of perfectly ordinary media
+ * arrives under `application/` — Wikimedia serves .ogg as `application/ogg`,
+ * MPEG-DASH and HLS playlists have their own types, and Matroska is
+ * `application/x-matroska`. Rejecting those told the visitor "that is a web
+ * page" about a file that was plainly a sound recording.
+ */
+const MEDIA = /^(?:audio|video|image)\//i
+const MEDIA_APPLICATION =
+  /^application\/(?:ogg|mp4|x-matroska|x-mpegurl|vnd\.apple\.mpegurl|dash\+xml|octet-stream)$/i
+/** Extensions that make `application/octet-stream` believable. */
+const MEDIA_EXTENSION =
+  /\.(?:mp3|wav|flac|ogg|oga|opus|m4a|aac|aiff?|wma|mp4|m4v|webm|mkv|mov|avi|ts|flv|mpe?g|3gp|jpe?g|png|gif|webp|avif|bmp|tiff?|heic|m3u8|mpd)$/i
+
+function looksLikeMedia(type, url) {
+  if (MEDIA.test(type)) return true
+  if (!MEDIA_APPLICATION.test(type)) return false
+  // octet-stream says nothing at all, so the name has to carry it.
+  return type.toLowerCase().startsWith('application/octet-stream')
+    ? MEDIA_EXTENSION.test(url.pathname)
+    : true
+}
 
 /** A name for a file that only has a URL. */
 function nameFrom(url) {
@@ -106,7 +129,7 @@ export default async function handler(request, response) {
   try {
     const head = await fetch(target, { method: 'HEAD', redirect: 'follow' })
     const type = head.headers.get('content-type') ?? ''
-    if (!head.ok || !MEDIA.test(type)) {
+    if (!head.ok || !looksLikeMedia(type, target)) {
       response.status(422).json({
         error: 'no-extractor',
         message:
@@ -129,7 +152,7 @@ export default async function handler(request, response) {
           id: 'direct',
           label: 'Datei laden',
           hasVideo: type.startsWith('video/'),
-          hasAudio: type.startsWith('audio/') || type.startsWith('video/'),
+          hasAudio: /^(?:audio|video)\/|^application\/ogg/i.test(type),
           width: null,
           height: null,
           ext: nameFrom(target).split('.').pop() ?? 'bin',

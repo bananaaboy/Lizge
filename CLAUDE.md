@@ -39,6 +39,24 @@ don't drift back toward defaults when adding new UI.
 - **Icons.** The project's own 16px/20px stroke set in `components/panelMeta.tsx`
   and `components/editor/icons.tsx`. One set, drawn on one grid, used only
   where the icon carries information. No icon libraries, no emoji.
+- **Separation: one line, on one side.** A border on all four sides is a
+  claim — *this is an object lying on a surface*. That is true of a card and
+  almost nothing else. A row in a list, a section of a page, a block nested
+  inside a card that is already an object: those are separated by **a single
+  hairline on the side that faces what they are being separated from**, and
+  nothing more. Reach in this order: whitespace, then a fill shift, then one
+  line, then — only for something that really is an object on the canvas — a
+  four-sided hairline plus one shadow level.
+
+  Practically: `border-t border-line` between items, not `ring-1 ring-inset
+  ring-line` around each. A rule above the first item doubles as the group's
+  top edge, so the group needs no box either, and an empty cell at the end of
+  a grid draws nothing.
+
+  **This is not the banned accent strip.** What is banned is a *coloured,
+  3–4px* bar on a card's left edge used as decoration. What is wanted here is
+  a *hairline in `--color-line`* on one side used as a separator. Weight and
+  colour are the whole difference: one is ornament, the other is structure.
 - **Depth.** Exactly two levels, `--shadow-card` and `--shadow-lift`, and they
   mean "this lies on the canvas" and "this is being pointed at". Nothing else
   gets a shadow.
@@ -47,6 +65,19 @@ don't drift back toward defaults when adding new UI.
   the pointer). Three durations, two easings, all in `styles/theme.css`.
   Transform and opacity only; `prefers-reduced-motion` neutralises all of it.
 
+**What the visitor came to do.** A landing page, a dashboard and a reference
+manual want different decisions, and the same product can need all three.
+Sondra is almost entirely **Operate**: people arrive with a file and a job, and
+every screen exists so they can carry that job out. That is what justifies the
+density — 13px tool chrome, readouts in tabular figures, keyboard access,
+controls close to what they act on — and it is why nothing here should be
+argued for on the grounds that it looks impressive. Two exceptions, and they
+are small: the start screen leans **Read** (a menu to scan), and the
+not-local warning on the downloader leans **Persuade** (it has to be believed
+before anything is typed). If a new surface is neither, say which mode it is
+before designing it. *(Framing borrowed from Paul Bakaus's Impeccable,
+impeccable.style — a separate design skill, not installed here.)*
+
 **Hard bans — do not reintroduce these, even as a quick placeholder:**
 
 - Purple/indigo → blue or violet → cyan gradients (the Tailwind-default look)
@@ -54,7 +85,10 @@ don't drift back toward defaults when adding new UI.
   Space Grotesk, Poppins) swapped in without a real reason
 - `rounded-2xl shadow-lg`-style defaults applied to every container by reflex
 - Glassmorphism, neon glow, decorative dot-grid or gradient-orb backgrounds
-- A colored accent strip down the left edge of a card
+- A *coloured* 3–4px accent strip down the left edge of a card (a hairline on
+  one side is the opposite of this and is the house style — see above)
+- A four-sided border around something that is not an object: list rows,
+  sections, blocks already inside a card
 - **An icon in a rounded square stacked above a heading** — this app had that
   on its start screen and it is the single most recognisable generated-UI tell
 - **An all-caps `<Eyebrow>` that restates the tab or heading right above it.**
