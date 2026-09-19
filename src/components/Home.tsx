@@ -33,49 +33,97 @@ const ICONS: Record<PanelId, ReactNode> = Object.fromEntries(
 
 const GROUP_ORDER: ToolGroup[] = ['holen', 'bild', 'video', 'ton', 'musik']
 
-function Tile({
+/**
+ * One way in, as a row rather than a card.
+ *
+ * The first version of this was the template every generated interface reaches
+ * for: an icon in a rounded square, a bold label under it, a grey line under
+ * that, boxed, repeated in an even four-column grid of identical heights. It
+ * is a feature-card wall, and this is not a feature-card wall — it is a menu
+ * of thirty things, which is a list. So the icon sits on the label line where
+ * it belongs, the boxes are gone, and the hairlines between rows come from the
+ * grid gap showing the surface underneath. Denser, faster to scan, and it
+ * stops claiming that each of the thirty is a headline.
+ */
+function Tool({
   icon,
   label,
   hint,
   onClick,
   dimmed = false,
-  accent = false,
 }: {
   icon: ReactNode
   label: string
   hint: string
   onClick: () => void
-  /** Applies to a file kind that is not in the session yet. */
   dimmed?: boolean
-  /** The two ways in. */
-  accent?: boolean
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`tile flex flex-col items-start gap-[9px] rounded-card p-[15px] text-left ring-1 ring-inset ${
-        accent ? 'bg-panel-soft ring-ink/15' : 'bg-raised ring-line'
-      } ${dimmed ? 'opacity-55' : ''}`}
+      // The separator is a 1px outline rather than a border or a grid gap.
+      // A gap showing the surface below draws the lines for free but paints
+      // the *empty* cells at the end of a group too, which came out as a grey
+      // placeholder slab. Outlines are drawn outside the box, so neighbours
+      // overlap into a single hairline, the outer ring clips the rest, and a
+      // cell that does not exist draws nothing.
+      className="press group flex flex-col items-start gap-[4px] outline outline-1 outline-line bg-raised px-[16px] py-[12px] text-left hover:bg-panel-soft"
     >
-      <span
-        className={`grid h-[34px] w-[34px] shrink-0 place-items-center rounded-nav ${
-          accent ? 'bg-ink text-on-ink' : 'bg-panel-soft text-ink'
-        }`}
-      >
-        {icon}
+      <span className="flex items-center gap-[8px] text-small font-semibold leading-[1.3] text-ink">
+        {/* When the tool needs a kind of file the session does not hold, only
+            the icon says so. Fading the whole row was the first attempt and it
+            measured at APCA Lc 48 against a Lc 60 target — a legibility cost
+            paid for a hint, on a row that works perfectly well anyway: every
+            panel opens on its own drop zone. */}
+        <span
+          className={`transition-colors duration-[var(--dur-fast)] group-hover:text-ink ${
+            dimmed ? 'text-muted/45' : 'text-muted'
+          }`}
+        >
+          {icon}
+        </span>
+        {label}
       </span>
-      <span className="text-[13.5px] font-semibold leading-[1.3] text-ink">{label}</span>
-      <span className="text-[12px] leading-[1.45] text-muted">{hint}</span>
+      <span className="text-small leading-[1.4] text-muted">{hint}</span>
+    </button>
+  )
+}
+
+/** The two ways a file gets here. These *are* headlines, so they stay big. */
+function Entry({
+  icon,
+  label,
+  hint,
+  onClick,
+}: {
+  icon: ReactNode
+  label: string
+  hint: string
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="tile flex flex-col items-start gap-[8px] rounded-card bg-panel-soft p-[20px] text-left ring-1 ring-inset ring-ink/15"
+    >
+      <span className="flex items-center gap-[8px] text-subheading text-ink">
+        {icon}
+        {label}
+      </span>
+      <span className="text-small leading-[1.45] text-muted">{hint}</span>
     </button>
   )
 }
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="flex flex-col gap-[10px]">
+    <section className="flex flex-col gap-[8px]">
       <h3 className="eyebrow">{title}</h3>
-      <div className="grid grid-cols-2 gap-[10px] sm:grid-cols-3 lg:grid-cols-4">{children}</div>
+      <div className="grid overflow-hidden rounded-card bg-raised ring-1 ring-line sm:grid-cols-2 lg:grid-cols-3">
+        {children}
+      </div>
     </section>
   )
 }
@@ -118,21 +166,21 @@ export function Home() {
   const have = useMemo(() => new Set(kinds), [kinds])
 
   return (
-    <div className="flex flex-col gap-[26px]">
+    <div className="flex flex-col gap-[24px]">
       {/* -- the opening question ------------------------------------------ */}
-      <div className="flex flex-col gap-[16px] rounded-card bg-raised p-[22px] ring-1 ring-inset ring-line elevate sm:p-[28px]">
-        <div className="flex flex-col gap-[14px] sm:flex-row sm:items-end sm:justify-between">
+      <div className="flex flex-col gap-[16px] rounded-card bg-raised p-[24px] ring-1 ring-inset ring-line elevate sm:p-[28px]">
+        <div className="flex flex-col gap-[16px] sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0">
             <p className="display-md">Was möchten Sie machen?</p>
-            <p className="mt-[6px] max-w-[54ch] text-body leading-[1.55] text-prose/85">
+            <p className="mt-[8px] max-w-[54ch] text-body leading-[1.55] text-prose/85">
               {active
                 ? `Offen: ${active.name} — ${KIND_LABEL[active.kind]}. Wählen Sie eine Kachel, oder tippen Sie, was Sie suchen.`
                 : 'Öffnen Sie eine Datei, oder holen Sie sich eine über eine Adresse. Gerechnet wird auf Ihrem Gerät.'}
             </p>
           </div>
-          <div className="flex shrink-0 flex-col items-start gap-[6px]">
+          <div className="flex shrink-0 flex-col items-start gap-[8px]">
             <OpenFileButton size="md" />
-            <span className="text-[12px] text-muted">
+            <span className="text-small text-muted">
               {assets > 0 ? `${assets} in der Sitzung` : 'oder ins Fenster ziehen'}
             </span>
           </div>
@@ -156,7 +204,7 @@ export function Home() {
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Suchen — „mp3 aus video“, „tonart“, „bild kleiner“ …"
             aria-label="Werkzeug suchen"
-            className="w-full rounded-pill border-0 bg-panel-soft py-[13px] pl-[42px] pr-[14px] text-body text-prose outline-none ring-1 ring-inset ring-line placeholder:text-muted focus:ring-ink"
+            className="w-full rounded-pill border-0 bg-panel-soft py-[12px] pl-[40px] pr-[16px] text-body text-prose outline-none ring-1 ring-inset ring-line placeholder:text-muted focus:ring-ink"
           />
         </div>
       </div>
@@ -164,22 +212,20 @@ export function Home() {
       {/* -- getting something in ------------------------------------------- */}
       {picker.input}
       {!searching ? (
-        <Section title="Zuerst eine Datei">
-          <Tile
-            accent
+        <section className="grid gap-[12px] sm:grid-cols-2">
+          <Entry
             icon={<ToolIcon>{ICONS.images}</ToolIcon>}
             label="Datei vom Gerät öffnen"
-            hint="Ton, Video, Bild — wird nirgendwohin hochgeladen"
+            hint="Ton, Video, Bild. Wird nirgendwohin hochgeladen."
             onClick={picker.open}
           />
-          <Tile
-            accent
+          <Entry
             icon={<ToolIcon>{ICONS.downloader}</ToolIcon>}
             label="Von einer Adresse laden"
-            hint="YouTube und andere Portale — läuft über einen Dienst"
+            hint="YouTube und direkte Datei-Adressen. Dieser eine Schritt läuft über einen Dienst."
             onClick={() => setPanel('downloader')}
           />
-        </Section>
+        </section>
       ) : null}
 
       {/* -- everything else, grouped --------------------------------------- */}
@@ -188,7 +234,7 @@ export function Home() {
         .map(({ group, actions }) => (
           <Section key={group} title={GROUP_LABEL[group]}>
             {actions.map((action) => (
-              <Tile
+              <Tool
                 key={action.id}
                 icon={<ToolIcon>{ICONS[action.panel]}</ToolIcon>}
                 label={action.label}
@@ -209,8 +255,8 @@ export function Home() {
         ))}
 
       {grouped.length === 0 ? (
-        <p className="rounded-card bg-raised p-[22px] text-center text-[13px] text-muted ring-1 ring-inset ring-line">
-          Nichts gefunden für „{query}“. Versuchen Sie es mit einem Format — „mp3“, „webp“, „gif“ —
+        <p className="rounded-card bg-raised p-[24px] text-center text-small text-muted ring-1 ring-inset ring-line">
+          Nichts gefunden für „{query}“. Versuchen Sie es mit einem Format („mp3“, „webp“, „gif“)
           oder mit dem, was herauskommen soll.
         </p>
       ) : null}

@@ -34,7 +34,7 @@ function SelectedPlayer() {
 
   if (!audio) {
     return (
-      <p className="text-[12px] text-muted">
+      <p className="text-small text-muted">
         {status === 'decoding' ? 'Wird für die Wiedergabe dekodiert…' : null}
         {status === 'error' ? 'Diese Datei lässt sich nicht abspielen.' : null}
       </p>
@@ -93,7 +93,7 @@ function WhatFits() {
   const fits = actionsFor(asset.kind)
   if (fits.length === 0) {
     return (
-      <p className="text-[12px] leading-[1.5] text-muted">
+      <p className="text-small leading-[1.5] text-muted">
         Für {KIND_LABEL[asset.kind]}-Dateien gibt es hier noch kein Werkzeug. Speichern und
         Verwalten geht trotzdem.
       </p>
@@ -101,18 +101,18 @@ function WhatFits() {
   }
 
   return (
-    <div className="flex flex-col gap-[7px]">
-      <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">
+    <div className="flex flex-col gap-[8px]">
+      <span className="text-micro font-semibold uppercase tracking-[0.08em] text-muted">
         Damit geht
       </span>
-      <div className="flex flex-wrap gap-[5px]">
+      <div className="flex flex-wrap gap-[4px]">
         {fits.map((action) => (
           <button
             key={action.id}
             type="button"
             title={action.hint}
             onClick={() => setPanel(action.panel)}
-            className={`press rounded-pill px-[10px] py-[5px] text-[12px] ${
+            className={`press rounded-pill px-[8px] py-[4px] text-small ${
               action.panel === panel
                 ? 'bg-ink text-on-ink'
                 : 'bg-panel-soft text-ink hover:bg-panel-mid'
@@ -135,20 +135,20 @@ export function AssetList() {
 
   if (assets.length === 0) {
     return (
-      <p className="text-[13px] leading-[1.55] text-muted">
+      <p className="text-small leading-[1.55] text-muted">
         Noch nichts geladen. Alles, was Sie hinzufügen, bleibt in diesem Tab.
       </p>
     )
   }
 
   return (
-    <div className="flex flex-col gap-[11px]">
+    <div className="flex flex-col gap-[12px]">
       <div className="flex items-baseline justify-between gap-3">
         <span className="eyebrow">Sitzung · {assets.length}</span>
         <button
           type="button"
           onClick={clearAssets}
-          className="rounded-nav text-[12px] text-muted underline-offset-2 hover:text-ink hover:underline"
+          className="rounded-nav text-small text-muted underline-offset-2 hover:text-ink hover:underline"
         >
           Alles verwerfen
         </button>
@@ -157,23 +157,23 @@ export function AssetList() {
       <SelectedPlayer />
       <WhatFits />
 
-      <ul className="flex flex-col gap-[7px]">
+      <ul className="flex flex-col gap-[8px]">
         {assets.map((asset) => {
           const active = asset.id === activeId
           return (
             <li key={asset.id}>
               <div
-                className={`flex items-center gap-[11px] rounded-card px-[14px] py-[11px] transition-colors ${
+                className={`flex items-center gap-[12px] rounded-card px-[16px] py-[12px] transition-colors ${
                   active ? 'bg-panel-mid' : 'bg-raised hover:bg-panel-soft'
                 }`}
               >
                 <button
                   type="button"
                   onClick={() => setActive(asset.id)}
-                  className="flex min-w-0 flex-1 flex-col items-start gap-[3px] text-left"
+                  className="flex min-w-0 flex-1 flex-col items-start gap-[4px] text-left"
                 >
                   <span className="w-full truncate text-body text-ink">{asset.name}</span>
-                  <span className="numeric text-[11px] text-muted">
+                  <span className="numeric text-micro text-muted">
                     {formatBytes(asset.sizeBytes)}
                     {asset.durationSeconds ? ` · ${formatDuration(asset.durationSeconds)}` : ''}
                     {asset.audio ? ` · ${asset.audio.sampleRate / 1000} kHz` : ''}

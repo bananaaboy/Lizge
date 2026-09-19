@@ -39,9 +39,9 @@ export function Mark({ className = 'h-[26px] w-[26px]' }: { className?: string }
 
 export function Logo() {
   return (
-    <span className="flex items-center gap-[10px] text-ink">
+    <span className="flex items-center gap-[8px] text-ink">
       <Mark />
-      <span className="font-display text-[24px] font-light tracking-[-0.01em]">Sondra</span>
+      <span className="font-display text-[25px] font-light tracking-[-0.01em]">Sondra</span>
     </span>
   )
 }
@@ -99,9 +99,9 @@ function PrivacyChip() {
         type="button"
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
-        className="press flex items-center gap-[7px] rounded-pill bg-panel-soft px-[12px] py-[7px] text-[12px] text-ink hover:bg-panel-mid"
+        className="press flex items-center gap-[8px] rounded-pill bg-panel-soft px-[12px] py-[8px] text-small text-ink hover:bg-panel-mid"
       >
-        <span className="pulse-dot h-[6px] w-[6px] rounded-pill bg-ink" aria-hidden />
+        <span className="h-[8px] w-[8px] rounded-pill bg-ink" aria-hidden />
         {/* A lone green dot says nothing. On a phone the claim shortens, it
             does not disappear — this is the one place the promise is made, and
             since there is now exactly one thing it does not cover, the badge
@@ -111,21 +111,21 @@ function PrivacyChip() {
       </button>
 
       {open ? (
-        <div className="rise elevate-lift absolute right-0 top-[calc(100%+9px)] z-20 w-[min(340px,calc(100vw-32px))] rounded-card bg-raised p-[21px] text-[13px] leading-[1.55] text-prose/85 ring-1 ring-inset ring-line">
-          <p className="mb-[11px] font-semibold text-ink">Wo Ihre Dateien bleiben</p>
-          <p className="mb-[11px]">
+        <div className="rise elevate-lift absolute right-0 top-[calc(100%+9px)] z-20 w-[min(340px,calc(100vw-32px))] rounded-card bg-raised p-[20px] text-small leading-[1.55] text-prose/85 ring-1 ring-inset ring-line">
+          <p className="mb-[12px] font-semibold text-ink">Wo Ihre Dateien bleiben</p>
+          <p className="mb-[12px]">
             Der Server liefert einmal HTML, JavaScript und WebAssembly aus. Danach rechnet nur noch
             Ihr Gerät. Es gibt keinen Upload-Endpunkt, keine Datenbank und keine Speicherung über das
             Schließen des Tabs hinaus.
           </p>
-          <p className="mb-[11px] text-muted">
+          <p className="mb-[12px] text-muted">
             Die eine Ausnahme ist „Herunterladen“. Ein Browser darf eine Datei nicht von einer
             fremden Seite holen, also übernimmt das ein kleiner Dienst dieser Seite: er bekommt die
             Adresse, die Sie eingeben, und reicht die Datei durch. Ihre eigenen Dateien sieht er nie,
             und gespeichert wird dort nichts.
           </p>
           <p className="text-muted">
-            Wer auch das nicht möchte, startet yt-dlp auf dem eigenen Rechner — der Downloader zeigt
+            Wer auch das nicht möchte, startet yt-dlp auf dem eigenen Rechner. Der Downloader zeigt
             unter „Mehr Wege“, wie. Dann geht wirklich alles hier.
           </p>
         </div>
@@ -146,9 +146,9 @@ export function Header({
   const hasAssets = useSession((state) => state.assets.length > 0)
   return (
     <header className="sticky top-0 z-30 border-b border-line bg-canvas/90 backdrop-blur-md">
-      <div className="shell flex items-center justify-between gap-[14px] py-[13px]">
+      <div className="shell flex items-center justify-between gap-[16px] py-[12px]">
         <Logo />
-        <div className="flex items-center gap-[9px]">
+        <div className="flex items-center gap-[8px]">
           {install.available ? (
             <Button size="sm" variant="ghost" onClick={() => void install.install()} className="hidden md:inline-flex">
               Installieren
@@ -172,10 +172,10 @@ export function DropOverlay({ visible }: { visible: boolean }) {
       aria-hidden
       className="pointer-events-none fixed inset-0 z-40 flex items-center justify-center bg-canvas/85 backdrop-blur-sm"
     >
-      <div className="pop elevate-lift rounded-card bg-raised px-[48px] py-[38px] text-center ring-2 ring-inset ring-ink">
-        <Mark className="mx-auto mb-[14px] h-[36px] w-[36px] text-ink" />
+      <div className="pop elevate-lift rounded-card bg-raised px-[48px] py-[40px] text-center ring-2 ring-inset ring-ink">
+        <Mark className="mx-auto mb-[16px] h-[36px] w-[36px] text-ink" />
         <p className="display-sm">Loslassen zum Öffnen</p>
-        <p className="mt-[6px] text-[13px] text-muted">Die Datei bleibt in diesem Tab.</p>
+        <p className="mt-[8px] text-small text-muted">Die Datei bleibt in diesem Tab.</p>
       </div>
     </div>
   )
@@ -189,8 +189,8 @@ export function SessionBar() {
 
   const totalBytes = assets.reduce((sum, asset) => sum + asset.sizeBytes, 0)
   return (
-    <div className="shell pt-[14px]">
-      <div className="rise flex flex-wrap items-center justify-between gap-[11px] rounded-card bg-panel-soft px-[16px] py-[9px] text-[12px]">
+    <div className="shell pt-[16px]">
+      <div className="rise flex flex-wrap items-center justify-between gap-[12px] rounded-card bg-panel-soft px-[16px] py-[8px] text-small">
         <p className="text-muted">
           <span className="numeric text-ink">{assets.length}</span>{' '}
           {assets.length === 1 ? 'Datei' : 'Dateien'} im Arbeitsspeicher dieses Tabs ·{' '}
@@ -211,7 +211,7 @@ export function SessionBar() {
 
 export function Footer() {
   return (
-    <footer className="shell mt-[36px] flex flex-wrap items-center justify-between gap-[14px] border-t border-line py-[24px] text-[12px] text-muted">
+    <footer className="shell mt-[36px] flex flex-wrap items-center justify-between gap-[16px] border-t border-line py-[24px] text-small text-muted">
       <p className="max-w-[60ch] leading-[1.6]">
         Statisch ausgeliefert, lokal gerechnet. Quelloffene Bausteine: FFmpeg (WebAssembly), ONNX
         Runtime Web, Wavesurfer, Tone.js.

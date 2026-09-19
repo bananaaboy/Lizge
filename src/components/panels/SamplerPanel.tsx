@@ -582,38 +582,37 @@ export function SamplerPanel({ theme }: { theme: ResolvedTheme }) {
   const confident = (tempo?.confidence ?? 0) >= 0.5
 
   return (
-    <div className="grid gap-[18px] lg:grid-cols-[minmax(0,1fr)_320px]">
-      <div className="flex flex-col gap-[18px]">
+    <div className="grid gap-[16px] lg:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="flex flex-col gap-[16px]">
         <Card tone="keylime" size="compact">
-          <div className="flex flex-wrap items-baseline justify-between gap-x-[14px] gap-y-[4px]">
-            <Eyebrow>Zerschneiden</Eyebrow>
-            <span className="text-[12px] text-muted">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-[16px] gap-y-[4px]">
+            <span className="text-small text-muted">
               Ziehen für einen eigenen Bereich, Tasten 1–4 · Q–R · A–F · Y–V zum Spielen.
             </span>
           </div>
 
           {!asset ? (
-            <div className="mt-[14px]">
+            <div className="mt-[16px]">
               <FileDrop />
             </div>
           ) : (
             <>
-              <div className="sondra-wave mt-[14px] overflow-x-auto rounded-card bg-panel-soft p-[14px]">
+              <div className="sondra-wave mt-[16px] overflow-x-auto rounded-card bg-panel-soft p-[16px]">
                 <div ref={containerRef} />
                 {!audio ? (
-                  <p className="py-[28px] text-center text-[13px] text-muted">
+                  <p className="py-[28px] text-center text-small text-muted">
                     {status === 'decoding' ? 'Wird dekodiert…' : 'Warten auf Audio'}
                   </p>
                 ) : null}
               </div>
 
               {/* ---- chop controls ------------------------------------------ */}
-              <div className="mt-[14px] grid gap-[11px] sm:grid-cols-3">
-                <div className="flex flex-col gap-[7px] rounded-card bg-panel-soft p-[14px] ring-1 ring-inset ring-ink/20">
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink">
+              <div className="mt-[16px] grid gap-[12px] sm:grid-cols-3">
+                <div className="flex flex-col gap-[8px] rounded-card bg-panel-soft p-[16px] ring-1 ring-inset ring-ink/20">
+                  <span className="text-micro font-semibold uppercase tracking-[0.08em] text-ink">
                     Nach Anschlägen
                   </span>
-                  <p className="text-[12px] leading-[1.4] text-muted">
+                  <p className="text-small leading-[1.4] text-muted">
                     Schneidet, wo etwas anfängt. Meistens die richtige Wahl.
                   </p>
                   <Button size="sm" onClick={chopTransients} disabled={!audio} className="mt-auto">
@@ -621,13 +620,13 @@ export function SamplerPanel({ theme }: { theme: ResolvedTheme }) {
                   </Button>
                 </div>
 
-                <div className="flex flex-col gap-[7px] rounded-card bg-panel-soft p-[14px]">
+                <div className="flex flex-col gap-[8px] rounded-card bg-panel-soft p-[16px]">
                   <div className="flex items-baseline justify-between gap-2">
-                    <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink">
+                    <span className="text-micro font-semibold uppercase tracking-[0.08em] text-ink">
                       Nach Takt
                     </span>
                     {tempo ? (
-                      <span className="numeric text-[11px] text-muted">
+                      <span className="numeric text-micro text-muted">
                         {confident ? 'erkannt' : 'unsicher'}
                       </span>
                     ) : null}
@@ -636,7 +635,7 @@ export function SamplerPanel({ theme }: { theme: ResolvedTheme }) {
                     <button
                       type="button"
                       onClick={() => setBpm((value) => Math.max(30, Math.round(value / 2)))}
-                      className="rounded-nav bg-panel-soft px-[9px] py-[4px] text-[12px] text-ink hover:bg-panel-mid"
+                      className="rounded-nav bg-panel-soft px-[8px] py-[4px] text-small text-ink hover:bg-panel-mid"
                       title="Halbes Tempo"
                     >
                       ÷2
@@ -649,12 +648,12 @@ export function SamplerPanel({ theme }: { theme: ResolvedTheme }) {
                       step={0.1}
                       onChange={(event) => setBpm(Number(event.target.value) || 120)}
                       aria-label="Tempo in BPM"
-                      className="numeric w-full min-w-0 rounded-nav bg-panel-soft px-[9px] py-[4px] text-center text-[13px] text-ink outline-none"
+                      className="numeric w-full min-w-0 rounded-nav bg-panel-soft px-[8px] py-[4px] text-center text-small text-ink outline-none"
                     />
                     <button
                       type="button"
                       onClick={() => setBpm((value) => Math.min(300, Math.round(value * 2)))}
-                      className="rounded-nav bg-panel-soft px-[9px] py-[4px] text-[12px] text-ink hover:bg-panel-mid"
+                      className="rounded-nav bg-panel-soft px-[8px] py-[4px] text-small text-ink hover:bg-panel-mid"
                       title="Doppeltes Tempo"
                     >
                       ×2
@@ -664,7 +663,7 @@ export function SamplerPanel({ theme }: { theme: ResolvedTheme }) {
                     value={division}
                     onChange={(event) => setDivision(Number(event.target.value))}
                     aria-label="Rasterweite"
-                    className="py-[7px] text-[13px]"
+                    className="py-[8px] text-small"
                   >
                     {GRID_DIVISIONS.map((entry) => (
                       <option key={entry.label} value={entry.value}>
@@ -677,15 +676,15 @@ export function SamplerPanel({ theme }: { theme: ResolvedTheme }) {
                   </Button>
                 </div>
 
-                <div className="flex flex-col gap-[7px] rounded-card bg-panel-soft p-[14px]">
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink">
+                <div className="flex flex-col gap-[8px] rounded-card bg-panel-soft p-[16px]">
+                  <span className="text-micro font-semibold uppercase tracking-[0.08em] text-ink">
                     Gleiche Teile
                   </span>
                   <Select
                     value={sliceCount}
                     onChange={(event) => setSliceCount(Number(event.target.value))}
                     aria-label="Anzahl der Teile"
-                    className="py-[7px] text-[13px]"
+                    className="py-[8px] text-small"
                   >
                     {[2, 4, 8, 12, 16].map((count) => (
                       <option key={count} value={count}>
@@ -699,14 +698,14 @@ export function SamplerPanel({ theme }: { theme: ResolvedTheme }) {
                 </div>
               </div>
 
-              <div className="mt-[11px] flex flex-wrap items-center gap-[9px]">
+              <div className="mt-[12px] flex flex-wrap items-center gap-[8px]">
                 <Button size="sm" variant="ghost" onClick={() => regionsRef.current?.clearRegions()}>
                   Leeren
                 </Button>
                 <Button size="sm" variant="ghost" onClick={stopAll}>
                   Stopp (Leertaste)
                 </Button>
-                <label className="ml-auto flex items-center gap-[9px] text-[12px] text-muted">
+                <label className="ml-auto flex items-center gap-[8px] text-small text-muted">
                   Zoom
                   <input
                     type="range"
@@ -731,13 +730,13 @@ export function SamplerPanel({ theme }: { theme: ResolvedTheme }) {
             <div className="flex flex-wrap items-baseline justify-between gap-3">
               <Eyebrow>Pads · {slices.length}</Eyebrow>
               {slices.length > MAX_PADS ? (
-                <span className="text-[12px] text-muted">
+                <span className="text-small text-muted">
                   Nur die ersten {MAX_PADS} liegen auf Tasten; exportiert werden alle.
                 </span>
               ) : null}
             </div>
 
-            <div className="mt-[14px] grid max-w-[420px] grid-cols-4 gap-[7px]">
+            <div className="mt-[16px] grid max-w-[420px] grid-cols-4 gap-[8px]">
               {slices.slice(0, MAX_PADS).map((slice, index) => {
                 const isPlaying = playing.includes(index)
                 const isSelected = slice.id === activeSlice
@@ -763,16 +762,16 @@ export function SamplerPanel({ theme }: { theme: ResolvedTheme }) {
                           : 'bg-raised text-ink hover:bg-panel-soft'
                     }`}
                   >
-                    <span className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.08em] opacity-70">
+                    <span className="flex items-center justify-between text-micro font-semibold uppercase tracking-[0.08em] opacity-70">
                       {PAD_KEYS[index]}
-                      <span className="flex gap-[3px] text-[10px]">
+                      <span className="flex gap-[4px] text-micro">
                         {slice.reverse ? '◀' : ''}
                         {slice.mode === 'loop' ? '∞' : slice.mode === 'gate' ? '⌷' : ''}
                         {slice.semitones !== 0 ? (slice.semitones > 0 ? `+${slice.semitones}` : slice.semitones) : ''}
                       </span>
                     </span>
                     {audio ? <PadWave audio={audio} from={slice.start} to={slice.end} /> : null}
-                    <span className="numeric text-[10px] opacity-70">
+                    <span className="numeric text-micro opacity-70">
                       {(slice.end - slice.start).toFixed(2)} s
                     </span>
                   </button>
@@ -780,7 +779,7 @@ export function SamplerPanel({ theme }: { theme: ResolvedTheme }) {
               })}
             </div>
 
-            <div className="mt-[14px] flex flex-wrap gap-[9px]">
+            <div className="mt-[16px] flex flex-wrap gap-[8px]">
               <Button size="sm" variant="quiet" onClick={() => renderAll('session')} disabled={rendering}>
                 {rendering ? 'Rendert…' : 'In die Sitzung'}
               </Button>
@@ -796,7 +795,7 @@ export function SamplerPanel({ theme }: { theme: ResolvedTheme }) {
             </div>
 
             {rendering ? (
-              <div className="mt-[11px]">
+              <div className="mt-[12px]">
                 <Progress value={progress} label="Wird gerendert" />
               </div>
             ) : null}
@@ -812,7 +811,7 @@ export function SamplerPanel({ theme }: { theme: ResolvedTheme }) {
       </div>
 
       {/* ---- sidebar: the selected pad, then defaults --------------------- */}
-      <aside className="flex flex-col gap-[18px]">
+      <aside className="flex flex-col gap-[16px]">
         <Card tone="mint" size="compact">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <Eyebrow>{selected ? `Pad ${selectedIndex + 1}` : 'Pad'}</Eyebrow>
@@ -820,7 +819,7 @@ export function SamplerPanel({ theme }: { theme: ResolvedTheme }) {
               <button
                 type="button"
                 onClick={applyToAll}
-                className="rounded-nav text-[12px] text-muted underline-offset-2 hover:text-ink hover:underline"
+                className="rounded-nav text-small text-muted underline-offset-2 hover:text-ink hover:underline"
               >
                 Auf alle übertragen
               </button>
@@ -828,7 +827,7 @@ export function SamplerPanel({ theme }: { theme: ResolvedTheme }) {
           </div>
 
           {selected ? (
-            <div className="mt-[11px] flex flex-col gap-[14px]">
+            <div className="mt-[12px] flex flex-col gap-[16px]">
               <div className="flex flex-wrap gap-[4px]">
                 <Badge>{formatTimecode(selected.start)}</Badge>
                 <Badge tone="forest">{(selected.end - selected.start).toFixed(3)} s</Badge>
@@ -899,7 +898,7 @@ export function SamplerPanel({ theme }: { theme: ResolvedTheme }) {
               )}
             </div>
           ) : (
-            <p className="mt-[11px] text-[13px] leading-[1.5] text-muted">
+            <p className="mt-[12px] text-small leading-[1.5] text-muted">
               Ein Pad anklicken oder eine Taste drücken, um es hier einzustellen. Tonhöhe, Pegel,
               Richtung und Verhalten gelten je Pad.
             </p>
@@ -908,7 +907,7 @@ export function SamplerPanel({ theme }: { theme: ResolvedTheme }) {
 
         <Card tone="cream" size="compact">
           <Eyebrow>Voreinstellungen</Eyebrow>
-          <div className="mt-[11px] flex flex-col gap-[14px]">
+          <div className="mt-[12px] flex flex-col gap-[16px]">
             <Field label="Neue Pads spielen als">
               <Select value={defaultMode} onChange={(event) => setDefaultMode(event.target.value as PlayMode)}>
                 {(Object.keys(MODE_LABELS) as PlayMode[]).map((mode) => (

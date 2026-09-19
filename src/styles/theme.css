@@ -15,8 +15,11 @@
    accent — active tab, filled button, heading, focus ring — and never the
    ground under a whole screen, so the eye lands on what can be clicked.
 
-   Faire Octave and Suisse Intl are licensed faces; Cormorant Garamond and
-   Inter stand in for them and are self-hosted under /public/fonts.
+   Faire Octave is a licensed face; Cormorant Garamond stands in for it. The
+   body face is Archivo — a grotesque in the same Swiss lineage the licensed
+   Suisse Int'l came from, with the square terminals and real tabular figures
+   a tool full of dB, LUFS, BPM and timecodes needs. Both are self-hosted
+   under /public/fonts.
    --------------------------------------------------------------------------- */
 @theme {
   /* Light palette — the values below double as the defaults. */
@@ -31,7 +34,9 @@
   --color-on-ink: #ffffff;
   --color-prose: #1b231d;
   --color-muted: #5d6c61;
-  --color-line: #e3e2dc;
+  /* Measured against both the canvas and a white card: the old #e3e2dc sat at
+     APCA Lc 7.5, half of the Lc 15 a non-text separator wants. */
+  --color-line: #d5d4c9;
 
   /* The editor stage. Deliberately dark in both themes and deliberately
      neutral: a picture judged against cream reads warm, against green reads
@@ -39,9 +44,9 @@
      is the one you are editing on. */
   --color-stage: #15181a;
   --color-stage-soft: #1d2124;
-  --color-stage-line: #2b3134;
+  --color-stage-line: #515a5d;
   --color-stage-ink: #eef1f0;
-  --color-stage-muted: #98a3a0;
+  --color-stage-muted: #aab5b2;
 
   /* Elevation. One soft shadow, used only to lift a card off the canvas. */
   --shadow-card: 0 1px 2px rgb(20 35 25 / 0.04), 0 4px 16px -8px rgb(20 35 25 / 0.1);
@@ -55,21 +60,35 @@
   --dur-slow: 420ms;
 
   --font-display: 'Faire Octave', 'Cormorant Garamond', ui-serif, Georgia, serif;
-  --font-sans: 'Suisse Intl', 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+  --font-sans: 'Suisse Intl', 'Archivo', ui-sans-serif, system-ui, -apple-system, 'Segoe UI',
     sans-serif;
   --font-mono: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, monospace;
 
-  --text-caption: 10px;
-  --text-caption--line-height: 1.61;
-  --text-body: 14px;
-  --text-body--line-height: 1.5;
-  --text-subheading: 18px;
-  --text-subheading--line-height: 1.3;
-  --text-heading-sm: 23px;
-  --text-heading-sm--line-height: 1.5;
-  --text-heading: 40px;
-  --text-heading--line-height: 1.35;
-  --text-heading--letter-spacing: -0.4px;
+  /* Type: a major third (×1.25) from a 16px body, and nothing between the
+     steps. The previous set — 10, 14, 18, 23, 40 — had three different ratios
+     in it, and in practice the app ignored it anyway: the five tokens were
+     used 17 times while hand-written sizes were used 220, including 9, 10,
+     10.5, 11, 12, 13, 13.5 and 14px all doing the same job. Sizes one pixel
+     apart are not a hierarchy, they are an unmade decision.
+
+     Three sizes carry the whole interface. `micro` is for the uppercase
+     labels only. `small` is the dense tool chrome — readouts, hints, chips —
+     where a professional tool earns its density. `body` is running prose, and
+     it is 16px because this is German: the words are long and 14px asks too
+     much of them. */
+  --text-micro: 11px;
+  --text-micro--line-height: 1.45;
+  --text-small: 13px;
+  --text-small--line-height: 1.5;
+  --text-body: 16px;
+  --text-body--line-height: 1.55;
+  --text-subheading: 20px;
+  --text-subheading--line-height: 1.35;
+  --text-heading-sm: 25px;
+  --text-heading-sm--line-height: 1.25;
+  --text-heading: 39px;
+  --text-heading--line-height: 1.15;
+  --text-heading--letter-spacing: -0.5px;
 
   --radius-card: 14px;
   --radius-nav: 7px;
@@ -95,17 +114,23 @@
     --color-panel-cool: #1c282c;
     /* Ink and its backdrop swap roles: the single saturated colour has to be
        the light one now, or headings and filled buttons would vanish. */
-    --color-ink: #7fd394;
-    --color-ink-hover: #a3e5b3;
+    /* Measured: at #7fd394 the text on a filled button came out at APCA
+       Lc 70, under the Lc 75 body-text floor, and no amount of darkening the
+       foreground fixed it — the button colour itself was the limit. */
+    --color-ink: #9ce0ad;
+    --color-ink-hover: #b6ecc4;
     --color-on-ink: #06110a;
     --color-prose: #e0e8e2;
-    --color-muted: #94a898;
-    --color-line: #25302a;
+    --color-muted: #a7bbab;
+    /* Measured: the old #25302a against a #141a16 card came out at APCA Lc
+       0.0 — not "subtle", invisible. Since a hairline ring is how every
+       container in this app is separated, dark mode had no card edges at all. */
+    --color-line: #525f55;
     --color-stage: #0d1011;
     --color-stage-soft: #161a1c;
-    --color-stage-line: #262c2f;
+    --color-stage-line: #515a5d;
     --color-stage-ink: #eef1f0;
-    --color-stage-muted: #98a3a0;
+    --color-stage-muted: #aab5b2;
 
     --shadow-card: 0 1px 2px rgb(0 0 0 / 0.5), 0 4px 16px -8px rgb(0 0 0 / 0.6);
     --shadow-lift: 0 2px 6px rgb(0 0 0 / 0.55), 0 12px 30px -12px rgb(0 0 0 / 0.72);
@@ -121,17 +146,17 @@
   --color-panel-mid: #202b23;
   --color-panel-strong: #2a3830;
   --color-panel-cool: #1c282c;
-  --color-ink: #7fd394;
-  --color-ink-hover: #a3e5b3;
+  --color-ink: #9ce0ad;
+  --color-ink-hover: #b6ecc4;
   --color-on-ink: #06110a;
   --color-prose: #e0e8e2;
-  --color-muted: #94a898;
-  --color-line: #25302a;
+  --color-muted: #a7bbab;
+  --color-line: #525f55;
   --color-stage: #0d1011;
   --color-stage-soft: #161a1c;
-  --color-stage-line: #262c2f;
+  --color-stage-line: #515a5d;
   --color-stage-ink: #eef1f0;
-  --color-stage-muted: #98a3a0;
+  --color-stage-muted: #aab5b2;
 
   --shadow-card: 0 1px 2px rgb(0 0 0 / 0.5), 0 4px 16px -8px rgb(0 0 0 / 0.6);
   --shadow-lift: 0 2px 6px rgb(0 0 0 / 0.55), 0 12px 30px -12px rgb(0 0 0 / 0.72);
@@ -185,7 +210,7 @@ body {
 @utility display-lg {
   font-family: var(--font-display);
   font-weight: 300;
-  font-size: clamp(30px, 4vw, 42px);
+  font-size: clamp(31px, 4vw, 39px);
   line-height: 1.2;
   letter-spacing: -0.03em;
   color: var(--color-ink);
@@ -194,7 +219,7 @@ body {
 @utility display-md {
   font-family: var(--font-display);
   font-weight: 300;
-  font-size: clamp(26px, 3.4vw, 36px);
+  font-size: clamp(25px, 3.4vw, 31px);
   line-height: 1.3;
   letter-spacing: -0.01em;
   color: var(--color-ink);
@@ -203,8 +228,8 @@ body {
 @utility display-sm {
   font-family: var(--font-display);
   font-weight: 300;
-  font-size: 23px;
-  line-height: 1.35;
+  font-size: 25px;
+  line-height: 1.25;
   color: var(--color-ink);
 }
 

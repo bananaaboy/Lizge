@@ -211,3 +211,131 @@ export async function resolveYoutube(id) {
     streams,
   }
 }
+
+/* -------------------------------------------------------------------------- */
+/* A provider, when the deployment has one                                     */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * The way past what YouTube hands a bare server.
+ *
+ * Measured, and the measurement is why this exists: asked directly, YouTube
+ * gives a server the progressive stream and nothing else — picture and sound
+ * in one file, 360p, and for some videos not even that. Everything above it
+ * runs over SABR and has no address to fetch. A provider is a service that has
+ * already solved that (its own extractors, its own addresses, residential
+ * egress), and it also speaks to the fifty other portals this file never will.
+ *
+ * It is deliberately *not* hard-coded. Baking in a stranger's instance would
+ * send every address a visitor types to a third party they never chose, and it
+ * would rot the day that instance goes down. So the deployment names one:
+ *
+ *   SONDRA_PROVIDER_URL   a cobalt-compatible endpoint
+ *   SONDRA_PROVIDER_KEY   its Api-Key, if it wants one
+ *
+ * With one set it is tried first and answers most things at full resolution.
+ * Without one, everything still works — just within the limits above, and the
+ * panel says which of the two answered.
+ */
+const PROVIDER = (process.env.SONDRA_PROVIDER_URL || '').trim().replace(/\/$/, '')
+const PROVIDER_KEY = (process.env.SONDRA_PROVIDER_KEY || '').trim()
+
+export function hasProvider() {
+  return PROVIDER.length > 0
+}
+
+const QUALITY_LABEL = {
+  audio: 'Nur Ton',
+  mute: 'Video ohne Ton',
+  auto: 'Video mit Ton',
+}
+
+/** Turns one cobalt item into the shape the browser already understands. */
+function providerStream(url, filename, mode) {
+  const ext = (filename?.split('.').pop() || (mode === 'audio' ? 'mp3' : 'mp4')).toLowerCase()
+  const video = mode !== 'audio'
+  return {
+    id: `provider-${mode}`,
+    label: QUALITY_LABEL[mode] ?? 'Datei',
+    hasVideo: video,
+    hasAudio: mode !== 'mute',
+    width: null,
+    height: null,
+    ext,
+    mime: video ? `video/${ext === 'webm' ? 'webm' : 'mp4'}` : `audio/${ext === 'mp3' ? 'mpeg' : ext}`,
+    bytes: null,
+    token: sign(url),
+  }
+}
+
+/**
+ * Asks the provider once per download mode.
+ *
+ * Three small requests rather than one, because cobalt answers a single mode
+ * per call and "the video" and "just the sound" are the two things people
+ * actually want — offering only one of them would mean going somewhere else
+ * for the other.
+ */
+export async function resolveViaProvider(target, signal) {
+  if (!PROVIDER) return null
+
+  const headers = {
+    'content-type': 'application/json',
+    accept: 'application/json',
+  }
+  if (PROVIDER_KEY) headers.authorization = `Api-Key ${PROVIDER_KEY}`
+
+  const streams = []
+  let filename = null
+  let failure = null
+
+  for (const mode of ['auto', 'audio']) {
+    let answer
+    try {
+      const response = await fetch(PROVIDER, {
+        method: 'POST',
+        headers,
+        signal,
+        body: JSON.stringify({
+          url: target,
+          videoQuality: '1080',
+          audioFormat: 'mp3',
+          downloadMode: mode,
+          filenameStyle: 'basic',
+          disableMetadata: true,
+        }),
+      })
+      answer = await response.json()
+    } catch (cause) {
+      failure = String(cause?.message ?? cause)
+      continue
+    }
+
+    if (answer?.status === 'tunnel' || answer?.status === 'redirect') {
+      filename = filename ?? answer.filename ?? null
+      streams.push(providerStream(answer.url, answer.filename, mode))
+    } else if (answer?.status === 'picker' && Array.isArray(answer.picker)) {
+      // A gallery or a post with several attachments: every item is offered.
+      for (const [index, item] of answer.picker.entries()) {
+        if (!item?.url) continue
+        const stream = providerStream(item.url, item.url.split('/').pop(), item.type === 'photo' ? 'mute' : mode)
+        streams.push({ ...stream, id: `provider-${mode}-${index}`, label: `${stream.label} ${index + 1}` })
+      }
+    } else if (answer?.status === 'error') {
+      failure = answer?.error?.code ?? 'error.api'
+    }
+  }
+
+  if (streams.length === 0) {
+    return failure ? { error: failure } : null
+  }
+
+  return {
+    kind: 'provider',
+    title: (filename ?? 'Download').replace(/\.[^.]+$/, ''),
+    author: new URL(target).hostname,
+    durationSeconds: null,
+    thumbnail: null,
+    streams,
+  }
+}

@@ -170,19 +170,19 @@ export function AudioPreview({ sources, waveHeight = 56, className = '' }: Audio
   if (!active) return null
 
   return (
-    <div className={`flex flex-col gap-[9px] ${className}`}>
+    <div className={`flex flex-col gap-[8px] ${className}`}>
       {waveHeight > 0 ? (
         <div
           onClick={seek}
           role="presentation"
-          className="cursor-pointer rounded-nav bg-panel-soft px-[9px] py-[7px]"
+          className="cursor-pointer rounded-nav bg-panel-soft px-[8px] py-[8px]"
           title="Klicken zum Springen"
         >
           <Waveform audio={active.audio} height={waveHeight} position={position || null} />
         </div>
       ) : null}
 
-      <div className="flex flex-wrap items-center gap-[9px]">
+      <div className="flex flex-wrap items-center gap-[8px]">
         <button
           type="button"
           onClick={() => (playing ? pause() : play())}
@@ -201,12 +201,12 @@ export function AudioPreview({ sources, waveHeight = 56, className = '' }: Audio
           )}
         </button>
 
-        <span className="numeric shrink-0 text-[12px] text-muted">
+        <span className="numeric shrink-0 text-small text-muted">
           {formatTimecode(position)} / {formatTimecode(duration)}
         </span>
 
         {sources.length > 1 ? (
-          <div role="radiogroup" aria-label="Vergleich" className="ml-auto flex gap-[3px] rounded-pill bg-raised p-[3px]">
+          <div role="radiogroup" aria-label="Vergleich" className="ml-auto flex gap-[4px] rounded-pill bg-raised p-[4px]">
             {sources.map((entry) => {
               const isActive = entry.id === active.id
               return (
@@ -216,7 +216,7 @@ export function AudioPreview({ sources, waveHeight = 56, className = '' }: Audio
                   role="radio"
                   aria-checked={isActive}
                   onClick={() => switchTo(entry.id)}
-                  className={`rounded-pill px-[11px] py-[5px] text-[12px] transition-colors ${
+                  className={`rounded-pill px-[12px] py-[4px] text-small transition-colors ${
                     isActive ? 'bg-ink text-on-ink' : 'text-ink hover:bg-panel-mid'
                   }`}
                 >

@@ -87,7 +87,7 @@ function PanelTabs() {
         role="tablist"
         aria-label="Werkzeuge"
         onKeyDown={onKeyDown}
-        className="elevate flex gap-[4px] overflow-x-auto rounded-card bg-raised p-[6px] ring-1 ring-inset ring-line [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="elevate flex gap-[4px] overflow-x-auto rounded-card bg-raised p-[8px] ring-1 ring-inset ring-line [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {PANELS.map((entry) => {
           const active = entry.id === panel
@@ -99,7 +99,7 @@ function PanelTabs() {
               aria-selected={active}
               tabIndex={active ? 0 : -1}
               onClick={() => setPanel(entry.id)}
-              className={`press flex shrink-0 items-center gap-[8px] rounded-nav px-[14px] py-[10px] text-body ${
+              className={`press flex shrink-0 items-center gap-[8px] rounded-nav px-[12px] py-[8px] text-small ${
                 active ? 'bg-ink text-on-ink' : 'text-prose hover:bg-panel-soft'
               }`}
               title={entry.summary}
@@ -191,14 +191,14 @@ function MachineRow() {
       type="button"
       onClick={() => setOpen((value) => (value === id ? null : id))}
       aria-expanded={open === id}
-      className={`press flex items-center gap-[7px] rounded-pill px-[12px] py-[6px] text-[12px] ${
+      className={`press flex items-center gap-[8px] rounded-pill px-[12px] py-[8px] text-small ${
         open === id ? 'bg-ink text-on-ink' : 'text-muted hover:bg-panel-soft hover:text-ink'
       }`}
     >
       {label}
       {count ? (
         <span
-          className={`numeric rounded-pill px-[6px] text-[11px] ${
+          className={`numeric rounded-pill px-[8px] text-micro ${
             open === id ? 'bg-on-ink/20' : 'bg-panel-mid text-ink'
           }`}
         >
@@ -210,8 +210,8 @@ function MachineRow() {
 
   return (
     <div className="mt-[4px]">
-      <div className="flex flex-wrap items-center gap-[6px] border-t border-line pt-[12px]">
-        <span className="mr-[4px] text-[12px] text-muted">Unter der Haube</span>
+      <div className="flex flex-wrap items-center gap-[8px] border-t border-line pt-[12px]">
+        <span className="mr-[4px] text-small text-muted">Unter der Haube</span>
         {tab('system', 'Dieses Gerät')}
         {tab('log', 'Protokoll', logs.length)}
         {!ffmpeg.loaded ? (
@@ -222,40 +222,40 @@ function MachineRow() {
       </div>
 
       {open === 'system' ? (
-        <dl className="rise mt-[12px] grid gap-[16px] rounded-card bg-raised p-[18px] ring-1 ring-inset ring-line sm:grid-cols-2 lg:grid-cols-3">
+        <dl className="rise mt-[12px] grid gap-[16px] rounded-card bg-raised p-[16px] ring-1 ring-inset ring-line sm:grid-cols-2 lg:grid-cols-3">
           {entries.map((entry) => (
             <div key={entry.label} className="flex flex-col gap-[2px]">
-              <dt className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">
+              <dt className="text-micro font-semibold uppercase tracking-[0.08em] text-muted">
                 {entry.label}
               </dt>
-              <dd className="text-[14px] text-ink">{entry.value}</dd>
-              <p className="text-[12px] leading-[1.45] text-muted">{entry.note}</p>
+              <dd className="text-body text-ink">{entry.value}</dd>
+              <p className="text-small leading-[1.45] text-muted">{entry.note}</p>
             </div>
           ))}
         </dl>
       ) : null}
 
       {open === 'log' ? (
-        <div className="rise mt-[12px] rounded-card bg-raised p-[18px] ring-1 ring-inset ring-line">
+        <div className="rise mt-[12px] rounded-card bg-raised p-[16px] ring-1 ring-inset ring-line">
           {logs.length === 0 ? (
-            <p className="text-[13px] text-muted">Noch keine Einträge.</p>
+            <p className="text-small text-muted">Noch keine Einträge.</p>
           ) : (
             <>
               <div className="mb-[12px] flex justify-end">
                 <button
                   type="button"
                   onClick={clearLogs}
-                  className="press rounded-nav text-[12px] text-muted underline-offset-2 hover:text-ink hover:underline"
+                  className="press rounded-nav text-small text-muted underline-offset-2 hover:text-ink hover:underline"
                 >
                   Leeren
                 </button>
               </div>
-              <ol className="flex max-h-[260px] flex-col gap-[6px] overflow-y-auto font-mono text-[12px] leading-[1.5]">
+              <ol className="flex max-h-[260px] flex-col gap-[8px] overflow-y-auto font-mono text-small leading-[1.5]">
                 {logs
                   .slice()
                   .reverse()
                   .map((line) => (
-                    <li key={line.id} className="flex gap-[11px]">
+                    <li key={line.id} className="flex gap-[12px]">
                       <span className="numeric shrink-0 text-muted">
                         {new Date(line.at).toLocaleTimeString('de-DE')}
                       </span>
@@ -291,10 +291,10 @@ function NothingLoaded({ label, summary }: { label: string; summary: string }) {
 
   return (
     <Card tone="cream" className="rise">
-      <div className="mx-auto flex max-w-[460px] flex-col items-center gap-[18px] text-center">
+      <div className="mx-auto flex max-w-[460px] flex-col items-center gap-[16px] text-center">
         <div>
           <Eyebrow>{label}</Eyebrow>
-          <p className="mt-[7px] text-subheading text-ink">{summary}</p>
+          <p className="mt-[8px] text-subheading text-ink">{summary}</p>
           <p className="mt-[8px] text-body leading-[1.55] text-prose/85">
             Dafür braucht es erst eine Datei. Alles, was Sie hinzufügen, bleibt in diesem Tab.
           </p>
@@ -304,7 +304,7 @@ function NothingLoaded({ label, summary }: { label: string; summary: string }) {
           <FileDrop />
         </div>
 
-        <p className="text-[13px] text-muted">
+        <p className="text-small text-muted">
           Keine Datei zur Hand?{' '}
           <button
             type="button"
@@ -337,7 +337,7 @@ export function Dashboard({ theme }: { theme: ResolvedTheme }) {
     panel === 'audio'
 
   return (
-    <section id="studio" className="shell flex flex-col gap-[16px] py-[18px]">
+    <section id="studio" className="shell flex flex-col gap-[16px] py-[16px]">
       <PanelTabs />
 
       {/* Keyed on the panel so every switch replays the entrance rather than

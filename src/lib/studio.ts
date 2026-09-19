@@ -16,6 +16,15 @@
  * a tool that claims to be local and quietly makes a network call is worse
  * than one that never claimed it.
  *
+ * ## Three routes, in order
+ *
+ * A configured provider first — it reaches full resolution and the portals
+ * nothing here has an extractor for. Then YouTube asked directly, which on a
+ * server yields only the progressive stream (picture and sound together, as a
+ * rule 360p). Then any address that already points straight at a media file.
+ * The answer names which one it was, because "360p" and "1080p" are not a
+ * detail and neither is which company saw the address.
+ *
  * ## Why in chunks
  *
  * The service runs as a serverless function with a time limit of a minute or
@@ -41,7 +50,9 @@ export interface StudioStream {
 }
 
 export interface StudioResult {
-  kind: 'youtube' | 'direct'
+  /** Which of the three routes answered — the panel says so out loud. */
+  source?: 'provider' | 'youtube' | 'direct'
+  kind: 'youtube' | 'direct' | 'provider'
   title: string
   author: string | null
   durationSeconds: number | null

@@ -1184,6 +1184,25 @@ weitergereichten Adressen signiert; ohne die Variable greift eine Konstante,
 die genau so viel wert ist, wie sie kostet. Die Zulassungsliste im Proxy ist
 der eigentliche Zaun, die Signatur hält Gelegenheitsnutzung ab.
 
+Dazu, optional, ein **Anbieter** — und das ist der Weg an der 360p-Grenze
+vorbei:
+
+| Variable | Wofür |
+|---|---|
+| `SONDRA_PROVIDER_URL` | ein cobalt-kompatibler Endpunkt |
+| `SONDRA_PROVIDER_KEY` | dessen `Api-Key`, falls verlangt |
+
+Ist einer hinterlegt, fragt `api/resolve.js` ihn **zuerst**: er bringt volle
+Auflösung und die Portale, für die es hier keinen Extraktor gibt. Erst wenn er
+fehlt oder nichts findet, kommen die beiden eingebauten Wege dran. Welcher Weg
+geantwortet hat, steht beim Ergebnis im Panel — „Über den hinterlegten
+Anbieter", „YouTube direkt", „Direkte Datei-Adresse" —, weil das über die
+Auflösung entscheidet und darüber, wer die Adresse gesehen hat.
+
+Fest verdrahtet wird keiner. Eine fremde Instanz im Quelltext würde jede
+eingegebene Adresse an Dritte schicken, die sich niemand ausgesucht hat, und
+sie wäre an dem Tag kaputt, an dem diese Instanz abgeschaltet wird.
+
 Lokal ausprobieren lässt sich beides mit `npm run build && npm run
 dev:service` — `vite preview` kennt `api/` nicht, also liefert ein kleines
 Skript beides auf einem Port aus.
