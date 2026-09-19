@@ -10,3 +10,7 @@ dist-ssr
 
 # TypeScript incremental build state
 *.tsbuildinfo
+
+# Persönliche Harness-Einstellungen. Der Impeccable-Hook darin zeigt auf einen
+# absoluten Pfad dieses Rechners und wäre auf jedem anderen kaputt.
+.claude/settings.local.json

@@ -1,51 +1,92 @@
-# Sondra — Produktvermerk
+# Product
 
-Was eine spätere Sitzung wissen muss und weder dem Code noch der Git-Historie
-ansieht. Kurz halten: mehr Text ist nicht automatisch mehr Kontext. Veraltete
-Angaben hier sind schlimmer als fehlende — wenn sich etwas ändert, ändern.
+<!-- impeccable:product-schema 1 -->
 
-Die gestalterischen Entscheidungen stehen **nicht** hier, sondern in
-[CLAUDE.md](CLAUDE.md). Eine massgebliche Regeldatei, sonst driften zwei
-auseinander und ziehen künftige Arbeit in verschiedene Richtungen.
+Sondra — Produktvermerk. Was eine spätere Sitzung wissen muss und weder dem
+Code noch der Git-Historie ansieht. Kurz halten: mehr Text ist nicht
+automatisch mehr Kontext. Veraltete Angaben sind schlimmer als fehlende.
 
-## Publikum
+Überschriften englisch, damit die Werkzeuge sie finden; Inhalt deutsch, wie im
+ganzen Projekt. Die **gestalterischen** Entscheidungen stehen nicht hier,
+sondern in [CLAUDE.md](CLAUDE.md) — eine massgebliche Regeldatei, sonst driften
+zwei auseinander.
 
-Musikerinnen und Musiker, und daneben jede und jeder mit einer Datei und einer
-Aufgabe. Deutschsprachig. Fachvokabular wird **nicht** vorausgesetzt: „Spuren",
-„Lautheit" und „Harmonie" sind die Wörter derer, die schon wissen, worum es
-geht — die Oberfläche benennt deshalb das Ergebnis, nicht die Technik.
+## Platform
 
-## Hauptaufgabe
+web
+
+## Users
+
+Öffentlich, für Fremde. lizge.ch steht offen im Netz und wird von Leuten
+benutzt, die niemand kennt und denen niemand etwas erklären kann.
+
+Primär Musikerinnen und Musiker, daneben jede und jeder mit einer Datei und
+einer Aufgabe. Deutschsprachig. Fachvokabular wird **nicht** vorausgesetzt:
+„Spuren", „Lautheit" und „Harmonie" sind die Wörter derer, die schon wissen,
+worum es geht — die Oberfläche benennt deshalb das Ergebnis, nicht die Technik.
+
+Daraus folgt unmittelbar: **Erstbenutzung, leere Zustände und Fehlertexte
+müssen allein tragen.** Es gibt niemanden, den man fragen kann.
+
+## Product Purpose
 
 Eine Ton-, Video- oder Bilddatei hereinholen, damit etwas tun, das Ergebnis
-mitnehmen. Fast alles hier ist **Operate**: man kommt mit einem Vorhaben, nicht
-zum Stöbern.
+mitnehmen. Gelungen ist es, wenn jemand mit einem Vorhaben kommt und mit einer
+fertigen Datei geht, ohne etwas installiert oder hochgeladen zu haben.
 
 Was es nicht ist: keine DAW, kein Mehrspur-Schnitt, kein Projektformat. Eine
 Sitzung ist ein Tab, und das Schliessen des Tabs ist die Löschtaste.
 
-## Einschränkungen
+## Positioning
 
-Diese sind gesetzt, nicht verhandelbar, und mehrere davon sind ausdrücklich so
-gewünscht worden:
+Zwei Dinge zusammen, die ein Nachbarprodukt nicht beide ehrlich behaupten kann:
 
-- **Es wird nichts hochgeladen.** Gerechnet wird im Tab. Kein Upload-Endpunkt,
-  keine Datenbank, nichts überdauert das Schliessen.
-- **Die eine Ausnahme heisst „Herunterladen"** und wird benannt, *bevor* jemand
-  etwas eintippt — samt Proxy- und Haftungshinweis. Ein Werkzeug, das Lokalität
-  behauptet und still eine Netzanfrage macht, ist schlimmer als eines, das es
-  nie behauptet hat.
+1. **Es rechnet im Tab.** FFmpeg als WebAssembly, ONNX Runtime im Browser. Die
+   Dateien verlassen das Gerät nicht — kein Upload-Endpunkt, keine Datenbank.
+   Ein Umwandel-Dienst, der Dateien entgegennimmt, kann das nicht kopieren,
+   weil er sie entgegennimmt.
+2. **Die eine Ausnahme wird benannt, bevor jemand tippt.** „Herunterladen"
+   geht über einen Dienst, und das steht als Erstes im Feld, nicht in einer
+   Fussnote. Ein Werkzeug, das Lokalität behauptet und still eine Netzanfrage
+   macht, ist schlimmer als eines, das es nie behauptet hat.
+
+Dazu der Teil, den allgemeine Konverter nicht haben: Spuren trennen, Lautheit
+nach EBU R128 messen und angleichen, Tonart, Tempo, Akkorde und Melodie als
+MIDI, in Schnipsel zerlegen und auf Tasten legen.
+
+## Operating Context
+
+- **Eine Sitzung ist ein Tab.** Dateien werden hineingezogen oder geöffnet,
+  Ergebnisse gespeichert oder in die Sitzung übernommen. Nichts überdauert das
+  Schliessen; das ist Absicht und wird so gesagt.
+- **Bereitgestellt auf Vercel** unter `www.lizge.ch`. Die zwei
+  Serverfunktionen unter `api/` sind der einzige Teil, der nicht im Tab läuft.
+- **Optionaler Anbieter** über `SONDRA_PROVIDER_URL`, serverseitig hinterlegt.
+- **Optionale lokale Brücke:** wer volle Auflösung will, startet yt-dlp auf dem
+  eigenen Rechner — eine Datei und ein Doppelklick, beschrieben unter
+  „Mehr Wege".
+- Mehrkern-FFmpeg braucht Cross-Origin-Isolation; die Kopfzeilen dafür stehen
+  in `vercel.json`.
+
+## Capabilities and Constraints
+
+Gesetzt, nicht verhandelbar, mehrere davon ausdrücklich so gewünscht:
+
+- **Es wird nichts hochgeladen.** Kein Upload-Endpunkt, keine Datenbank, kein
+  `localStorage` für Medien.
 - **Nur rechtlich zulässige Downloads. Keine DRM-Umgehung.**
-- **Keine fremde Instanz fest verdrahtet.** Ein Anbieter wird über
-  `SONDRA_PROVIDER_URL` hinterlegt oder gar nicht. Sonst gingen alle
-  eingegebenen Adressen an Dritte, die sich niemand ausgesucht hat.
+- **Keine fremde Instanz fest verdrahtet.** Ein Anbieter wird über die
+  Umgebungsvariable hinterlegt oder gar nicht. Sonst gingen alle eingegebenen
+  Adressen an Dritte, die sich niemand ausgesucht hat.
 - **Kein kompletter Rewrite.** Schrittweise erweitern, keine vorhandene
   Funktion ohne guten Grund entfernen, Breaking Changes vermeiden.
-- Oberflächentexte **Deutsch**, Codekommentare **Englisch**.
+- Oberflächentexte **Deutsch**, Codekommentare **Englisch**. Keine i18n-Struktur
+  — Deutsch ist fest verdrahtet, und das ist derzeit kein Mangel, sondern eine
+  unentschiedene Frage.
 
-## Gemessene Grenzen, die Versprechen begrenzen
+### Gemessene Grenzen, die Versprechen begrenzen
 
-Nicht vermutet, sondern nachgemessen (September 2026). Wer hier etwas anderes
+Nachgemessen im September 2026, nicht vermutet. Wer hier etwas anderes
 verspricht, verspricht etwas Falsches:
 
 | | |
@@ -58,7 +99,52 @@ verspricht, verspricht etwas Falsches:
 Deshalb steht im Downloader, **welcher Weg geantwortet hat**: das entscheidet
 über die Auflösung und darüber, wer die Adresse gesehen hat.
 
-## Betrieb
+## Brand Commitments
 
-Bereitgestellt auf Vercel unter `www.lizge.ch`. Umgebungsvariablen und die
-Entwicklungsbefehle stehen am Ende von [CLAUDE.md](CLAUDE.md).
+- Das Produkt heisst **Sondra**. `lizge.ch` ist nur die Adresse, unter der es
+  liegt, und bleibt es; der Repository-Name „Lizge" ist Altlast. Überall in der
+  Oberfläche heisst es Sondra.
+- **Der Haftungshinweis beim Downloader ist verbindlich** und muss sichtbar
+  bleiben: dass es über einen Proxy läuft und dass dafür nicht gehaftet wird.
+- Vorhandene Assets: `public/favicon.svg`, `public/icon-192.png`,
+  `public/icon-512.png`, `public/icon-maskable.png`, dazu die Wortmarke im
+  Kopf (`Logo` in `AppShell.tsx`).
+
+## Evidence on Hand
+
+Was wirklich existiert und zitiert werden darf:
+
+- **Messungen statt Meinungen.** Die Kontrastwerte (APCA) und die Grenzen der
+  Download-Wege oben sind nachgemessen und im README festgehalten.
+- **Verifizierte Durchläufe:** Bild-, Video- und Tonoperationen sind mit
+  echten Dateien durchgespielt; ein Download über den Dienst lief mit
+  11 829 048 Bytes in Teilstücken durch.
+
+Was es **nicht** gibt und was keine spätere Sitzung erfinden darf: keine
+Nutzerzahlen, keine Testimonials, keine Fallstudien, keine Presse, keine
+Preisangaben, keine Vergleichswerte gegen andere Produkte. Wenn so etwas
+gebraucht wird, muss es beschafft werden, nicht ausgedacht.
+
+## Product Principles
+
+1. **Sag, wo die Dateien bleiben — besonders wenn die Antwort unbequem ist.**
+   Die eine Ausnahme wird gezählt und benannt, bevor jemand tippt.
+2. **Benenne das Ergebnis, nicht die Technik.** Wer mit einer Aufnahme und
+   einer Frage ankommt, kennt das Fachwort noch nicht.
+3. **Zeigen statt behaupten.** Grössen werden gemessen, nicht geschätzt;
+   Vorschau und Datei entstehen aus demselben Code.
+4. **Nichts ohne guten Grund entfernen.** Was jemand schon benutzt hat, bleibt
+   erreichbar — notfalls einen Klick tiefer, nicht gelöscht.
+5. **Versprich nur, was gemessen wurde.** Wo eine Grenze existiert, steht sie
+   in der Oberfläche statt in der Ausrede hinterher.
+
+## Accessibility & Inclusion
+
+Kein Standard formal vorgeschrieben, aber die Latte liegt fest und wird
+gemessen, nicht nach Augenmass gesetzt:
+
+- APCA: Fliesstext ≥ Lc 75, Sekundärtext ≥ Lc 60, Überschriften ≥ Lc 45,
+  Trennlinien und andere Nicht-Text-Elemente ≥ Lc 15.
+- Tastaturbedienung und sichtbare Fokusringe; Reiter reagieren auf Pfeiltasten.
+- `prefers-reduced-motion` neutralisiert jede Bewegung.
+- Offen und bewusst unentschieden: keine andere Sprache als Deutsch.
