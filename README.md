@@ -11,7 +11,7 @@ Reiterleiste ist der schlechteste Ort, um sie zu lernen.
 | Reiter | | |
 |---|---|---|
 | **Herunterladen** | Downloader | Direkte Links, HLS-Playlisten und — auf Wunsch — Portale |
-| **Umwandeln** | Konverter | FFmpeg als WebAssembly, zehn Ausgabeformate |
+| **Umwandeln** | Konverter | FFmpeg als WebAssembly, Ton und Video; die Ziele richten sich nach der Quelle |
 | **Ton** | — | Schneiden an der Wellenform, Blenden, Pegel, Stille, Tonhöhe, Tempo, Kanäle |
 | **Video** | — | Schneiden an der Zeitleiste, Ausschnitt, Drehen, Tempo, Ton herauslösen, GIF |
 | **Bilder** | — | Skalieren, zuschneiden, Farbe, umwandeln, Stapel als ZIP |

@@ -74,6 +74,7 @@ export function ConverterPanel() {
   const settings = useSession((state) => state.convert)
   const setConvert = useSession((state) => state.setConvert)
   const addAsset = useSession((state) => state.addAsset)
+  const setPanel = useSession((state) => state.setPanel)
   const log = useSession((state) => state.log)
 
   const [running, setRunning] = useState(false)
@@ -92,6 +93,49 @@ export function ConverterPanel() {
   const [preview, setPreview] = useState<import('../../lib/wav').AudioData | null>(null)
 
   const format = useMemo(() => findFormat(settings.formatId), [settings.formatId])
+
+  /**
+   * What this file can sensibly become.
+   *
+   * The picker used to offer all ten formats whatever was open, so a PNG sat
+   * in front of a target of „MP3" with a sample rate and a channel count
+   * underneath it. Pressing the button then handed FFmpeg an image and asked
+   * for an audio stream.
+   *
+   * A video may still become audio — dropping the picture is a real and
+   * wanted conversion — so it keeps both groups. Audio may not become video:
+   * there is no picture to invent.
+   */
+  const targetGroups = useMemo(() => {
+    const audio = OUTPUT_FORMATS.filter((f) => f.kind === 'audio')
+    if (asset?.kind === 'video') {
+      return [
+        { label: 'Video', formats: OUTPUT_FORMATS.filter((f) => f.kind !== 'audio') },
+        { label: 'Nur den Ton behalten', formats: audio },
+      ]
+    }
+    return [{ label: 'Audio', formats: audio }]
+  }, [asset?.kind])
+
+  const allowed = useMemo(
+    () => new Set(targetGroups.flatMap((group) => group.formats.map((f) => f.id))),
+    [targetGroups],
+  )
+
+  /* A target left over from the previous file is corrected rather than left to
+     fail at run time: opening a WAV after an MP4 must not keep „MP4" set. */
+  useEffect(() => {
+    if (!asset || asset.kind === 'image') return
+    if (!allowed.has(settings.formatId)) {
+      setConvert({ formatId: asset.kind === 'video' ? 'mp4' : 'mp3' })
+    }
+  }, [asset, allowed, settings.formatId, setConvert])
+
+  /* GIF is the one target with no audio stream at all, so every audio setting
+     below is meaningless for it — as they all were for an image. */
+  const targetHasAudio = format.kind === 'audio' || format.id === 'mp4' || format.id === 'webm'
+  /* GIF carries no audio but does carry pictures, so it wants size and rate. */
+  const targetIsMoving = format.kind === 'video' || format.id === 'gif'
 
   // Duration comes from a decode, which is worth doing only if the user opens
   // the trim controls — decoding a two-hour video to place a slider is absurd.
@@ -259,6 +303,22 @@ export function ConverterPanel() {
             <div className="mt-[28px]">
               <FileDrop />
             </div>
+          ) : asset.kind === 'image' ? (
+            /* FFmpeg has no still-image target here — only GIF, which is
+               pointless for a single frame. PNG, JPEG and WebP live in the
+               images tool, which decodes on a canvas and shows the result
+               before you save it. Saying so beats offering „MP3" for a PNG,
+               which is what stood here. */
+            <div className="mt-[28px] flex flex-col items-start gap-[12px]">
+              <Notice tone="info">
+                Dieses Werkzeug wandelt Ton und Video um. Für ein Bild macht das hier nichts
+                Sinnvolles — PNG, JPEG und WebP stellt „Bildformat ändern" um, mit Vorschau.
+              </Notice>
+              <Button onClick={() => setPanel('images')}>
+                Zu „Bildformat ändern"
+                <ArrowRight />
+              </Button>
+            </div>
           ) : (
             <>
               <div className="mt-[28px] grid gap-[16px] sm:grid-cols-2">
@@ -267,12 +327,9 @@ export function ConverterPanel() {
                     value={settings.formatId}
                     onChange={(event) => setConvert({ formatId: event.target.value })}
                   >
-                    {(['audio', 'video', 'image'] as const).map((kind) => (
-                      <optgroup
-                        key={kind}
-                        label={kind === 'audio' ? 'Audio' : kind === 'video' ? 'Video' : 'Bild'}
-                      >
-                        {OUTPUT_FORMATS.filter((f) => f.kind === kind).map((f) => (
+                    {targetGroups.map((group) => (
+                      <optgroup key={group.label} label={group.label}>
+                        {group.formats.map((f) => (
                           <option key={f.id} value={f.id}>
                             {f.label} — {f.hint}
                           </option>
@@ -282,7 +339,7 @@ export function ConverterPanel() {
                   </Select>
                 </Field>
 
-                {isLossy && !showVbr ? (
+                {targetHasAudio && isLossy && !showVbr ? (
                   <Field label="Audio-Bitrate">
                     <Select
                       value={settings.audioBitrateKbps}
@@ -297,7 +354,7 @@ export function ConverterPanel() {
                   </Field>
                 ) : null}
 
-                {showVbr ? (
+                {targetHasAudio && showVbr ? (
                   <Field
                     label="Qualität"
                     hint={settings.useVariableBitrate ? 'Variable Bitrate, 0 = beste' : undefined}
@@ -346,6 +403,7 @@ export function ConverterPanel() {
                   </Field>
                 ) : null}
 
+                {targetHasAudio ? (
                 <Field label="Abtastrate">
                   <Select
                     value={String(settings.sampleRate)}
@@ -363,7 +421,9 @@ export function ConverterPanel() {
                     ))}
                   </Select>
                 </Field>
+                ) : null}
 
+                {targetHasAudio ? (
                 <Field label="Kanäle">
                   <Select
                     value={String(settings.channels)}
@@ -378,9 +438,11 @@ export function ConverterPanel() {
                     <option value={2}>Stereo</option>
                   </Select>
                 </Field>
+                ) : null}
 
-                {format.kind === 'video' ? (
+                {targetIsMoving ? (
                   <>
+                    {format.kind === 'video' ? (
                     <Field label="Encoder-Preset" hint="Langsamer heißt kleiner bei gleicher Qualität.">
                       <Select
                         value={settings.videoPreset}
@@ -393,6 +455,7 @@ export function ConverterPanel() {
                         ))}
                       </Select>
                     </Field>
+                    ) : null}
                     <Field label="Höhe">
                       <Select
                         value={String(settings.videoHeight)}
@@ -403,7 +466,9 @@ export function ConverterPanel() {
                           })
                         }
                       >
-                        <option value="source">Wie Quelle</option>
+                        <option value="source">
+                          {format.id === 'gif' ? 'Wie Quelle (480p)' : 'Wie Quelle'}
+                        </option>
                         {[2160, 1440, 1080, 720, 480, 360].map((height) => (
                           <option key={height} value={height}>
                             {height}p
@@ -411,6 +476,32 @@ export function ConverterPanel() {
                         ))}
                       </Select>
                     </Field>
+
+                    {/* A GIF's size is decided by its frame rate as much as by
+                        its height, and twelve frames is what it falls back to.
+                        Hidden, that was a number nobody could reach. */}
+                    {format.id === 'gif' ? (
+                      <Field label="Bildrate" hint="Weniger Bilder heißt deutlich kleinere Datei.">
+                        <Select
+                          value={String(settings.frameRate)}
+                          onChange={(event) =>
+                            setConvert({
+                              frameRate:
+                                event.target.value === 'source' ? 'source' : Number(event.target.value),
+                            })
+                          }
+                        >
+                          <option value="source">Wie Quelle (12 fps)</option>
+                          {[24, 20, 15, 12, 10, 8].map((fps) => (
+                            <option key={fps} value={fps}>
+                              {fps} fps
+                            </option>
+                          ))}
+                        </Select>
+                      </Field>
+                    ) : null}
+
+                    {format.kind === 'video' ? (
                     <div className="sm:col-span-2">
                       <Slider
                         label="CRF"
@@ -426,6 +517,7 @@ export function ConverterPanel() {
                         Kompromiss.
                       </p>
                     </div>
+                    ) : null}
                   </>
                 ) : null}
               </div>
