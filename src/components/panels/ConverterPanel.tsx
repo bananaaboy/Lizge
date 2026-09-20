@@ -33,7 +33,7 @@ import {
   ArrowRight,
   Button,
   Card,
-  ClauseHead,
+  SectionHead,
   Field,
   Notice,
   Progress,
@@ -544,7 +544,7 @@ export function ConverterPanel() {
         {queue ? (
           <Card tone="slate">
             <div className="flex flex-wrap items-baseline justify-between gap-3">
-              <ClauseHead>Stapel</ClauseHead>
+              <SectionHead>Stapel</SectionHead>
               <span className="value text-small text-muted">
                 {queue.filter((item) => item.state === 'done').length} von {queue.length} fertig
               </span>
@@ -594,7 +594,7 @@ export function ConverterPanel() {
 
         {outcome ? (
           <Card tone="slate">
-            <ClauseHead>Ergebnis</ClauseHead>
+            <SectionHead>Ergebnis</SectionHead>
             <div className="mt-[16px] grid gap-[20px] rounded-card bg-raised p-[28px] sm:grid-cols-3">
               <Stat label="Größe" value={formatBytes(outcome.bytes.byteLength)} emphasis />
               <Stat

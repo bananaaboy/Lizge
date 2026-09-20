@@ -1,6 +1,6 @@
 ---
 name: Sondra
-description: Ein Medienstudio, das im Tab rechnet — und seine Oberfläche ist der Eichschein, den es ausstellt.
+description: Ein Medienstudio, das im Tab rechnet — ein ruhiges, flaches Blatt, auf dem jede Zahl gemessen ist.
 colors:
   canvas: "#f4f3ee"
   raised: "#ffffff"
@@ -61,11 +61,6 @@ typography:
     fontWeight: 400
     lineHeight: 1.5
     letterSpacing: "-0.02em"
-    fontFeature: "tabular-nums"
-  clause:
-    fontFamily: "'Courier Prime', ui-monospace, 'SF Mono', Menlo, monospace"
-    fontSize: "13px"
-    fontWeight: 400
     fontFeature: "tabular-nums"
   wordmark:
     fontFamily: "'Sondra Wordmark', ui-serif, Georgia, serif"
@@ -208,14 +203,21 @@ components:
 
 ## Overview
 
-**Creative North Star: „Der Eichschein"**
+**Creative North Star: „Das ruhige Blatt"**
 
-Sondra misst, und die Oberfläche ist das Protokoll, das dabei herauskommt. Ein
-Schweizer Prüfprotokoll nennt zuerst das Gerät, dann das Verfahren, dann das
-Datum, und erst danach einen einzigen Wert — und genau in dieser Reihenfolge
-beginnt hier jede Seite. Das ist keine Anmutung, sondern die eine Behauptung
-des Produkts in sichtbarer Form: jede Zahl in dieser App wurde gemessen statt
-geschätzt, und sie wurde auf dem Gerät der Besucherin gemessen.
+Sondra misst, und die Oberfläche soll dem nicht widersprechen: ruhig, flach,
+ohne Effekt, der etwas behauptet, was nicht gemessen wurde. Jede Zahl in dieser
+App wurde gemessen statt geschätzt, und sie wurde auf dem Gerät der Besucherin
+gemessen.
+
+Wie weit diese Haltung tragen darf, ist am 20.9.2026 an einem Fehlschlag
+geklärt worden. Der erste Wurf hiess „Der Eichschein" und nahm das Bild
+wörtlich: die Abschnitte hiessen „Prüfgegenstand" und „Verfügbare Verfahren",
+jede Überschrift trug eine Klauselnummer, und die Startseite empfing mit einem
+leeren Formular. Es war konsequent und es war unbenutzbar — beim ersten Blick
+des Nutzers verworfen. **Das Messen gehört in die Art, wie Zahlen berichtet
+werden, nicht in die Wörter auf der Tür.** Geblieben ist die Form, gegangen ist
+die Amtssprache.
 
 Daraus folgt alles Weitere, und zwar als Verzicht. Es gibt keine Karten: ein
 Formular hat keine Kästen, es hat Linien. Es gibt keine runden Ecken, weil eine
@@ -225,9 +227,9 @@ die wirklich darüber schweben. Getrennt wird durch eine gezogene Linie und
 durch Raum, nie durch einen Rahmen auf vier Seiten.
 
 Zwei Schriften teilen sich die Arbeit nach Bedeutung, nicht nach Geschmack.
-Public Sans ist das gedruckte Formular. Courier Prime ist das, was die Maschine
-nachträglich eingetragen hat: Messwerte, Dateinamen, Zeitmarken. Wer die beiden
-unterscheiden kann, sieht auf einen Blick, was das Formular fragt und was
+Public Sans setzt die Oberfläche. Courier Prime ist das, was die Maschine
+eingetragen hat: Messwerte, Dateinamen, Zeitmarken. Wer die beiden
+unterscheiden kann, sieht auf einen Blick, was die Seite fragt und was
 gefunden wurde. Die Serife der vorigen Welt ist aus dem System verschwunden und
 überlebt allein in der Wortmarke, als eigene Familie `Sondra Wordmark` — eine
 gegebene Zusage ist etwas anderes als eine Gewohnheit.
@@ -238,12 +240,13 @@ mit grosser Serifen-Schlagzeile — das war diese App vor dem Umbau.
 
 **Key Characteristics:**
 
-- Jede Fläche nennt, was gemessen wurde, womit und nach welchem Verfahren
+- Jede Zahl trägt, wie sie gemessen wurde — in der Zahl, nicht in der Überschrift
 - Keine Karten, keine runden Ecken, kein Schatten auf dem Blatt
-- Zwei Linienstärken statt Rahmen: die Haarlinie einer Tabelle, die schwerere Linie einer Klausel
-- Zwei Schriften, getrennt nach Bedeutung: gedrucktes Formular und eingetragener Wert
-- Klauselnummern sind Adressen — jede ist ein Anker und lässt sich zitieren
-- Zustand steht als Zeichen am Rand, nicht als Satz
+- Zwei Linienstärken statt Rahmen: die Haarlinie und die schwerere Abschnittslinie
+- Zwei Schriften, getrennt nach Bedeutung: Oberfläche und eingetragener Wert
+- Werkzeuge stehen als getöntes Kachelfeld, gruppiert und filterbar
+- Der Einstieg zeigt die nächste Handlung, nicht den Zustand der leeren Sitzung
+- Klartext statt Amtston: eine Überschrift heisst, was sie ist
 - Ein einziger gesättigter Farbwert, gemessene Kontraste in beiden Themen
 
 ## Colors
@@ -255,8 +258,8 @@ widerspricht beiden mit Absicht.
 ### Primary
 
 - **Waldtinte** (`{colors.ink}`): die einzige gesättigte Farbe im System und
-  die einzige Druckfarbe. Sie liegt auf Klauselnummern, auf den Linien, auf
-  Überschriften, auf dem Fokusring und auf der einen gefüllten Aktion je
+  die einzige Druckfarbe. Sie liegt auf den Linien, auf Überschriften, auf
+  Kachelsymbolen, auf dem Fokusring und auf der einen gefüllten Aktion je
   Abschnitt. Sie bedeutet genau eines: *hier können Sie etwas tun.*
 - **Waldtinte gedrückt** (`{colors.ink-hover}`): ausschliesslich der
   Hover-Zustand gefüllter Flächen. Nirgends im Ruhezustand.
@@ -283,7 +286,7 @@ widerspricht beiden mit Absicht.
   und wurde dafür verworfen.
 - **Haarlinie** (`{colors.line}`): die Linie einer Tabelle. Jede Trennung
   zwischen Zeilen, Feldern und Blöcken.
-- **Klausellinie** (`{colors.rule}`): die schwerere Linie, die einen Abschnitt
+- **Abschnittslinie** (`{colors.rule}`): die schwerere Linie, die einen Abschnitt
   eröffnet, und der Ring um ein ruhiges Bedienelement.
 
 ### Tertiary
@@ -297,7 +300,7 @@ widerspricht beiden mit Absicht.
 
 ### Named Rules
 
-**Die Tinte-wird-ausgegeben-Regel.** Tinte liegt auf Linien, Klauselnummern und
+**Die Tinte-wird-ausgegeben-Regel.** Tinte liegt auf Linien, Überschriften und
 der einen Aktion, um die ein Abschnitt bittet. Überall sonst ist die Seite
 Papier und Graphit. Deckt sie mehr als etwa ein Zehntel eines Bildschirms, ist
 sie keine Tinte mehr, sondern Farbe.
@@ -337,8 +340,8 @@ still.
 
 - **Display** (`display-lg`): die eine grosse Zeile einer Fläche. Steht in
   Tinte.
-- **Headline** (`display-md`): der Kopf einer Hauptklausel — „Prüfgegenstand",
-  „Verfügbare Verfahren". Steht in Tinte, neben seiner Klauselnummer.
+- **Headline** (`display-md`): der Kopf eines Hauptabschnitts — „Werkzeuge",
+  „Ton, Video und Bilder bearbeiten". Steht in Tinte.
 - **Title** (`display-sm`): Dialogtitel und Zwischenüberschriften.
 - **Body**: laufender Text und die grosse Schaltflächengrösse. 16 px, weil das
   hier Deutsch ist — lange Wörter, und 14 px verlangt ihnen zu viel ab.
@@ -351,16 +354,13 @@ still.
 - **Value** (`value`): was die Maschine gefunden hat. Rechtsbündig, mit
   Tabellenziffern, in eigener Spalte neben der Einheit. Erscheint in der
   Grösse der Zeile, in der es steht — meist Small oder Label.
-- **Clause** (`clause`): die Adresse einer Klausel, im linken Rand ausserhalb
-  der Textspalte, in Tinte.
 - **Wordmark**: das Wort „Sondra" im Kopf, in Gewicht 300. Sonst nirgends.
 
 ### Named Rules
 
 **Die Zwei-Schriften-Regel.** Courier Prime steht für etwas, das tatsächlich
-gefunden wurde: ein Messwert, ein Dateiname, eine Zeitmarke, eine
-Klauselnummer. Nie als Kostüm für „technisch". Was das Formular fragt, steht in
-Public Sans.
+gefunden wurde: ein Messwert, ein Dateiname, eine Zeitmarke. Nie als Kostüm
+für „technisch". Was die Oberfläche selbst sagt, steht in Public Sans.
 
 **Die Sechs-Stufen-Regel.** Eine grosse Terz ab 16 px, genau sechs Stufen,
 nichts dazwischen. Die Vorgängerwelt erklärte fünf Stufen und schrieb daneben
@@ -385,9 +385,7 @@ links und rechts einen Rand von 21 px.
 Alles komponiert als gerasterte zweispaltige Tabelle: Beschriftung links, Wert
 rechtsbündig, Einheit in eigener schmaler Spalte (`w-[4ch]` bis `w-[6ch]`), so
 dass eine Spalte von Werten von oben nach unten gelesen werden kann.
-Klauselnummern sitzen in einer eigenen Randspalte (`w-[4ch]`/`w-[5ch]`)
-ausserhalb der Textspalte und bilden eine durchgehende senkrechte Achse über
-die ganze Seite. Daneben steht, wo eine Zeile einen Zustand hat, das Randzeichen
+Wo eine Zeile einen Zustand hat, steht in einer eigenen Randspalte das Randzeichen
 in derselben Achse.
 
 Fliesstext, Listeneinträge und Beschreibungen sind auf **34em** gedeckelt.
@@ -408,12 +406,16 @@ sehen, Werkzeug wählen, einstellen.
 
 ### Named Rules
 
-**Die Adressregel.** Eine Klauselnummer wird nur gesetzt, wenn sie eine Adresse
-ist: sie rendert als Verweis auf den eigenen Anker, ist aus der Adresszeile
-kopierbar und führt beim Einfügen wieder dorthin. Eine Nummer, die nur
-schmückt, ist verboten. Die Nummern stammen aus einer festen Liste, nicht aus
-der Reihenfolge einer gefilterten Darstellung — eine Nummer, die sich beim
-Tippen verschiebt, ist keine Adresse.
+**Die Klartext-Regel.** Eine Überschrift heisst, was der Abschnitt ist, in der
+Sprache der Leserin: „Werkzeuge", nicht „Verfügbare Verfahren". Sie-Form und
+nüchterner Ton bleiben — Behördendeutsch war nie dasselbe wie Sachlichkeit.
+Diese Regel steht hier, weil der erste Wurf genau daran gescheitert ist.
+
+**Die Keine-Zierziffer-Regel.** Abschnitte tragen keine Nummern. Der Vorgänger
+nummerierte 1.1 bis 1.3.4 durch und verteidigte das damit, dass jede Nummer ein
+Anker sei; als Bild war es Rauschen auf jeder Zeile. Tiefe Verweise bleiben
+trotzdem möglich: jede Kachel behält ihre `id`, nur steht sie nicht mehr
+gedruckt daneben.
 
 **Die 34em-Regel.** Die Textspalte wird nicht breiter, weil das Fenster es
 wurde. Die Einheit ist `em` und nicht `ch`: ein `ch` ist die Breite der Null und
@@ -462,7 +464,7 @@ Unterschied ist nicht Dekoration:
 - Die **Haarlinie** (`border-t border-line`, 1 px) ist die Linie einer Tabelle.
   Sie steht zwischen Zeilen, über einem Feld, über einem aufklappbaren
   Unterpunkt.
-- Die **Klausellinie** (`border-t-2 border-rule`, 2 px) eröffnet einen
+- Die **Abschnittslinie** (`border-t-2 border-rule`, 2 px) eröffnet einen
   Abschnitt und schliesst die Kopfzeile nach unten ab.
 
 Eine Linie steht immer **auf einer Seite** — auf der, die dem zugewandt ist,
@@ -470,7 +472,7 @@ wovon getrennt wird. Eine Regel über dem ersten Eintrag ist zugleich die
 Oberkante der Gruppe, also braucht die Gruppe keinen Kasten. Wo ein Umriss
 wirklich gebraucht wird, weil eine Fläche eine eigene Mechanik hat — das
 Eingabefeld, der Editorrahmen, die Reiterleiste —, ist es ein
-`ring-1 ring-inset` in Haarlinien- oder Klausellinienstärke, kein `border`
+`ring-1 ring-inset` in Haarlinien- oder Abschnittslinienstärke, kein `border`
 und kein Schatten.
 
 **Symbole**: der projekteigene Strichsatz, 16 px in `components/panelMeta.tsx`,
@@ -487,7 +489,7 @@ und erst ganz zuletzt ein Umriss — und der nur für eine Fläche mit eigener
 Mechanik.
 
 **Die Zwei-Stärken-Regel.** Es gibt genau zwei Linien: die Haarlinie der
-Tabelle und die schwerere Linie der Klausel. Beide sind eigene Farbtokens und
+Tabelle und die schwerere Linie, die einen Abschnitt eröffnet. Beide sind eigene Farbtokens und
 keine Deckkraft auf Tinte — dieselbe Tinte bei 25 % mass sich auf Papier bei
 APCA Lc 25 und im dunklen Thema bei Lc 7.
 
@@ -496,12 +498,12 @@ APCA Lc 25 und im dunklen Thema bei Lc 7.
 ### Buttons
 
 - **Shape:** eckig, ohne Radius, ohne Schatten.
-- **Primary:** gefüllte Tinte. Die eine Aktion, um die ein Abschnitt bittet —
-  ein Formular hat eine Stelle, an der unterschrieben wird. Sie steht am Fuss
-  ihrer Klausel, rechts an der Wertspalte ausgerichtet.
-- **Quiet:** Feldweiss mit Klausellinien-Ring. Eine gerasterte Fläche, die man
+- **Primary:** gefüllte Tinte. Die eine Aktion, um die ein Abschnitt bittet.
+  Auf der Startseite steht sie dort, wo die Leserin nach dem ersten Satz
+  hinsieht — nicht am Fuss einer Tabelle.
+- **Quiet:** Feldweiss mit Abschnittslinien-Ring. Eine gerasterte Fläche, die man
   auch drücken kann.
-- **Ghost:** ein Wort im laufenden Text, unterstrichen in Klausellinie; beim
+- **Ghost:** ein Wort im laufenden Text, unterstrichen in Abschnittslinie; beim
   Zeigen wechselt die Unterstreichung auf Tinte.
 - **Hover / Active / Focus:** Farbwechsel in `--dur-fast`; ein Versatz von 1 px
   nach unten, nur bei feinem Zeiger (`press`). Fokus ist ein 2-px-Ring in Tinte
@@ -519,7 +521,7 @@ APCA Lc 25 und im dunklen Thema bei Lc 7.
 
 Es gibt **keine Karte**. `Card` ist der Name der Komponente, nicht ihrer Form:
 
-- **`cream` / `keylime`** sind Abschnitte des Blattes — eine Klausellinie über
+- **`cream` / `keylime`** sind Abschnitte des Blattes — eine Abschnittslinie über
   die volle Breite, darunter Luft, darunter der Inhalt. Kein Grund, kein
   Rahmen, kein Schatten.
 - **`mint` / `sage` / `slate`** sind Blöcke, die *in* einen Abschnitt gesetzt
@@ -546,19 +548,19 @@ Es gibt **keine Karte**. `Card` ist der Name der Komponente, nicht ihrer Form:
 ### Navigation
 
 - **Reiterleiste** (`PanelTabs`): eine waagerechte Liste auf Feldweiss mit
-  Haarlinien-Ring, jeder Reiter mit seiner Nummer in der Klauselschrift davor.
-  Ausgewählt ist gefüllte Tinte; die Nummer wechselt dann auf `on-ink/70`.
+  Haarlinien-Ring. Ausgewählt ist gefüllte Tinte. Die Reiter trugen einmal
+  Nummern von 1 bis 10; sie sind mit allen anderen Zierziffern gefallen.
   Pfeiltasten wechseln den Reiter, der gewählte bleibt der einzige mit
   `tabIndex 0`, und die Ränder blenden nur dort aus, wo wirklich noch etwas
   hinter ihnen liegt.
 - **Werkzeugschiene** (`Rail`): senkrecht 84 px breit auf Feldweiss, Symbol
   über Beschriftung in Label-Grösse; ein Werkzeug mit geänderter Einstellung
   trägt ein 5-px-Quadrat oben rechts. Unter 1024 px waagerecht.
-- **Kopfzeile:** klebt oben, Klausellinie nach unten, Grund `canvas/95` mit
-  Unschärfe. Links die Wortmarke, darunter drei Schlüssel/Wert-Zeilen —
-  Gerät, Verfahren, Stand. Ein Prüfschein nennt das Instrument, bevor er einen
-  Wert nennt, und welcher Browser mit wie vielen Kernen rechnet, entscheidet
-  hier tatsächlich, was die Werte darunter wert sind.
+- **Kopfzeile:** klebt oben, schwerere Linie nach unten, Grund `canvas/95` mit
+  Unschärfe. Links die Wortmarke, rechts die Schalter. Sie trug einmal drei
+  Schlüssel/Wert-Zeilen — Gerät, Verfahren, Stand —, und die sind gefallen:
+  Gerät und Kerne stehen bereits unter „Dieses Gerät", das Datum sagte nichts,
+  und der Lokal-Chip daneben sagte den Rest schon.
 
 ### Signature Components
 
@@ -572,13 +574,13 @@ Einheit in eigener Spalte, Haarlinie oben. Der Wert steht in der Wertschrift und
 spielt beim Erscheinen einmal `pop` — eine Zahl, die gerade errechnet wurde,
 darf einmal auffallen.
 
-**Der Klauselkopf (`ClauseHead`).** Benennt einen Bereich, den die Leserin sonst
+**Der Abschnittskopf (`SectionHead`).** Benennt einen Bereich, den die Leserin sonst
 nicht benennen könnte — „Zielwerte", „Ergebnis", „Nächstbeste". Er *ist* die
 Überschrift, keine Zeile darüber. Kein Kasten, keine Versalien; die Linie
 darüber trennt.
 
-**Der Vermerk (`Notice`).** Eine Anmerkung zum Befund: Klausellinie oben,
-Randzeichen, Text. Kein farbiges Feld ringsum — ein Prüfschein annotiert, er
+**Der Vermerk (`Notice`).** Eine Anmerkung zum Befund: Abschnittslinie oben,
+Randzeichen, Text. Kein farbiges Feld ringsum — die Seite annotiert, sie
 umrandet die Annotation nicht.
 
 **Die Unterklausel (`Reveal`).** Der genaue FFmpeg-Aufruf, das Analysefenster,
@@ -586,12 +588,13 @@ die zweitbeste Tonart. Haarlinie oben, `+` / `−` in der Wertschrift. Sichtbar
 kostet es alle anderen für die Lebensdauer der App; gefaltet kostet es einen
 Klick, einmal.
 
-**Die Verfahrenszeile (`Tool`).** Eine Zeile des nummerierten Index, Haarlinie
-oben, Symbol auf der Beschriftungszeile, Hinweis darunter. Passt ein Verfahren
-nicht zur geöffneten Datei, sagt das allein die Symbolfarbe (`faint`) — und
-auch das erst, wenn überhaupt etwas geöffnet ist. Ersetzt hat sie ein
-gleichmässiges Raster identisch grosser Kacheln mit je einem Symbol im
-abgerundeten Quadrat über der Überschrift.
+**Die Werkzeugkachel (`Tool`).** Ein getöntes Feld (`panel-mid`, im Hover
+`panel-strong`), Symbol oben, Beschriftung, Hinweis darunter. Die Tönung gibt
+der Kachel ihre Kante — kein Rahmen auf vier Seiten, kein Schatten, keine
+Rundung. Passt ein Werkzeug nicht zur geöffneten Datei, sagt das allein die
+Symbolfarbe (`faint`), und auch das erst, wenn überhaupt etwas geöffnet ist.
+Der Hinweistext steht in `prose` statt `muted`: auf der Tönung der Kachel mass
+sich `muted` im dunklen Thema bei APCA Lc 59.3 gegen einen Boden von 60.
 
 **Der Editorrahmen (`EditorShell`).** Feldweiss mit Haarlinien-Ring: Kopfzeile
 mit Dateiname und den Aktionen auf das ganze Dokument, dann Schiene · Bühne ·
@@ -622,10 +625,9 @@ Kurven (`--ease-out`, `--ease-settle`); alles nur Transform und Deckkraft, und
 - **Do** jede Grösse aus den sechs Typo-Tokens nehmen und jeden Abstand aus dem
   4-px-Raster.
 - **Do** Courier Prime nur dort setzen, wo die Maschine etwas eingetragen hat:
-  Messwert, Dateiname, Zeitmarke, Klauselnummer.
-- **Do** jeder Klauselnummer einen Anker geben, auf den sie selbst verweist,
-  und sie aus einer festen Liste nehmen statt aus der gerade sichtbaren
-  Reihenfolge.
+  Messwert, Dateiname, Zeitmarke.
+- **Do** eine Überschrift so benennen, wie die Leserin die Sache nennt, und
+  prüfen, ob das Wort ausserhalb dieses Projekts jemand sagt.
 - **Do** Zustand als Zeichen in die Randspalte setzen und den Klartext über
   `aria-label` und `title` mitliefern.
 - **Do** Kontraste in beiden Themen rechnen, bevor eine Palettenänderung als
@@ -641,12 +643,12 @@ Kurven (`--ease-out`, `--ease-settle`); alles nur Transform und Deckkraft, und
   Übergangslösung; `pill` gehört dem Schalterknauf.
 - **Don't** einem Element auf dem Blatt einen Schatten geben. `elevate-lift`
   gehört dem, was wirklich darüber schwebt.
-- **Don't** eine Klauselnummer setzen, die nirgendwohin führt, oder eine, die
-  sich beim Tippen in der Suche verschiebt.
+- **Don't** einen Abschnitt nummerieren. 1.1, 1.2.1 und ihresgleichen sind
+  gefallen; sie machten eine Werkzeugliste zu einem Rechtstext.
 - **Don't** Courier Prime als Kostüm für „technisch" verwenden — nicht für
   Überschriften, Beschriftungen oder Fliesstext.
 - **Don't** Cormorant Garamond ausserhalb der Wortmarke einsetzen, und keinen
-  Anzeigeschnitt einführen, den ein Prüfschein nicht hätte.
+  Anzeigeschnitt einführen, den ein nüchternes Werkzeug nicht hätte.
 - **Don't** Inter, Roboto, system-ui oder eine „sichere Alternative" (Geist,
   Space Grotesk, Poppins) als Fliesstextschrift einsetzen.
 - **Don't** eine Pixelgrösse von Hand schreiben, wo ein Typo-Token existiert,
@@ -656,5 +658,9 @@ Kurven (`--ease-out`, `--ease-settle`); alles nur Transform und Deckkraft, und
 - **Don't** ein Symbol in ein abgerundetes Quadrat über eine Überschrift
   stapeln, eine versale Beschriftung setzen, die den Reiter darüber wiederholt,
   oder einen pulsierenden Punkt auf eine Angabe legen, die sich nie ändert.
-- **Don't** dreissig Verfahren als gleichmässiges Raster identischer Kacheln
-  zeigen. Es ist eine Liste, und ein nummerierter Index ist ihre Form.
+- **Don't** Amtsdeutsch als Sachlichkeit ausgeben. „Prüfgegenstand",
+  „Verfügbare Verfahren", „Prüfmittel" — alle drei standen hier einmal und
+  sind gefallen. Wenn ein Wort nach Formular klingt, ist es das falsche.
+- **Don't** die Startseite mit dem Zustand der leeren Sitzung eröffnen. Sie
+  stand einmal als Tabelle aus drei leeren Feldern da; das Erste auf dem
+  Schirm ist die nächste Handlung.

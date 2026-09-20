@@ -19,28 +19,41 @@ die veraltete gewinnt dann den nächsten Edit.
 
 Am 20.9.2026 wurde die visuelle Welt mit Impeccable **ersetzt**, nicht
 aufpoliert. Nur die Farben waren gesetzt; Typografie, Aufbau, Raster und
-Formensprache sind neu. Die Welt ist ein **Schweizer Prüfprotokoll**: das
-Produkt behauptet als Einziges, dass jede Zahl gemessen statt geschätzt ist,
-und ein Prüfbericht ist die Dokumentform, deren einziger Zweck genau das ist.
+Formensprache sind neu: ein ruhiges, flaches Blatt — keine Kästen, keine
+Rundungen, kein Schatten; getrennt wird mit Linie und Luft.
+
+Der erste Wurf nahm die Messhaltung zu wörtlich und setzte die Oberfläche in
+die Sprache eines Eichscheins: „Prüfgegenstand", „Verfügbare Verfahren", eine
+Klauselnummer auf jeder Überschrift, ein leeres Formular als Einstieg. Noch am
+selben Tag zurückgebaut, nachdem der Nutzer es gesehen hatte. Die Lehre steht
+hier, weil sie jeden weiteren Edit betrifft: **das Messen gehört in die Art,
+wie Zahlen berichtet werden, nicht in die Wörter auf der Tür.**
 
 Das Wenige, was hier stehen muss, weil es jeden Edit betrifft:
 
 - **Keine Karten, keine Rundungen, kein Schatten auf dem Blatt.** Abschnitte
   trennt eine Linie und Luft. Die eine Schattenstufe gehört dem, was wirklich
   über dem Blatt schwebt: Editor-Platte, Popover, Ablage-Overlay.
-- **Zwei Schriften, semantisch getrennt.** Public Sans setzt das gedruckte
-  Formular, Courier Prime das, was die Maschine eingetragen hat — Messwerte,
+- **Klartext, kein Amtston.** Überschriften heissen, was sie sind —
+  „Werkzeuge", nicht „Verfügbare Verfahren". Sie-Form und nüchterner Ton
+  bleiben; Behördendeutsch war nie dasselbe wie Sachlichkeit.
+- **Werkzeuge sind Kacheln.** Die dreissig Werkzeuge stehen als Kachelfeld,
+  nach Gruppen geordnet und über ein Feld filterbar — ausdrücklich so
+  gewünscht. Eine getönte Fläche gibt der Kachel ihre Kante, kein Rahmen und
+  kein Schatten.
+- **Der Einstieg zeigt die nächste Handlung,** nicht den Zustand der leeren
+  Sitzung. Ohne Datei steht dort, was die Seite kann und der Knopf, der sie
+  startet — kein Formular mit leeren Feldern.
+- **Zwei Schriften, semantisch getrennt.** Public Sans setzt die Oberfläche,
+  Courier Prime das, was die Maschine eingetragen hat — Messwerte,
   Dateinamen, Timecodes. Nie Mono als Kostüm für „technisch". Cormorant lebt
   für genau ein Wort weiter: die Wortmarke ist eine bindende Zusage.
-- **Klauselnummern sind Adressen.** Sie stammen aus einer festen Liste, nie
-  aus der gefilterten Renderreihenfolge, sie verlinken auf sich selbst, und
-  `location.hash` wird beim Laden aufgelöst. Eine Nummer, die das nicht kann,
-  gehört gelöscht — der Qualitätsboden verbietet dekorative Abschnittsnummern.
-- **Zustand ist eine Marke am Rand,** kein Satz: `—` nicht gemessen, `●`
-  gemessen, `!` ausserhalb der Toleranz.
+- **Zustand ist eine Marke am Rand,** kein Kasten: `Notice` annotiert mit
+  `●` und `!`, statt den Hinweis einzurahmen.
 - **Kontrast wird gemessen, nicht geschätzt.** APCA: Fliesstext ≥ Lc 75,
   sekundär ≥ 60, Überschriften ≥ 45, Nicht-Text ≥ 15. Eine Palettenänderung
-  ist erst fertig, wenn sie durch die Zahlen gelaufen ist.
+  ist erst fertig, wenn sie durch die Zahlen gelaufen ist — und eine getönte
+  Fläche verschiebt den Grund, auf dem gemessen wurde.
 - **Keine Eyebrows.** Ausnahmslos gebannt, auch als Platzhalter. Eine
   Überschrift trägt sich selbst. Versalien gibt es nur im `Badge`.
 - **Kein Bauteil ohne Fehler-, Leer-, Lade-, Fokus- und Deaktiviert-Zustand.**

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-20T15:44:34.197Z",
+  "generatedAt": "2026-09-20T16:05:24.303Z",
   "title": "Design System: Sondra",
   "extensions": {
     "colorMeta": {
@@ -9,7 +9,7 @@
         "displayName": "Waldtinte",
         "canonical": "#0f3e1c",
         "dark": "#9ce0ad",
-        "purpose": "Die einzige gesättigte Farbe und die einzige Druckfarbe: Linien, Klauselnummern, Überschriften, Fokusring und die eine gefüllte Aktion je Abschnitt.",
+        "purpose": "Die einzige gesättigte Farbe und die einzige Druckfarbe: Linien, Überschriften, Kachelsymbole, Fokusring und die eine gefüllte Aktion je Abschnitt.",
         "tonalRamp": [
           "#001300",
           "#002f0d",
@@ -196,7 +196,7 @@
         "displayName": "Nicht zutreffend",
         "canonical": "#b0b6af",
         "dark": "#7d8d81",
-        "purpose": "Ein Verfahren, das auf die geöffnete Datei nicht passt. Blasser als gedämpft, aber ausdrücklich noch lesbar.",
+        "purpose": "Ein Werkzeug, das auf die geöffnete Datei nicht passt. Blasser als gedämpft, aber ausdrücklich noch lesbar.",
         "tonalRamp": [
           "#080c08",
           "#222721",
@@ -227,7 +227,7 @@
       },
       "rule": {
         "role": "neutral",
-        "displayName": "Klausellinie",
+        "displayName": "Abschnittslinie",
         "canonical": "#bbc6ba",
         "dark": "#6b7a6e",
         "purpose": "Die schwerere Linie, die einen Abschnitt eröffnet. Eigenes Token statt Deckkraft auf Tinte, weil eine Deckkraft über dunklem Grund ihren Kontrast verliert.",
@@ -357,10 +357,6 @@
         "displayName": "Value",
         "purpose": "Was die Maschine gefunden hat: Messwert, Dateiname, Zeitmarke. Rechtsbündig, Tabellenziffern, Einheit in eigener Spalte. Nie als Kostüm für „technisch“."
       },
-      "clause": {
-        "displayName": "Clause",
-        "purpose": "Die Adresse einer Klausel, im linken Rand ausserhalb der Textspalte."
-      },
       "wordmark": {
         "displayName": "Wordmark",
         "purpose": "Cormorant Garamond, geladen als eigene Familie „Sondra Wordmark“ für genau ein Wort. Sonst nirgends erlaubt."
@@ -457,9 +453,9 @@
       "name": "Panel Tabs",
       "kind": "nav",
       "refersTo": "tab",
-      "description": "Die Werkzeugleiste. Jeder Reiter trägt seine Nummer in der Klauselschrift; ausgewählt ist gefüllte Tinte.",
-      "html": "<div class=\"ds-tabs\" role=\"tablist\"><button class=\"ds-tab ds-tab-on\" role=\"tab\" aria-selected=\"true\"><span class=\"ds-tab-no\">1</span>Start</button><button class=\"ds-tab\" role=\"tab\" aria-selected=\"false\"><span class=\"ds-tab-no\">2</span>Herunterladen</button><button class=\"ds-tab\" role=\"tab\" aria-selected=\"false\"><span class=\"ds-tab-no\">3</span>Umwandeln</button></div>",
-      "css": ".ds-tabs{display:flex;gap:4px;background:#ffffff;padding:4px;box-shadow:inset 0 0 0 1px #d5d4c9}.ds-tab{display:flex;align-items:center;gap:8px;background:transparent;color:#1b231d;font:400 13px/1.5 'Public Sans',ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;padding:8px 12px;border:none;border-radius:0;cursor:pointer;transition:background 130ms cubic-bezier(0.22, 0.72, 0.28, 1)}.ds-tab:hover{background:#eaf2e9}.ds-tab-no{font:400 13px/1 'Courier Prime',ui-monospace,'SF Mono',Menlo,monospace;font-variant-numeric:tabular-nums;color:#5d6c61}.ds-tab-on{background:#0f3e1c;color:#ffffff}.ds-tab-on .ds-tab-no{color:#ffffff;opacity:.7}.ds-tab:focus-visible{outline:2px solid #0f3e1c;outline-offset:2px}"
+      "description": "Die Werkzeugleiste. Ausgewählt ist gefüllte Tinte. Die Reiter trugen einmal Nummern; sie sind mit allen anderen Zierziffern gefallen.",
+      "html": "<div class=\"ds-tabs\" role=\"tablist\"><button class=\"ds-tab ds-tab-on\" role=\"tab\" aria-selected=\"true\">Start</button><button class=\"ds-tab\" role=\"tab\" aria-selected=\"false\">Herunterladen</button><button class=\"ds-tab\" role=\"tab\" aria-selected=\"false\">Umwandeln</button></div>",
+      "css": ".ds-tabs{display:flex;gap:4px;background:#ffffff;padding:4px;box-shadow:inset 0 0 0 1px #d5d4c9}.ds-tab{display:flex;align-items:center;gap:8px;background:transparent;color:#1b231d;font:400 13px/1.5 'Public Sans',ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;padding:8px 12px;border:none;border-radius:0;cursor:pointer;transition:background 130ms cubic-bezier(0.22, 0.72, 0.28, 1)}.ds-tab:hover{background:#eaf2e9}.ds-tab-on{background:#0f3e1c;color:#ffffff}.ds-tab:focus-visible{outline:2px solid #0f3e1c;outline-offset:2px}"
     },
     {
       "name": "Toggle",
@@ -478,32 +474,33 @@
       "css": ".ds-stats{font-family:'Public Sans',ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;background:#f4f3ee;max-width:420px}.ds-stat{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid #d5d4c9}.ds-stat-label{font:400 13px/1.5 'Public Sans',ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;color:#1b231d}.ds-stat-figure{display:flex;align-items:baseline;gap:4px;flex-shrink:0}.ds-stat-value{font:400 13px/1.5 'Courier Prime',ui-monospace,'SF Mono',Menlo,monospace;font-variant-numeric:tabular-nums;letter-spacing:-.02em;color:#0f3e1c}.ds-stat-unit{width:4ch;text-align:left;font:400 13px/1.5 'Public Sans',ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;color:#5d6c61}"
     },
     {
-      "name": "Clause Header",
+      "name": "Section Head",
       "kind": "custom",
       "refersTo": "entry-row",
-      "description": "Der Kopf einer Klausel: die Nummer im linken Rand, als Verweis auf den eigenen Anker, daneben die Überschrift. Die Linie darüber trennt — es gibt keinen Kasten.",
-      "html": "<div class=\"ds-clause\"><h2 class=\"ds-clause-head\"><a class=\"ds-clause-no\" href=\"#v-1.1\" title=\"Adresse dieser Klausel: 1.1\">1.1</a><span class=\"ds-clause-title\">Prüfgegenstand</span></h2><div class=\"ds-clause-row\"><span class=\"ds-clause-mark\">●</span><span class=\"ds-clause-key\">Datei</span><span class=\"ds-clause-val\">out_audio.wav</span></div><div class=\"ds-clause-row\"><span class=\"ds-clause-mark ds-clause-mark-blank\">—</span><span class=\"ds-clause-key\">Art</span><span class=\"ds-clause-val ds-clause-val-blank\">—</span></div></div>",
-      "css": ".ds-clause{font-family:'Public Sans',ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;background:#f4f3ee;max-width:420px}.ds-clause-head{display:flex;align-items:baseline;gap:12px;margin:0;padding-top:12px;border-top:2px solid #bbc6ba}.ds-clause-no{width:5ch;flex-shrink:0;font:400 13px/1 'Courier Prime',ui-monospace,'SF Mono',Menlo,monospace;font-variant-numeric:tabular-nums;color:#0f3e1c;text-decoration:none}.ds-clause-no:hover{text-decoration:underline}.ds-clause-title{font:700 25px/1.25 'Public Sans',ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;letter-spacing:-.015em;color:#0f3e1c}.ds-clause-row{display:flex;align-items:baseline;gap:12px;padding:6px 0;border-top:1px solid #d5d4c9;margin-top:12px}.ds-clause-row+.ds-clause-row{margin-top:0}.ds-clause-mark{width:1ch;text-align:center;flex-shrink:0;font:400 13px/1 'Courier Prime',ui-monospace,'SF Mono',Menlo,monospace;color:#0f3e1c;opacity:.7}.ds-clause-mark-blank{color:#5d6c61;opacity:1}.ds-clause-key{flex:1;font:400 13px/1.5 'Public Sans',ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;color:#5d6c61}.ds-clause-val{font:400 13px/1.5 'Courier Prime',ui-monospace,'SF Mono',Menlo,monospace;font-variant-numeric:tabular-nums;letter-spacing:-.02em;color:#0f3e1c;text-align:right}.ds-clause-val-blank{color:#5d6c61}"
+      "description": "Der Kopf eines Abschnitts: Linie darüber, Überschrift, darunter die Messzeilen. Kein Kasten, keine Nummer — Abschnittsnummern sind gefallen.",
+      "html": "<div class=\"ds-sec\"><h2 class=\"ds-sec-head\">Ergebnis</h2><div class=\"ds-sec-row\"><span class=\"ds-sec-key\">Datei</span><span class=\"ds-sec-val\">out_audio.wav</span></div><div class=\"ds-sec-row\"><span class=\"ds-sec-key\">Dauer</span><span class=\"ds-sec-val\">03:42.118</span></div></div>",
+      "css": ".ds-sec{font-family:'Public Sans',ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;background:#f4f3ee;max-width:420px}.ds-sec-head{margin:0;padding-top:12px;border-top:2px solid #bbc6ba;font:700 25px/1.25 'Public Sans',ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;letter-spacing:-.015em;color:#0f3e1c}.ds-sec-row{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:6px 0;border-top:1px solid #d5d4c9;margin-top:12px}.ds-sec-row+.ds-sec-row{margin-top:0}.ds-sec-key{font:400 13px/1.5 'Public Sans',ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;color:#5d6c61}.ds-sec-val{font:400 13px/1.5 'Courier Prime',ui-monospace,'SF Mono',Menlo,monospace;font-variant-numeric:tabular-nums;letter-spacing:-.02em;color:#0f3e1c;text-align:right}"
     },
     {
-      "name": "Procedure Row",
+      "name": "Tool Tile",
       "kind": "custom",
       "refersTo": "procedure-row",
-      "description": "Eine Zeile des nummerierten Verfahrensindex: Linie oben, Symbol auf der Beschriftungszeile, Hinweis darunter. Ersetzt das Raster identisch grosser Kacheln.",
-      "html": "<div class=\"ds-index\"><button class=\"ds-proc\"><span class=\"ds-proc-label\"><svg viewBox=\"0 0 16 16\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.35\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M2 3.2h12v9.6H2zM2 10l3.4-3.2 3 2.8 2.2-2 3.4 3.2M5.6 6.2a.9.9 0 100-1.8.9.9 0 000 1.8z\"/></svg>Bild zuschneiden</span><span class=\"ds-proc-hint\">Ausschnitt aufziehen</span></button><button class=\"ds-proc\"><span class=\"ds-proc-label\"><svg viewBox=\"0 0 16 16\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.35\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M2.6 5.4h9.2m0 0L9.4 3.1m2.4 2.3L9.4 7.7M13.4 10.6H4.2m0 0l2.4-2.3m-2.4 2.3l2.4 2.3\"/></svg>Bildformat ändern</span><span class=\"ds-proc-hint\">PNG, JPEG oder WebP</span></button></div>",
-      "css": ".ds-index{background:#f4f3ee;max-width:420px}.ds-proc{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;background:transparent;border:none;border-top:1px solid #d5d4c9;border-radius:0;padding:10px 4px;text-align:left;cursor:pointer;transition:background 130ms cubic-bezier(0.22, 0.72, 0.28, 1)}.ds-proc:hover{background:#eaf2e9}.ds-proc-label{display:flex;align-items:center;gap:8px;font:600 13px/1.3 'Public Sans',ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;color:#0f3e1c}.ds-proc-label svg{color:#5d6c61;flex-shrink:0;transition:color 130ms cubic-bezier(0.22, 0.72, 0.28, 1)}.ds-proc:hover .ds-proc-label svg{color:#0f3e1c}.ds-proc-hint{font:400 13px/1.4 'Public Sans',ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;color:#5d6c61}.ds-proc:focus-visible{outline:2px solid #0f3e1c;outline-offset:-2px}"
+      "description": "Eine Werkzeugkachel: getöntes Feld, Symbol oben, Beschriftung, Hinweis. Die Tönung gibt die Kante — kein Rahmen, kein Schatten, keine Rundung. Ersetzt den nummerierten Index, der hier zuvor stand.",
+      "html": "<div class=\"ds-tiles\"><button class=\"ds-tile\"><svg viewBox=\"0 0 16 16\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.35\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M2 3.2h12v9.6H2zM2 10l3.4-3.2 3 2.8 2.2-2 3.4 3.2M5.6 6.2a.9.9 0 100-1.8.9.9 0 000 1.8z\"/></svg><span class=\"ds-tile-label\">Bild zuschneiden</span><span class=\"ds-tile-hint\">Ausschnitt aufziehen</span></button><button class=\"ds-tile\"><svg viewBox=\"0 0 16 16\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.35\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M2.6 5.4h9.2m0 0L9.4 3.1m2.4 2.3L9.4 7.7M13.4 10.6H4.2m0 0l2.4-2.3m-2.4 2.3l2.4 2.3\"/></svg><span class=\"ds-tile-label\">Bildformat ändern</span><span class=\"ds-tile-hint\">PNG, JPEG oder WebP</span></button></div>",
+      "css": ".ds-tiles{display:grid;grid-template-columns:1fr 1fr;gap:8px;background:#f4f3ee;max-width:460px}.ds-tile{display:flex;flex-direction:column;align-items:flex-start;gap:6px;background:#e2ebe1;border:none;border-radius:0;padding:16px;text-align:left;cursor:pointer;transition:background 130ms cubic-bezier(0.22, 0.72, 0.28, 1)}.ds-tile:hover{background:#d2e4d1}.ds-tile svg{color:#0f3e1c;flex-shrink:0}.ds-tile-label{font:600 13px/1.3 'Public Sans',ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;color:#0f3e1c}.ds-tile-hint{font:400 13px/1.4 'Public Sans',ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;color:#1b231d}.ds-tile:focus-visible{outline:2px solid #0f3e1c;outline-offset:-2px}"
     }
   ],
   "narrative": {
-    "northStar": "Der Eichschein",
-    "overview": "Sondra misst, und die Oberfläche ist das Protokoll, das dabei herauskommt. Ein Schweizer Prüfprotokoll nennt zuerst das Gerät, dann das Verfahren, dann das Datum, und erst danach einen einzigen Wert — und genau in dieser Reihenfolge beginnt hier jede Seite. Das ist keine Anmutung, sondern die eine Behauptung des Produkts in sichtbarer Form: jede Zahl in dieser App wurde gemessen statt geschätzt, und sie wurde auf dem Gerät der Besucherin gemessen.\n\nDaraus folgt alles Weitere, und zwar als Verzicht. Es gibt keine Karten: ein Formular hat keine Kästen, es hat Linien. Es gibt keine runden Ecken, weil eine gerasterte Seite keine hat. Es gibt keinen Schatten auf dem Blatt, weil nichts auf dem Blatt liegt — die eine Tiefenstufe ist für die drei Dinge reserviert, die wirklich darüber schweben. Getrennt wird durch eine gezogene Linie und durch Raum, nie durch einen Rahmen auf vier Seiten.\n\nZwei Schriften teilen sich die Arbeit nach Bedeutung, nicht nach Geschmack. Public Sans ist das gedruckte Formular. Courier Prime ist das, was die Maschine nachträglich eingetragen hat: Messwerte, Dateinamen, Zeitmarken. Wer die beiden unterscheiden kann, sieht auf einen Blick, was das Formular fragt und was gefunden wurde. Die Serife der vorigen Welt ist aus dem System verschwunden und überlebt allein in der Wortmarke, als eigene Familie „Sondra Wordmark“ — eine gegebene Zusage ist etwas anderes als eine Gewohnheit.",
+    "northStar": "Das ruhige Blatt",
+    "overview": "Sondra misst, und die Oberfläche soll dem nicht widersprechen: ruhig, flach, ohne Effekt, der etwas behauptet, was nicht gemessen wurde. Jede Zahl in dieser App wurde gemessen statt geschätzt, und sie wurde auf dem Gerät der Besucherin gemessen.\n\nWie weit diese Haltung tragen darf, ist am 20.9.2026 an einem Fehlschlag geklärt worden. Der erste Wurf hiess „Der Eichschein“ und nahm das Bild wörtlich: die Abschnitte hiessen „Prüfgegenstand“ und „Verfügbare Verfahren“, jede Überschrift trug eine Klauselnummer, und die Startseite empfing mit einem leeren Formular aus drei Feldern. Es war konsequent und es war unbenutzbar — beim ersten Blick des Nutzers verworfen. Das Messen gehört in die Art, wie Zahlen berichtet werden, nicht in die Wörter auf der Tür.\n\nGeblieben ist die Form, gegangen ist die Amtssprache. Es gibt keine Karten, keine runden Ecken und keinen Schatten auf dem Blatt — die eine Tiefenstufe ist für die Dinge reserviert, die wirklich darüber schweben. Getrennt wird durch eine gezogene Linie und durch Raum. Die dreissig Werkzeuge stehen als getöntes Kachelfeld: die Tönung gibt der Kachel ihre Kante, ohne einen Rahmen auf vier Seiten zu ziehen.\n\nZwei Schriften teilen sich die Arbeit nach Bedeutung, nicht nach Geschmack. Public Sans setzt die Oberfläche. Courier Prime ist das, was die Maschine eingetragen hat: Messwerte, Dateinamen, Zeitmarken. Die Serife der vorigen Welt ist aus dem System verschwunden und überlebt allein in der Wortmarke, als eigene Familie „Sondra Wordmark“ — eine gegebene Zusage ist etwas anderes als eine Gewohnheit.",
     "keyCharacteristics": [
-      "Jede Fläche nennt, was gemessen wurde, womit und nach welchem Verfahren",
+      "Jede Zahl trägt, wie sie gemessen wurde — in der Zahl, nicht in der Überschrift",
       "Keine Karten, keine runden Ecken, kein Schatten auf dem Blatt",
-      "Zwei Linienstärken statt Rahmen: die Haarlinie einer Tabelle, die schwerere Linie einer Klausel",
-      "Zwei Schriften, getrennt nach Bedeutung: gedrucktes Formular und eingetragener Wert",
-      "Klauselnummern sind Adressen — jede ist ein Anker und lässt sich zitieren",
-      "Zustand steht als Zeichen am Rand, nicht als Satz",
+      "Zwei Linienstärken statt Rahmen: die Haarlinie und die schwerere Abschnittslinie",
+      "Zwei Schriften, getrennt nach Bedeutung: Oberfläche und eingetragener Wert",
+      "Werkzeuge stehen als getöntes Kachelfeld, gruppiert und filterbar",
+      "Der Einstieg zeigt die nächste Handlung, nicht den Zustand der leeren Sitzung",
+      "Klartext statt Amtston: eine Überschrift heisst, was sie ist",
       "Ein einziger gesättigter Farbwert, gemessene Kontraste in beiden Themen"
     ],
     "rules": [
@@ -539,7 +536,7 @@
       },
       {
         "name": "Die Kein-Anzeigeschnitt-Regel",
-        "body": "Überschriften sind dieselbe Grotesk, nur grösser und schwerer. Ein Prüfschein hat keine Anzeigeschrift, und die, die diese App hatte, steht auf jeder Liste von Schriften, nach denen ein Modell greift, ohne hinzusehen.",
+        "body": "Überschriften sind dieselbe Grotesk, nur grösser und schwerer. Ein nüchternes Werkzeug hat keine Anzeigeschrift, und die, die diese App hatte, steht auf jeder Liste von Schriften, nach denen ein Modell greift, ohne hinzusehen.",
         "section": "typography"
       },
       {
@@ -548,8 +545,13 @@
         "section": "typography"
       },
       {
-        "name": "Die Adressregel",
-        "body": "Eine Klauselnummer wird nur gesetzt, wenn sie eine Adresse ist: sie rendert als Verweis auf den eigenen Anker, ist aus der Adresszeile kopierbar und führt beim Einfügen wieder dorthin. Eine Nummer, die nur schmückt, ist verboten. Die Nummern stammen aus einer festen Liste, nicht aus der Reihenfolge einer gefilterten Darstellung — eine Nummer, die sich beim Tippen verschiebt, ist keine Adresse.",
+        "name": "Die Klartext-Regel",
+        "body": "Eine Überschrift heisst, was der Abschnitt ist, in der Sprache der Leserin: „Werkzeuge“, nicht „Verfügbare Verfahren“. Sie-Form und nüchterner Ton bleiben — Behördendeutsch war nie dasselbe wie Sachlichkeit. Die Regel steht hier, weil der erste Wurf genau daran gescheitert ist.",
+        "section": "layout"
+      },
+      {
+        "name": "Die Keine-Zierziffer-Regel",
+        "body": "Abschnitte tragen keine Nummern. Der Vorgänger nummerierte 1.1 bis 1.3.4 durch und verteidigte das damit, dass jede Nummer ein Anker sei; als Bild war es Rauschen auf jeder Zeile. Tiefe Verweise bleiben möglich: jede Kachel behält ihre id, nur steht sie nicht mehr gedruckt daneben.",
         "section": "layout"
       },
       {
@@ -574,7 +576,7 @@
       },
       {
         "name": "Die Zwei-Stärken-Regel",
-        "body": "Es gibt genau zwei Linien: die Haarlinie der Tabelle und die schwerere Linie der Klausel. Beide sind eigene Farbtokens und keine Deckkraft auf Tinte — dieselbe Tinte bei 25 % mass sich auf Papier bei APCA Lc 25 und im dunklen Thema bei Lc 7.",
+        "body": "Es gibt genau zwei Linien: die Haarlinie der Tabelle und die schwerere Linie, die einen Abschnitt eröffnet. Beide sind eigene Farbtokens und keine Deckkraft auf Tinte — dieselbe Tinte bei 25 % mass sich auf Papier bei APCA Lc 25 und im dunklen Thema bei Lc 7.",
         "section": "shapes"
       }
     ],
@@ -582,8 +584,8 @@
       "Do die Tinte für genau eine Bedeutung ausgeben: hier können Sie etwas tun. Höchstens ein Zehntel eines Bildschirms.",
       "Do mit Raum trennen, dann mit einer Tönung, dann mit einer Linie auf einer Seite — und einen Umriss nur für eine Fläche mit eigener Mechanik.",
       "Do jede Grösse aus den sechs Typo-Tokens nehmen und jeden Abstand aus dem 4-px-Raster.",
-      "Do Courier Prime nur dort setzen, wo die Maschine etwas eingetragen hat: Messwert, Dateiname, Zeitmarke, Klauselnummer.",
-      "Do jeder Klauselnummer einen Anker geben, auf den sie selbst verweist, und sie aus einer festen Liste nehmen statt aus der gerade sichtbaren Reihenfolge.",
+      "Do Courier Prime nur dort setzen, wo die Maschine etwas eingetragen hat: Messwert, Dateiname, Zeitmarke.",
+      "Do eine Überschrift so benennen, wie die Leserin die Sache nennt, und prüfen, ob das Wort ausserhalb dieses Projekts jemand sagt.",
       "Do Zustand als Zeichen in die Randspalte setzen und den Klartext über aria-label und title mitliefern.",
       "Do Kontraste in beiden Themen rechnen, bevor eine Palettenänderung als fertig gilt.",
       "Do jeden Zustand entwerfen: Fehler, leer, lädt, Fokus, deaktiviert."
@@ -592,14 +594,15 @@
       "Don't eine Karte bauen. Kein weisser Kasten mit Rahmen ringsum und Schatten darunter — Weiss markiert ein Feld oder eine Fläche mit eigener Mechanik, nicht ein Objekt auf dem Papier.",
       "Don't eine Ecke runden. „card“ und „nav“ stehen auf 0, und das ist keine Übergangslösung; „pill“ gehört dem Schalterknauf.",
       "Don't einem Element auf dem Blatt einen Schatten geben. „elevate-lift“ gehört dem, was wirklich darüber schwebt.",
-      "Don't eine Klauselnummer setzen, die nirgendwohin führt, oder eine, die sich beim Tippen in der Suche verschiebt.",
+      "Don't einen Abschnitt nummerieren. 1.1, 1.2.1 und ihresgleichen sind gefallen; sie machten eine Werkzeugliste zu einem Rechtstext.",
       "Don't Courier Prime als Kostüm für „technisch“ verwenden — nicht für Überschriften, Beschriftungen oder Fliesstext.",
       "Don't Cormorant Garamond ausserhalb der Wortmarke einsetzen, und keinen Anzeigeschnitt einführen, den ein Prüfschein nicht hätte.",
       "Don't Inter, Roboto, system-ui oder eine „sichere Alternative“ (Geist, Space Grotesk, Poppins) als Fliesstextschrift einsetzen.",
       "Don't eine Pixelgrösse von Hand schreiben, wo ein Typo-Token existiert, oder einen Abstand ausserhalb des Rasters.",
       "Don't den dunklen Modus aus dem hellen invertieren, und die Bühne überhaupt nicht umfärben.",
       "Don't ein Symbol in ein abgerundetes Quadrat über eine Überschrift stapeln, eine versale Beschriftung setzen, die den Reiter darüber wiederholt, oder einen pulsierenden Punkt auf eine Angabe legen, die sich nie ändert.",
-      "Don't dreissig Verfahren als gleichmässiges Raster identischer Kacheln zeigen. Es ist eine Liste, und ein nummerierter Index ist ihre Form."
+      "Don't Amtsdeutsch als Sachlichkeit ausgeben. „Prüfgegenstand“, „Verfügbare Verfahren“, „Prüfmittel“ — alle drei standen hier einmal und sind gefallen. Wenn ein Wort nach Formular klingt, ist es das falsche.",
+      "Don't die Startseite mit dem Zustand der leeren Sitzung eröffnen. Sie stand einmal als Tabelle aus drei leeren Feldern da; das Erste auf dem Schirm ist die nächste Handlung."
     ]
   }
 }

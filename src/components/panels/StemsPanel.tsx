@@ -26,7 +26,7 @@ import {
   Badge,
   Button,
   Card,
-  ClauseHead,
+  SectionHead,
   Field,
   Notice,
   Progress,
@@ -272,7 +272,7 @@ export function StemsPanel() {
         {stems ? (
           <Card tone="slate">
             <div className="flex flex-wrap items-baseline justify-between gap-3">
-              <ClauseHead>Spuren</ClauseHead>
+              <SectionHead>Spuren</SectionHead>
               <div className="flex flex-wrap items-center gap-[8px]">
                 {engine ? <Badge>{engine}</Badge> : null}
                 <Button size="sm" onClick={exportAll}>
@@ -349,7 +349,7 @@ export function StemsPanel() {
         <SessionCard />
 
         <Card tone="cream">
-          <ClauseHead>Neuronales Modell</ClauseHead>
+          <SectionHead>Neuronales Modell</SectionHead>
           <p className="mt-[8px] text-small leading-[1.55] text-prose/85">
             Optional. Ohne Modell rechnet das eingebaute Verfahren.
           </p>

@@ -48,7 +48,7 @@ import {
   Badge,
   Button,
   Card,
-  ClauseHead,
+  SectionHead,
   Field,
   Notice,
   Progress,
@@ -728,7 +728,7 @@ export function SamplerPanel({ theme }: { theme: ResolvedTheme }) {
         {slices.length > 0 ? (
           <Card tone="slate" size="compact">
             <div className="flex flex-wrap items-baseline justify-between gap-3">
-              <ClauseHead>Pads · {slices.length}</ClauseHead>
+              <SectionHead>Pads · {slices.length}</SectionHead>
               {slices.length > MAX_PADS ? (
                 <span className="text-small text-muted">
                   Nur die ersten {MAX_PADS} liegen auf Tasten; exportiert werden alle.
@@ -814,7 +814,7 @@ export function SamplerPanel({ theme }: { theme: ResolvedTheme }) {
       <aside className="flex flex-col gap-[16px]">
         <Card tone="mint" size="compact">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <ClauseHead>{selected ? `Pad ${selectedIndex + 1}` : 'Pad'}</ClauseHead>
+            <SectionHead>{selected ? `Pad ${selectedIndex + 1}` : 'Pad'}</SectionHead>
             {selected ? (
               <button
                 type="button"
@@ -906,7 +906,7 @@ export function SamplerPanel({ theme }: { theme: ResolvedTheme }) {
         </Card>
 
         <Card tone="cream" size="compact">
-          <ClauseHead>Voreinstellungen</ClauseHead>
+          <SectionHead>Voreinstellungen</SectionHead>
           <div className="mt-[12px] flex flex-col gap-[16px]">
             <Field label="Neue Pads spielen als">
               <Select value={defaultMode} onChange={(event) => setDefaultMode(event.target.value as PlayMode)}>

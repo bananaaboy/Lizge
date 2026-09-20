@@ -31,7 +31,7 @@ import {
   Badge,
   Button,
   Card,
-  ClauseHead,
+  SectionHead,
   Field,
   Notice,
   Progress,
@@ -336,7 +336,7 @@ export function HarmonyPanel() {
 
             {result.chords.length > 0 ? (
               <Card tone="mint" size="compact">
-                <ClauseHead>Akkorde · {result.chords.filter((span) => span.root !== null).length}</ClauseHead>
+                <SectionHead>Akkorde · {result.chords.filter((span) => span.root !== null).length}</SectionHead>
                 <div className="mt-[16px] flex flex-wrap gap-[4px]">
                   {result.chords.map((span, index) => (
                     <span
@@ -356,7 +356,7 @@ export function HarmonyPanel() {
             {result.notes.length > 0 ? (
               <Card tone="slate" size="compact">
                 <div className="flex flex-wrap items-baseline justify-between gap-3">
-                  <ClauseHead>Melodie · {result.notes.length} Noten</ClauseHead>
+                  <SectionHead>Melodie · {result.notes.length} Noten</SectionHead>
                   <span className="value text-small text-muted">
                     {midiName(Math.min(...result.notes.map((n) => n.midi)))} –{' '}
                     {midiName(Math.max(...result.notes.map((n) => n.midi)))} · {bpm} BPM
@@ -391,7 +391,7 @@ export function HarmonyPanel() {
       <aside className="flex flex-col gap-[16px]">
         {mode === 'detail' ? (
         <Card tone="mint" size="compact">
-          <ClauseHead>Einstellungen</ClauseHead>
+          <SectionHead>Einstellungen</SectionHead>
           <div className="mt-[12px] flex flex-col gap-[16px]">
             <Field label="Akkordfenster" hint="Kürzer folgt schnellen Wechseln, länger ist ruhiger.">
               <Select value={chordWindow} onChange={(event) => setChordWindow(Number(event.target.value))}>
@@ -445,7 +445,7 @@ export function HarmonyPanel() {
 
         {result && mode === 'detail' ? (
           <Card tone="cream" size="compact">
-            <ClauseHead>Nächstbeste</ClauseHead>
+            <SectionHead>Nächstbeste</SectionHead>
             <ul className="mt-[12px] flex flex-col gap-[8px] text-small">
               {result.key.scores.map((entry) => (
                 <li key={entry.label} className="flex items-baseline justify-between gap-3">
