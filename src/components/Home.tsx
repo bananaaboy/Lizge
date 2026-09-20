@@ -12,9 +12,17 @@
  * here and that is the point: thirty labelled doors, grouped, searchable, with
  * the two ways of getting a file in raised to the top because nothing else
  * works until one of them has happened.
+ *
+ * What this replaced, and why: a numbered index in the voice of a calibration
+ * certificate — "Prüfgegenstand", "Verfügbare Verfahren", a clause number on
+ * every heading, and an empty three-row form as the first thing a visitor
+ * met. The measuring metaphor belongs in how numbers are reported, not in the
+ * words on the door. A start screen's whole job is to make the next move
+ * obvious, and thirty identically weighted rows under an official heading did
+ * the opposite.
  */
 
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { useShallow } from 'zustand/shallow'
 
@@ -23,7 +31,6 @@ import { ACTIONS, GROUP_LABEL, searchActions, type ToolAction, type ToolGroup } 
 import { KIND_LABEL, useActiveAsset, useSession, type PanelId } from '../state/store'
 import { OpenFileButton } from './AppShell'
 import { PANELS, ToolIcon } from './panelMeta'
-import { Mark } from './ui/primitives'
 
 /* -------------------------------------------------------------------------- */
 
@@ -35,34 +42,18 @@ const ICONS: Record<PanelId, ReactNode> = Object.fromEntries(
 const GROUP_ORDER: ToolGroup[] = ['holen', 'bild', 'video', 'ton', 'musik']
 
 /**
- * The address of a group, fixed for good.
+ * One tool, as a tile.
  *
- * Its own list, not the display order above, and for two reasons. A number
- * taken from the order a *filtered* render produced would move every time
- * somebody typed in the search box, and a number that moves with the session
- * is not an address — which was the whole justification for numbering
- * anything. And "Hereinholen" sits last here although it reads first
- * elsewhere, because it is clause 1.2 on this sheet and only appears among
- * the procedures when a search turns it up; numbering it first would open the
- * index at 1.3.2 with no 1.3.1 in sight.
- */
-const PROCEDURE_GROUPS: ToolGroup[] = ['bild', 'video', 'ton', 'musik', 'holen']
-
-const clauseOf = (group: ToolGroup) => `1.3.${PROCEDURE_GROUPS.indexOf(group) + 1}`
-
-/**
- * One procedure, as a numbered line of the index.
+ * A tint rather than a box: the tile needs an edge to read as a tile, and a
+ * filled shape gives it one without a rule on four sides or a shadow under
+ * it. Hover deepens the tint, so the whole tile is visibly one target rather
+ * than a heading with a clickable area around it.
  *
- * The number is the point, and it is the reason this is allowed to carry one
- * at all: it is an address. Every procedure can be linked to, quoted and
- * jumped to, the way you cite a clause rather than describing where on the
- * page you saw it. A number that only decorated the row would be a habit; one
- * you can put in a URL is information.
- *
- * What it replaced: an even grid of identically sized cards, each with an icon
- * in a rounded square above its heading — the arrangement every generated
- * interface reaches for, and the arrangement that claims each of thirty items
- * is a headline.
+ * The hint is `prose`, not `muted`, and that is a measurement rather than a
+ * preference: on the tile's own tint `muted` came out at APCA Lc 59.3 in the
+ * dark theme against a Lc 60 floor for secondary text. The paler tint that
+ * would have rescued it is the one that made the tiles invisible on warm
+ * paper, so the text moved instead of the surface.
  */
 function Tool({
   anchor,
@@ -84,96 +75,33 @@ function Tool({
       id={`v-${anchor}`}
       type="button"
       onClick={onClick}
-      className="press group flex scroll-mt-[96px] items-baseline gap-[12px] border-t border-line px-[4px] py-[10px] text-left hover:bg-panel-soft"
+      className="press group flex scroll-mt-[96px] flex-col items-start gap-[6px] bg-panel-mid p-[16px] text-left transition-colors duration-[var(--dur-fast)] hover:bg-panel-strong"
     >
-      <span className="min-w-0 flex-1">
-        <span className="flex items-center gap-[8px] text-small font-semibold leading-[1.3] text-ink">
-          {/* When a procedure needs a kind of file the session does not hold,
-              only the mark says so. Fading the whole row was the first attempt
-              and it measured at APCA Lc 48 against a Lc 60 target — a
-              legibility cost paid for a hint the empty state already gives. */}
-          <span
-            className={`transition-colors duration-[var(--dur-fast)] group-hover:text-ink ${
-              dimmed ? 'text-faint' : 'text-muted'
-            }`}
-          >
-            {icon}
-          </span>
-          {label}
-        </span>
-        <span className="mt-[2px] block text-small leading-[1.4] text-muted">{hint}</span>
+      {/* When a tool needs a kind of file the session does not hold, the icon
+          says so quietly. Fading the whole tile was the first attempt and it
+          measured at APCA Lc 48 against a Lc 60 target — a legibility cost
+          paid for a hint the empty state already gives. */}
+      <span
+        className={`transition-colors duration-[var(--dur-fast)] ${
+          dimmed ? 'text-faint' : 'text-ink'
+        }`}
+      >
+        {icon}
       </span>
+      <span className="text-small font-semibold leading-[1.3] text-ink">{label}</span>
+      <span className="text-small leading-[1.4] text-prose">{hint}</span>
     </button>
   )
 }
 
-/**
- * How the object under test gets onto the sheet.
- *
- * Section 1 of a certificate is always the same question — what is being
- * examined — so these two stay large while the thirty procedures stay a list.
- */
-function Entry({
-  clause,
-  icon,
-  label,
-  hint,
-  onClick,
-}: {
-  clause: string
-  icon: ReactNode
-  label: string
-  hint: string
-  onClick: () => void
-}) {
+/** A group of tools: a quiet title over its own grid of tiles. */
+function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="press flex items-start gap-[12px] border-t-2 border-rule px-[4px] py-[16px] text-left hover:bg-panel-soft"
-    >
-      <span className="clause w-[4ch] shrink-0 text-ink">{clause}</span>
-      <span className="min-w-0 flex-1">
-        <span className="flex items-center gap-[8px] text-body font-semibold text-ink">
-          {icon}
-          {label}
-        </span>
-        <span className="mt-[4px] block text-small leading-[1.45] text-muted">{hint}</span>
-      </span>
-    </button>
-  )
-}
-
-/**
- * A clause number you can actually cite.
- *
- * It renders as a link to its own anchor, so the number can be copied out of
- * the address bar and pasted back. Without that it was a decoration wearing an
- * address's clothes, and the craft floor bans section numbers that do not
- * carry information the reader needs.
- */
-function ClauseNumber({ clause, tone = 'ink' }: { clause: string; tone?: 'ink' | 'muted' }) {
-  return (
-    <a
-      href={`#v-${clause}`}
-      title={`Adresse dieser Klausel: ${clause}`}
-      className={`clause press w-[5ch] shrink-0 no-underline hover:underline ${
-        tone === 'ink' ? 'text-ink' : 'text-muted'
-      }`}
-    >
-      {clause}
-    </a>
-  )
-}
-
-function Section({ clause, title, children }: { clause: string; title: string; children: ReactNode }) {
-  return (
-    <section id={`v-${clause}`} className="flex scroll-mt-[96px] flex-col">
-      <h3 className="flex items-baseline gap-[12px] border-t-2 border-rule px-[4px] pb-[4px] pt-[12px]">
-        <ClauseNumber clause={clause} />
-        <span className="text-small font-semibold tracking-[-0.005em] text-ink">{title}</span>
+    <section className="flex flex-col gap-[12px]">
+      <h3 className="border-t border-line pt-[12px] text-body font-semibold tracking-[-0.01em] text-ink">
+        {title}
       </h3>
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3">{children}</div>
+      <div className="grid gap-[8px] sm:grid-cols-2 lg:grid-cols-3">{children}</div>
     </section>
   )
 }
@@ -204,8 +132,8 @@ export function Home() {
 
   const searching = query.trim().length > 0
   // A tool that needs a kind of file the session does not hold still works —
-  // it just has nothing to chew on yet, and saying so quietly with opacity
-  // beats hiding it and leaving someone to wonder where it went.
+  // it just has nothing to chew on yet, and saying so quietly beats hiding it
+  // and leaving someone to wonder where it went.
   //
   // Through `useShallow` and a `useMemo`, not `new Set(...)` inside the
   // selector: zustand compares what a selector returns by identity, and a
@@ -215,104 +143,48 @@ export function Home() {
   const kinds = useSession(useShallow((state) => state.assets.map((asset) => asset.kind)))
   const have = useMemo(() => new Set(kinds), [kinds])
 
-  /**
-   * A pasted clause address actually goes there.
-   *
-   * The browser resolves a fragment against the document it has at paint time,
-   * and at that moment this list does not exist yet — so without this the
-   * anchors were real markup pointing at nothing, which is the same as having
-   * no addresses at all.
-   */
-  useEffect(() => {
-    const target = decodeURIComponent(window.location.hash.slice(1))
-    if (!target) return
-    const node = document.getElementById(target)
-    if (node) node.scrollIntoView({ block: 'start', behavior: 'auto' })
-  }, [])
-
   return (
-    <div className="flex flex-col gap-[24px]">
-      {/* -- clause 1: what is being examined ------------------------------- */}
-      <section id="v-1.1" className="flex scroll-mt-[96px] flex-col gap-[16px]">
-        <div className="flex flex-col gap-[16px]">
-          <div className="min-w-0">
-            <h2 className="flex items-baseline gap-[12px]">
-              <ClauseNumber clause="1.1" />
-              <span className="display-md">Prüfgegenstand</span>
-            </h2>
-            {/* The object under test, stated as the form states it: the field
-                is either filled or visibly blank. */}
-            <dl className="mt-[12px] flex flex-col text-small">
-              {(
-                [
-                  ['Datei', active?.name ?? null, null],
-                  ['Art', active ? KIND_LABEL[active.kind] : null, null],
-                  ['In der Sitzung', assets > 0 ? String(assets) : null, assets === 1 ? 'Datei' : 'Dateien'],
-                ] as const
-              ).map(([label, found, unit]) => (
-                <div key={label} className="flex items-baseline gap-[12px] border-t border-line py-[6px]">
-                  {/* The margin mark, which is the whole point of the form:
-                      whether a field has been filled is legible before a word
-                      of it is read. */}
-                  <span className="w-[5ch] shrink-0 text-center">
-                    <Mark state={found ? 'measured' : 'blank'} />
-                  </span>
-                  <dt className="min-w-0 flex-1 text-muted">{label}</dt>
-                  <dd className="flex shrink-0 items-baseline gap-[4px]">
-                    <span className="value max-w-[36ch] truncate text-right text-ink">
-                      {found ?? <span className="text-muted">—</span>}
-                    </span>
-                    <span className="w-[6ch] text-left text-muted">{found ? (unit ?? '') : ''}</span>
-                  </dd>
-                </div>
-              ))}
-            </dl>
+    <div className="flex flex-col gap-[32px]">
+      {picker.input}
+
+      {/* -- the way in ----------------------------------------------------- */}
+      <section className="flex flex-col gap-[16px]">
+        {active ? (
+          /* Once a file is open it is the subject of the screen, so it is
+             stated in one line rather than in a form with blank fields. */
+          <div className="flex flex-wrap items-baseline gap-x-[12px] gap-y-[4px]">
+            <span className="value max-w-full truncate text-body text-ink">{active.name}</span>
+            <span className="text-small text-muted">
+              {KIND_LABEL[active.kind]}
+              {assets > 1 ? ` · ${assets} Dateien in der Sitzung` : ''}
+            </span>
           </div>
-            {/* The one thing this clause is asking for, at its foot and lined
-                up with the values above it — where a form puts the line you
-                sign after the fields you filled. */}
-            <div className="mt-[12px] flex flex-wrap items-center gap-x-[12px] gap-y-[8px] pl-[calc(5ch+12px)]">
-              <OpenFileButton size="md" />
-              <span className="text-small text-muted">oder ins Fenster ziehen</span>
-            </div>
+        ) : (
+          <div className="flex flex-col gap-[8px]">
+            <h2 className="display-md">Ton, Video und Bilder bearbeiten</h2>
+            <p className="text-body leading-[1.55] text-muted">
+              Alles rechnet in diesem Tab. Ihre Dateien werden nirgendwohin hochgeladen, und mit dem
+              Schließen des Tabs ist alles weg.
+            </p>
+          </div>
+        )}
+
+        <div className="flex flex-wrap items-center gap-x-[16px] gap-y-[8px]">
+          <OpenFileButton size="md" />
+          <span className="text-small text-muted">oder ins Fenster ziehen</span>
+          <button
+            type="button"
+            onClick={() => setPanel('downloader')}
+            className="press text-small text-ink underline underline-offset-[3px] hover:no-underline"
+          >
+            Von einer Adresse laden
+          </button>
         </div>
       </section>
 
-      {/* -- getting something in ------------------------------------------- */}
-      {picker.input}
-      {!searching ? (
-        <section id="v-1.2" className="scroll-mt-[96px]">
-          <h2 className="flex items-baseline gap-[12px] px-[4px] pb-[4px]">
-            <ClauseNumber clause="1.2" />
-            <span className="display-md">Wie der Prüfgegenstand hereinkommt</span>
-          </h2>
-          <div className="grid sm:grid-cols-2">
-            <Entry
-              clause="1.2.1"
-              icon={<ToolIcon>{ICONS.images}</ToolIcon>}
-              label="Datei vom Gerät öffnen"
-              hint="Ton, Video, Bild. Wird nirgendwohin hochgeladen."
-              onClick={picker.open}
-            />
-            <Entry
-              clause="1.2.2"
-              icon={<ToolIcon>{ICONS.downloader}</ToolIcon>}
-              label="Von einer Adresse laden"
-              hint="YouTube und direkte Datei-Adressen. Dieser eine Schritt läuft über einen Dienst."
-              onClick={() => setPanel('downloader')}
-            />
-          </div>
-        </section>
-      ) : null}
-
       {/* -- everything else, grouped --------------------------------------- */}
-      <div className="flex flex-col gap-[12px]">
-        {!searching ? (
-          <h2 id="v-1.3" className="flex scroll-mt-[96px] items-baseline gap-[12px] px-[4px]">
-            <ClauseNumber clause="1.3" />
-            <span className="display-md">Verfügbare Verfahren</span>
-          </h2>
-        ) : null}
+      <div className="flex flex-col gap-[16px]">
+        {!searching ? <h2 className="display-md">Werkzeuge</h2> : null}
         <div className="relative">
           <svg
             viewBox="0 0 16 16"
@@ -329,41 +201,43 @@ export function Home() {
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Verfahren suchen — „mp3 aus video“, „tonart“, „bild kleiner“ …"
-            aria-label="Verfahren suchen"
+            placeholder="Werkzeug suchen — „mp3 aus video“, „tonart“, „bild kleiner“ …"
+            aria-label="Werkzeugliste filtern"
             className="value w-full border-0 bg-raised py-[10px] pl-[40px] pr-[16px] text-small text-prose outline-none ring-1 ring-inset ring-line placeholder:font-sans placeholder:text-muted focus:ring-ink"
           />
         </div>
+
+        <div className="flex flex-col gap-[24px]">
+          {grouped
+            .filter(({ group }) => searching || group !== 'holen')
+            .map(({ group, actions }) => (
+              <Section key={group} title={GROUP_LABEL[group]}>
+                {actions.map((action) => (
+                  <Tool
+                    key={action.id}
+                    anchor={action.id}
+                    icon={<ToolIcon>{ICONS[action.panel]}</ToolIcon>}
+                    label={action.label}
+                    hint={action.hint}
+                    // Only worth dimming once dimming distinguishes something.
+                    // On an empty session every tool is equally unusable, and
+                    // greying out the entire page says nothing while making
+                    // all of it harder to read.
+                    dimmed={
+                      have.size > 0 &&
+                      action.kinds.length > 0 &&
+                      !action.kinds.some((kind) => have.has(kind))
+                    }
+                    onClick={() => setPanel(action.panel)}
+                  />
+                ))}
+              </Section>
+            ))}
+        </div>
       </div>
 
-      {grouped
-        .filter(({ group }) => searching || group !== 'holen')
-        .map(({ group, actions }) => (
-          <Section key={group} clause={clauseOf(group)} title={GROUP_LABEL[group]}>
-            {actions.map((action) => (
-              <Tool
-                key={action.id}
-                anchor={action.id}
-                icon={<ToolIcon>{ICONS[action.panel]}</ToolIcon>}
-                label={action.label}
-                hint={action.hint}
-                // Only worth dimming once dimming distinguishes something. On
-                // an empty session every tool is equally unusable, and greying
-                // out the entire page says nothing while making all of it
-                // harder to read.
-                dimmed={
-                  have.size > 0 &&
-                  action.kinds.length > 0 &&
-                  !action.kinds.some((kind) => have.has(kind))
-                }
-                onClick={() => setPanel(action.panel)}
-              />
-            ))}
-          </Section>
-        ))}
-
       {grouped.length === 0 ? (
-        <p className="border-t border-line px-[4px] py-[16px] text-small text-muted">
+        <p className="text-small text-muted">
           Nichts gefunden für <span className="value text-ink">{query}</span>. Versuchen Sie es mit
           einem Format („mp3“, „webp“, „gif“) oder mit dem, was herauskommen soll.
         </p>

@@ -41,7 +41,7 @@ import {
   ArrowRight,
   Button,
   Card,
-  ClauseHead,
+  SectionHead,
   Field,
   Notice,
   Reveal,
@@ -501,7 +501,7 @@ export function AudioEditorPanel() {
 
       <aside className="flex flex-col gap-[16px]">
         <Card tone="mint" size="compact">
-          <ClauseHead>Verlauf</ClauseHead>
+          <SectionHead>Verlauf</SectionHead>
           {history.length === 0 ? (
             <p className="mt-[8px] text-small leading-[1.5] text-prose/85">
               Noch unverändert. Jeder Schritt landet hier, und Strg/Cmd + Z nimmt ihn zurück — die
@@ -521,7 +521,7 @@ export function AudioEditorPanel() {
 
         {others.length > 1 ? (
           <Card tone="cream" size="compact">
-            <ClauseHead>Anhängen</ClauseHead>
+            <SectionHead>Anhängen</SectionHead>
             <p className="mt-[8px] text-small leading-[1.5] text-prose/85">
               Eine zweite Aufnahme hinten anfügen, mit kurzer Überblendung.
             </p>
@@ -548,7 +548,7 @@ export function AudioEditorPanel() {
         ) : null}
 
         <Card tone="slate" size="compact">
-          <ClauseHead>Jetzt</ClauseHead>
+          <SectionHead>Jetzt</SectionHead>
           <div className="mt-[12px] grid grid-cols-2 gap-[12px]">
             <Stat label="Länge" value={formatTimecode(duration)} emphasis />
             <Stat label="Spitze" value={`${peakDb(current).toFixed(1)} dB`} emphasis />

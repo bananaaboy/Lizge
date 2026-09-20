@@ -12,7 +12,6 @@ import { useState } from 'react'
 import type { InstallState } from '../hooks/useInstallPrompt'
 import { useFilePicker } from '../hooks/useIngest'
 import type { ThemeChoice } from '../lib/theme'
-import { detectCapabilities, suggestedThreads } from '../lib/capabilities'
 import { useSession } from '../state/store'
 import { PaletteHint } from './CommandPalette'
 import { ThemeToggle } from './ThemeToggle'
@@ -42,7 +41,7 @@ export function Mark({ className = 'h-[26px] w-[26px]' }: { className?: string }
  * The document's title, and therefore its `h1`.
  *
  * A world built as a printed record shipped with no document heading at all:
- * the clause hierarchy started at `h2` and the name of the thing was a span.
+ * the heading hierarchy started at `h2` and the name of the thing was a span.
  * `as` exists because the footer and the loading screen show the same mark
  * where an `h1` would be a second one on the page.
  */
@@ -52,7 +51,7 @@ export function Logo({ as = 'h1' }: { as?: 'h1' | 'span' }) {
     <Tag className="m-0 flex items-center gap-[8px] text-ink">
       <Mark />
       <span className="font-wordmark text-[25px] font-light tracking-[-0.01em]">Sondra</span>
-      <span className="sr-only"> — Prüfprotokoll</span>
+      <span className="sr-only"> — Ton, Video und Bilder bearbeiten</span>
     </Tag>
   )
 }
@@ -155,32 +154,11 @@ export function Header({
   install: InstallState
 }) {
   const hasAssets = useSession((state) => state.assets.length > 0)
-  const threads = suggestedThreads(detectCapabilities())
   return (
     <header className="sticky top-0 z-30 border-b-2 border-rule bg-canvas/95 backdrop-blur-md">
       <div className="shell flex flex-wrap items-start justify-between gap-x-[24px] gap-y-[8px] py-[12px]">
         <div className="flex min-w-0 flex-col gap-[8px]">
           <Logo />
-          {/* The head of a certificate names the instrument and the method
-              before it states a single value. Here that is not decoration:
-              which browser and how many cores it will use decides what the
-              measurements below are worth. */}
-          <dl className="flex flex-wrap gap-x-[20px] gap-y-[2px] text-micro leading-[1.5]">
-            <div className="flex gap-[6px]">
-              <dt className="text-muted">Gerät</dt>
-              <dd className="value text-prose">dieser Browser</dd>
-            </div>
-            <div className="flex gap-[6px]">
-              <dt className="text-muted">Verfahren</dt>
-              <dd className="value text-prose">
-                lokal · WebAssembly · {threads} {threads === 1 ? 'Kern' : 'Kerne'}
-              </dd>
-            </div>
-            <div className="flex gap-[6px]">
-              <dt className="text-muted">Stand</dt>
-              <dd className="value text-prose">{new Date().toLocaleDateString('de-CH')}</dd>
-            </div>
-          </dl>
         </div>
         <div className="flex items-center gap-[8px]">
           {install.available ? (

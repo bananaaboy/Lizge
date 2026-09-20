@@ -15,7 +15,7 @@
  * a shadow onto it. The two shadow levels belong to the editor stage, which
  * is a plate mounted over the page rather than part of it.
  *
- * Ink is spent, not spread. Forest Ink marks rules, clause numbers and the
+ * Ink is spent, not spread. Forest Ink marks rules, headings and the
  * single action a section is asking for. Everywhere else the page is paper
  * and graphite.
  */
@@ -69,14 +69,14 @@ export function Card({
 }
 
 /**
- * The head of a clause.
+ * The head of a section.
  *
  * Not a kicker: there is no heading underneath repeating it. It names a region
  * the reader could not otherwise name — "Zielwerte", "Ergebnis", "Nächstbeste"
  * — and it is therefore the heading itself, set as one. The rule above it does
  * the separating, which is why it needs neither a box nor capital letters.
  */
-export function ClauseHead({
+export function SectionHead({
   children,
   className = '',
   rule = true,
@@ -146,7 +146,7 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
  * What the section is asking for.
  *
  * Square, unshadowed, and filled with ink only for the one action that
- * completes a clause — a form has a single place you sign. `quiet` is a ruled
+ * completes a section — there is one place to act. `quiet` is a ruled
  * field you may also press; `ghost` is a word in the running text.
  */
 export function Button({ variant = 'primary', size = 'md', className = '', ...props }: ButtonProps) {
@@ -351,7 +351,7 @@ export function Notice({
 }
 
 /**
- * A sub-clause, folded away.
+ * A subsection, folded away.
  *
  * Every tool here has a layer underneath it that the person who knows what
  * they are doing will want — the exact FFmpeg command, the analysis window,

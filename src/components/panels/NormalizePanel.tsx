@@ -25,7 +25,7 @@ import {
   Badge,
   Button,
   Card,
-  ClauseHead,
+  SectionHead,
   Field,
   Notice,
   Progress,
@@ -346,7 +346,7 @@ export function NormalizePanel() {
         {before ? (
           <Card tone="slate">
             <div className="flex flex-wrap items-baseline justify-between gap-3">
-              <ClauseHead>{after ? 'Vorher' : 'Messung'}</ClauseHead>
+              <SectionHead>{after ? 'Vorher' : 'Messung'}</SectionHead>
               {after ? null : <Badge>{settings.targetLufs} LUFS angestrebt</Badge>}
             </div>
             <div className="mt-[16px]">
@@ -360,7 +360,7 @@ export function NormalizePanel() {
 
         {after && plan ? (
           <Card tone="sage">
-            <ClauseHead>Nachher</ClauseHead>
+            <SectionHead>Nachher</SectionHead>
             <div className="mt-[16px]">
               <ReportGrid report={after} />
             </div>
@@ -427,7 +427,7 @@ export function NormalizePanel() {
       <aside className="flex flex-col gap-[20px]">
         <SessionCard />
         <Card tone="cream">
-          <ClauseHead>Zielwerte</ClauseHead>
+          <SectionHead>Zielwerte</SectionHead>
           <dl className="mt-[16px] flex flex-col gap-[12px] text-small">
             {LOUDNESS_PRESETS.map((preset) => (
               <div key={preset.id} className="flex items-baseline justify-between gap-3">

@@ -22,7 +22,7 @@ import { AudioEditorPanel } from './panels/AudioEditorPanel'
 import { FileDrop } from './FileDrop'
 import { Home } from './Home'
 import { PANELS } from './panelMeta'
-import { Button, Card, ClauseHead } from './ui/primitives'
+import { Button, Card, SectionHead } from './ui/primitives'
 
 function PanelTabs() {
   const panel = useSession((state) => state.panel)
@@ -89,7 +89,7 @@ function PanelTabs() {
         onKeyDown={onKeyDown}
         className="flex gap-[4px] overflow-x-auto bg-raised p-[4px] ring-1 ring-inset ring-line [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
-        {PANELS.map((entry, index) => {
+        {PANELS.map((entry) => {
           const active = entry.id === panel
           return (
             <button
@@ -104,12 +104,6 @@ function PanelTabs() {
               }`}
               title={entry.summary}
             >
-              {/* The number is the clause's address for the eye. A screen
-                  reader already gets the position from the tablist, so it
-                  stays out of the accessible name. */}
-              <span aria-hidden className={`clause ${active ? 'text-on-ink/70' : 'text-muted'}`}>
-                {index + 1}
-              </span>
               {entry.label}
             </button>
           )
@@ -216,7 +210,7 @@ function MachineRow() {
   return (
     <div className="mt-[4px]">
       <div className="flex flex-wrap items-center gap-[8px] border-t border-line pt-[12px]">
-        <span className="mr-[4px] text-small text-muted">Prüfmittel und Protokoll</span>
+        <span className="mr-[4px] text-small text-muted">Unter der Haube</span>
         {tab('system', 'Dieses Gerät')}
         {tab('log', 'Protokoll', logs.length)}
         {!ffmpeg.loaded ? (
@@ -298,7 +292,7 @@ function NothingLoaded({ label, summary }: { label: string; summary: string }) {
     <Card tone="cream" className="rise">
       <div className="mx-auto flex max-w-[460px] flex-col items-center gap-[16px] text-center">
         <div>
-          <ClauseHead>{label}</ClauseHead>
+          <SectionHead>{label}</SectionHead>
           <p className="mt-[8px] text-subheading text-ink">{summary}</p>
           <p className="mt-[8px] text-body leading-[1.55] text-prose/85">
             Dafür braucht es erst eine Datei. Alles, was Sie hinzufügen, bleibt in diesem Tab.

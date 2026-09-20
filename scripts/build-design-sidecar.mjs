@@ -124,7 +124,7 @@ function ramp(hex) {
    ------------------------------------------------------------------------- */
 
 const colors = [
-  ['ink', 'primary', 'Waldtinte', 'Die einzige gesättigte Farbe und die einzige Druckfarbe: Linien, Klauselnummern, Überschriften, Fokusring und die eine gefüllte Aktion je Abschnitt.'],
+  ['ink', 'primary', 'Waldtinte', 'Die einzige gesättigte Farbe und die einzige Druckfarbe: Linien, Überschriften, Kachelsymbole, Fokusring und die eine gefüllte Aktion je Abschnitt.'],
   ['ink-hover', 'primary', 'Waldtinte gedrückt', 'Nur der Hover-Zustand gefüllter Flächen. Nie im Ruhezustand.'],
   ['on-ink', 'primary', 'Papier auf Tinte', 'Text auf gefüllter Tinte.'],
   ['canvas', 'neutral', 'Warmes Papier', 'Das Blatt selbst, Grund der ganzen App.'],
@@ -135,9 +135,9 @@ const colors = [
   ['panel-cool', 'neutral', 'Kühle Minze', 'Reserviert für den einen Hinweis, dass etwas nicht lokal läuft.'],
   ['prose', 'neutral', 'Prosa', 'Fliesstext und Beschriftungen.'],
   ['muted', 'neutral', 'Gedämpft', 'Sekundärtext, Hinweise, Einheiten.'],
-  ['faint', 'neutral', 'Nicht zutreffend', 'Ein Verfahren, das auf die geöffnete Datei nicht passt. Blasser als gedämpft, aber ausdrücklich noch lesbar.'],
+  ['faint', 'neutral', 'Nicht zutreffend', 'Ein Werkzeug, das auf die geöffnete Datei nicht passt. Blasser als gedämpft, aber ausdrücklich noch lesbar.'],
   ['line', 'neutral', 'Haarlinie', 'Die Linie einer Tabelle: jede Trennung zwischen Zeilen, Feldern und Blöcken. Gemessen auf APCA Lc 15.'],
-  ['rule', 'neutral', 'Klausellinie', 'Die schwerere Linie, die einen Abschnitt eröffnet. Eigenes Token statt Deckkraft auf Tinte, weil eine Deckkraft über dunklem Grund ihren Kontrast verliert.'],
+  ['rule', 'neutral', 'Abschnittslinie', 'Die schwerere Linie, die einen Abschnitt eröffnet. Eigenes Token statt Deckkraft auf Tinte, weil eine Deckkraft über dunklem Grund ihren Kontrast verliert.'],
   ['stage', 'tertiary', 'Bühne', 'Die Fläche, auf der ein Bild oder Video bearbeitet wird. In beiden Themen dunkel und neutral, damit sie über Farben nicht lügt.'],
   ['stage-soft', 'tertiary', 'Bühne gehoben', 'Das Schachbrett der Transparenz und die Knöpfe auf der Bühne.'],
   ['stage-line', 'tertiary', 'Bühnenlinie', 'Trennung und Ring auf der Bühne.'],
@@ -166,6 +166,7 @@ const CANVAS = lightColor('canvas')
 const RAISED = lightColor('raised')
 const SOFT = lightColor('panel-soft')
 const MID = lightColor('panel-mid')
+const STRONG = lightColor('panel-strong')
 const PROSE = lightColor('prose')
 const MUTED = lightColor('muted')
 const LINE = lightColor('line')
@@ -227,15 +228,13 @@ const components = [
     name: 'Panel Tabs',
     kind: 'nav',
     refersTo: 'tab',
-    description: 'Die Werkzeugleiste. Jeder Reiter trägt seine Nummer in der Klauselschrift; ausgewählt ist gefüllte Tinte.',
-    html: '<div class="ds-tabs" role="tablist"><button class="ds-tab ds-tab-on" role="tab" aria-selected="true"><span class="ds-tab-no">1</span>Start</button><button class="ds-tab" role="tab" aria-selected="false"><span class="ds-tab-no">2</span>Herunterladen</button><button class="ds-tab" role="tab" aria-selected="false"><span class="ds-tab-no">3</span>Umwandeln</button></div>',
+    description: 'Die Werkzeugleiste. Ausgewählt ist gefüllte Tinte. Die Reiter trugen einmal Nummern; sie sind mit allen anderen Zierziffern gefallen.',
+    html: '<div class="ds-tabs" role="tablist"><button class="ds-tab ds-tab-on" role="tab" aria-selected="true">Start</button><button class="ds-tab" role="tab" aria-selected="false">Herunterladen</button><button class="ds-tab" role="tab" aria-selected="false">Umwandeln</button></div>',
     css:
       `.ds-tabs{display:flex;gap:4px;background:${RAISED};padding:4px;box-shadow:inset 0 0 0 1px ${LINE}}` +
       `.ds-tab{display:flex;align-items:center;gap:8px;background:transparent;color:${PROSE};font:400 13px/1.5 ${FORM};padding:8px 12px;border:none;border-radius:0;cursor:pointer;transition:background ${FAST} ${EASE}}` +
       `.ds-tab:hover{background:${SOFT}}` +
-      `.ds-tab-no{font:400 13px/1 ${VALUE};font-variant-numeric:tabular-nums;color:${MUTED}}` +
       `.ds-tab-on{background:${INK};color:${ON_INK}}` +
-      `.ds-tab-on .ds-tab-no{color:${ON_INK};opacity:.7}` +
       focus('.ds-tab'),
   },
   {
@@ -270,40 +269,35 @@ const components = [
       `.ds-stat-unit{width:4ch;text-align:left;font:400 13px/1.5 ${FORM};color:${MUTED}}`,
   },
   {
-    name: 'Clause Header',
+    name: 'Section Head',
     kind: 'custom',
     refersTo: 'entry-row',
-    description: 'Der Kopf einer Klausel: die Nummer im linken Rand, als Verweis auf den eigenen Anker, daneben die Überschrift. Die Linie darüber trennt — es gibt keinen Kasten.',
-    html: '<div class="ds-clause"><h2 class="ds-clause-head"><a class="ds-clause-no" href="#v-1.1" title="Adresse dieser Klausel: 1.1">1.1</a><span class="ds-clause-title">Prüfgegenstand</span></h2><div class="ds-clause-row"><span class="ds-clause-mark">●</span><span class="ds-clause-key">Datei</span><span class="ds-clause-val">out_audio.wav</span></div><div class="ds-clause-row"><span class="ds-clause-mark ds-clause-mark-blank">—</span><span class="ds-clause-key">Art</span><span class="ds-clause-val ds-clause-val-blank">—</span></div></div>',
+    description: 'Der Kopf eines Abschnitts: Linie darüber, Überschrift, darunter die Messzeilen. Kein Kasten, keine Nummer — Abschnittsnummern sind gefallen.',
+    html: '<div class="ds-sec"><h2 class="ds-sec-head">Ergebnis</h2><div class="ds-sec-row"><span class="ds-sec-key">Datei</span><span class="ds-sec-val">out_audio.wav</span></div><div class="ds-sec-row"><span class="ds-sec-key">Dauer</span><span class="ds-sec-val">03:42.118</span></div></div>',
     css:
-      `.ds-clause{font-family:${FORM};background:${CANVAS};max-width:420px}` +
-      `.ds-clause-head{display:flex;align-items:baseline;gap:12px;margin:0;padding-top:12px;border-top:2px solid ${RULE}}` +
-      `.ds-clause-no{width:5ch;flex-shrink:0;font:400 13px/1 ${VALUE};font-variant-numeric:tabular-nums;color:${INK};text-decoration:none}` +
-      `.ds-clause-no:hover{text-decoration:underline}` +
-      `.ds-clause-title{font:700 25px/1.25 ${FORM};letter-spacing:-.015em;color:${INK}}` +
-      `.ds-clause-row{display:flex;align-items:baseline;gap:12px;padding:6px 0;border-top:1px solid ${LINE};margin-top:12px}` +
-      `.ds-clause-row+.ds-clause-row{margin-top:0}` +
-      `.ds-clause-mark{width:1ch;text-align:center;flex-shrink:0;font:400 13px/1 ${VALUE};color:${INK};opacity:.7}` +
-      `.ds-clause-mark-blank{color:${MUTED};opacity:1}` +
-      `.ds-clause-key{flex:1;font:400 13px/1.5 ${FORM};color:${MUTED}}` +
-      `.ds-clause-val{font:400 13px/1.5 ${VALUE};font-variant-numeric:tabular-nums;letter-spacing:-.02em;color:${INK};text-align:right}` +
-      `.ds-clause-val-blank{color:${MUTED}}`,
+      `.ds-sec{font-family:${FORM};background:${CANVAS};max-width:420px}` +
+      `.ds-sec-head{margin:0;padding-top:12px;border-top:2px solid ${RULE};font:700 25px/1.25 ${FORM};letter-spacing:-.015em;color:${INK}}` +
+      `.ds-sec-row{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:6px 0;border-top:1px solid ${LINE};margin-top:12px}` +
+      `.ds-sec-row+.ds-sec-row{margin-top:0}` +
+      `.ds-sec-key{font:400 13px/1.5 ${FORM};color:${MUTED}}` +
+      `.ds-sec-val{font:400 13px/1.5 ${VALUE};font-variant-numeric:tabular-nums;letter-spacing:-.02em;color:${INK};text-align:right}`,
   },
   {
-    name: 'Procedure Row',
+    name: 'Tool Tile',
     kind: 'custom',
     refersTo: 'procedure-row',
-    description: 'Eine Zeile des nummerierten Verfahrensindex: Linie oben, Symbol auf der Beschriftungszeile, Hinweis darunter. Ersetzt das Raster identisch grosser Kacheln.',
-    html: '<div class="ds-index"><button class="ds-proc"><span class="ds-proc-label"><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3.2h12v9.6H2zM2 10l3.4-3.2 3 2.8 2.2-2 3.4 3.2M5.6 6.2a.9.9 0 100-1.8.9.9 0 000 1.8z"/></svg>Bild zuschneiden</span><span class="ds-proc-hint">Ausschnitt aufziehen</span></button><button class="ds-proc"><span class="ds-proc-label"><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"><path d="M2.6 5.4h9.2m0 0L9.4 3.1m2.4 2.3L9.4 7.7M13.4 10.6H4.2m0 0l2.4-2.3m-2.4 2.3l2.4 2.3"/></svg>Bildformat ändern</span><span class="ds-proc-hint">PNG, JPEG oder WebP</span></button></div>',
+    description: 'Eine Werkzeugkachel: getöntes Feld, Symbol oben, Beschriftung, Hinweis. Die Tönung gibt die Kante — kein Rahmen, kein Schatten, keine Rundung. Ersetzt den nummerierten Index, der hier zuvor stand.',
+    html: '<div class="ds-tiles"><button class="ds-tile"><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3.2h12v9.6H2zM2 10l3.4-3.2 3 2.8 2.2-2 3.4 3.2M5.6 6.2a.9.9 0 100-1.8.9.9 0 000 1.8z"/></svg><span class="ds-tile-label">Bild zuschneiden</span><span class="ds-tile-hint">Ausschnitt aufziehen</span></button><button class="ds-tile"><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"><path d="M2.6 5.4h9.2m0 0L9.4 3.1m2.4 2.3L9.4 7.7M13.4 10.6H4.2m0 0l2.4-2.3m-2.4 2.3l2.4 2.3"/></svg><span class="ds-tile-label">Bildformat ändern</span><span class="ds-tile-hint">PNG, JPEG oder WebP</span></button></div>',
     css:
-      `.ds-index{background:${CANVAS};max-width:420px}` +
-      `.ds-proc{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;background:transparent;border:none;border-top:1px solid ${LINE};border-radius:0;padding:10px 4px;text-align:left;cursor:pointer;transition:background ${FAST} ${EASE}}` +
-      `.ds-proc:hover{background:${SOFT}}` +
-      `.ds-proc-label{display:flex;align-items:center;gap:8px;font:600 13px/1.3 ${FORM};color:${INK}}` +
-      `.ds-proc-label svg{color:${MUTED};flex-shrink:0;transition:color ${FAST} ${EASE}}` +
-      `.ds-proc:hover .ds-proc-label svg{color:${INK}}` +
-      `.ds-proc-hint{font:400 13px/1.4 ${FORM};color:${MUTED}}` +
-      `.ds-proc:focus-visible{outline:2px solid ${INK};outline-offset:-2px}`,
+      `.ds-tiles{display:grid;grid-template-columns:1fr 1fr;gap:8px;background:${CANVAS};max-width:460px}` +
+      `.ds-tile{display:flex;flex-direction:column;align-items:flex-start;gap:6px;background:${MID};border:none;border-radius:0;padding:16px;text-align:left;cursor:pointer;transition:background ${FAST} ${EASE}}` +
+      `.ds-tile:hover{background:${STRONG}}` +
+      `.ds-tile svg{color:${INK};flex-shrink:0}` +
+      `.ds-tile-label{font:600 13px/1.3 ${FORM};color:${INK}}` +
+      /* `prose`, not `muted`: on the tile's own tint `muted` measured APCA
+         Lc 59.3 in the dark theme against a Lc 60 floor. */
+      `.ds-tile-hint{font:400 13px/1.4 ${FORM};color:${PROSE}}` +
+      `.ds-tile:focus-visible{outline:2px solid ${INK};outline-offset:-2px}`,
   },
 ]
 
@@ -335,7 +329,6 @@ const design = {
       small: { displayName: 'Small', purpose: 'Das dichte Werkzeug-Chrome: Anzeigen, Hinweise, Chips, Reiter, Formularzeilen.' },
       label: { displayName: 'Label', purpose: 'Die kleinste Stufe: Kopfzeilen-Angaben, Beschriftungen der Werkzeugschiene, und als einzige Versalbehandlung der gestempelte Badge.' },
       value: { displayName: 'Value', purpose: 'Was die Maschine gefunden hat: Messwert, Dateiname, Zeitmarke. Rechtsbündig, Tabellenziffern, Einheit in eigener Spalte. Nie als Kostüm für „technisch“.' },
-      clause: { displayName: 'Clause', purpose: 'Die Adresse einer Klausel, im linken Rand ausserhalb der Textspalte.' },
       wordmark: { displayName: 'Wordmark', purpose: 'Cormorant Garamond, geladen als eigene Familie „Sondra Wordmark“ für genau ein Wort. Sonst nirgends erlaubt.' },
     },
     shadows: [
@@ -368,16 +361,17 @@ const design = {
   },
   components,
   narrative: {
-    northStar: 'Der Eichschein',
+    northStar: 'Das ruhige Blatt',
     overview:
-      'Sondra misst, und die Oberfläche ist das Protokoll, das dabei herauskommt. Ein Schweizer Prüfprotokoll nennt zuerst das Gerät, dann das Verfahren, dann das Datum, und erst danach einen einzigen Wert — und genau in dieser Reihenfolge beginnt hier jede Seite. Das ist keine Anmutung, sondern die eine Behauptung des Produkts in sichtbarer Form: jede Zahl in dieser App wurde gemessen statt geschätzt, und sie wurde auf dem Gerät der Besucherin gemessen.\n\nDaraus folgt alles Weitere, und zwar als Verzicht. Es gibt keine Karten: ein Formular hat keine Kästen, es hat Linien. Es gibt keine runden Ecken, weil eine gerasterte Seite keine hat. Es gibt keinen Schatten auf dem Blatt, weil nichts auf dem Blatt liegt — die eine Tiefenstufe ist für die drei Dinge reserviert, die wirklich darüber schweben. Getrennt wird durch eine gezogene Linie und durch Raum, nie durch einen Rahmen auf vier Seiten.\n\nZwei Schriften teilen sich die Arbeit nach Bedeutung, nicht nach Geschmack. Public Sans ist das gedruckte Formular. Courier Prime ist das, was die Maschine nachträglich eingetragen hat: Messwerte, Dateinamen, Zeitmarken. Wer die beiden unterscheiden kann, sieht auf einen Blick, was das Formular fragt und was gefunden wurde. Die Serife der vorigen Welt ist aus dem System verschwunden und überlebt allein in der Wortmarke, als eigene Familie „Sondra Wordmark“ — eine gegebene Zusage ist etwas anderes als eine Gewohnheit.',
+      'Sondra misst, und die Oberfläche soll dem nicht widersprechen: ruhig, flach, ohne Effekt, der etwas behauptet, was nicht gemessen wurde. Jede Zahl in dieser App wurde gemessen statt geschätzt, und sie wurde auf dem Gerät der Besucherin gemessen.\n\nWie weit diese Haltung tragen darf, ist am 20.9.2026 an einem Fehlschlag geklärt worden. Der erste Wurf hiess „Der Eichschein“ und nahm das Bild wörtlich: die Abschnitte hiessen „Prüfgegenstand“ und „Verfügbare Verfahren“, jede Überschrift trug eine Klauselnummer, und die Startseite empfing mit einem leeren Formular aus drei Feldern. Es war konsequent und es war unbenutzbar — beim ersten Blick des Nutzers verworfen. Das Messen gehört in die Art, wie Zahlen berichtet werden, nicht in die Wörter auf der Tür.\n\nGeblieben ist die Form, gegangen ist die Amtssprache. Es gibt keine Karten, keine runden Ecken und keinen Schatten auf dem Blatt — die eine Tiefenstufe ist für die Dinge reserviert, die wirklich darüber schweben. Getrennt wird durch eine gezogene Linie und durch Raum. Die dreissig Werkzeuge stehen als getöntes Kachelfeld: die Tönung gibt der Kachel ihre Kante, ohne einen Rahmen auf vier Seiten zu ziehen.\n\nZwei Schriften teilen sich die Arbeit nach Bedeutung, nicht nach Geschmack. Public Sans setzt die Oberfläche. Courier Prime ist das, was die Maschine eingetragen hat: Messwerte, Dateinamen, Zeitmarken. Die Serife der vorigen Welt ist aus dem System verschwunden und überlebt allein in der Wortmarke, als eigene Familie „Sondra Wordmark“ — eine gegebene Zusage ist etwas anderes als eine Gewohnheit.',
     keyCharacteristics: [
-      'Jede Fläche nennt, was gemessen wurde, womit und nach welchem Verfahren',
+      'Jede Zahl trägt, wie sie gemessen wurde — in der Zahl, nicht in der Überschrift',
       'Keine Karten, keine runden Ecken, kein Schatten auf dem Blatt',
-      'Zwei Linienstärken statt Rahmen: die Haarlinie einer Tabelle, die schwerere Linie einer Klausel',
-      'Zwei Schriften, getrennt nach Bedeutung: gedrucktes Formular und eingetragener Wert',
-      'Klauselnummern sind Adressen — jede ist ein Anker und lässt sich zitieren',
-      'Zustand steht als Zeichen am Rand, nicht als Satz',
+      'Zwei Linienstärken statt Rahmen: die Haarlinie und die schwerere Abschnittslinie',
+      'Zwei Schriften, getrennt nach Bedeutung: Oberfläche und eingetragener Wert',
+      'Werkzeuge stehen als getöntes Kachelfeld, gruppiert und filterbar',
+      'Der Einstieg zeigt die nächste Handlung, nicht den Zustand der leeren Sitzung',
+      'Klartext statt Amtston: eine Überschrift heisst, was sie ist',
       'Ein einziger gesättigter Farbwert, gemessene Kontraste in beiden Themen',
     ],
     rules: [
@@ -413,7 +407,7 @@ const design = {
       },
       {
         name: 'Die Kein-Anzeigeschnitt-Regel',
-        body: 'Überschriften sind dieselbe Grotesk, nur grösser und schwerer. Ein Prüfschein hat keine Anzeigeschrift, und die, die diese App hatte, steht auf jeder Liste von Schriften, nach denen ein Modell greift, ohne hinzusehen.',
+        body: 'Überschriften sind dieselbe Grotesk, nur grösser und schwerer. Ein nüchternes Werkzeug hat keine Anzeigeschrift, und die, die diese App hatte, steht auf jeder Liste von Schriften, nach denen ein Modell greift, ohne hinzusehen.',
         section: 'typography',
       },
       {
@@ -422,8 +416,13 @@ const design = {
         section: 'typography',
       },
       {
-        name: 'Die Adressregel',
-        body: 'Eine Klauselnummer wird nur gesetzt, wenn sie eine Adresse ist: sie rendert als Verweis auf den eigenen Anker, ist aus der Adresszeile kopierbar und führt beim Einfügen wieder dorthin. Eine Nummer, die nur schmückt, ist verboten. Die Nummern stammen aus einer festen Liste, nicht aus der Reihenfolge einer gefilterten Darstellung — eine Nummer, die sich beim Tippen verschiebt, ist keine Adresse.',
+        name: 'Die Klartext-Regel',
+        body: 'Eine Überschrift heisst, was der Abschnitt ist, in der Sprache der Leserin: „Werkzeuge“, nicht „Verfügbare Verfahren“. Sie-Form und nüchterner Ton bleiben — Behördendeutsch war nie dasselbe wie Sachlichkeit. Die Regel steht hier, weil der erste Wurf genau daran gescheitert ist.',
+        section: 'layout',
+      },
+      {
+        name: 'Die Keine-Zierziffer-Regel',
+        body: 'Abschnitte tragen keine Nummern. Der Vorgänger nummerierte 1.1 bis 1.3.4 durch und verteidigte das damit, dass jede Nummer ein Anker sei; als Bild war es Rauschen auf jeder Zeile. Tiefe Verweise bleiben möglich: jede Kachel behält ihre id, nur steht sie nicht mehr gedruckt daneben.',
         section: 'layout',
       },
       {
@@ -448,7 +447,7 @@ const design = {
       },
       {
         name: 'Die Zwei-Stärken-Regel',
-        body: 'Es gibt genau zwei Linien: die Haarlinie der Tabelle und die schwerere Linie der Klausel. Beide sind eigene Farbtokens und keine Deckkraft auf Tinte — dieselbe Tinte bei 25 % mass sich auf Papier bei APCA Lc 25 und im dunklen Thema bei Lc 7.',
+        body: 'Es gibt genau zwei Linien: die Haarlinie der Tabelle und die schwerere Linie, die einen Abschnitt eröffnet. Beide sind eigene Farbtokens und keine Deckkraft auf Tinte — dieselbe Tinte bei 25 % mass sich auf Papier bei APCA Lc 25 und im dunklen Thema bei Lc 7.',
         section: 'shapes',
       },
     ],
@@ -456,8 +455,8 @@ const design = {
       'Do die Tinte für genau eine Bedeutung ausgeben: hier können Sie etwas tun. Höchstens ein Zehntel eines Bildschirms.',
       'Do mit Raum trennen, dann mit einer Tönung, dann mit einer Linie auf einer Seite — und einen Umriss nur für eine Fläche mit eigener Mechanik.',
       'Do jede Grösse aus den sechs Typo-Tokens nehmen und jeden Abstand aus dem 4-px-Raster.',
-      'Do Courier Prime nur dort setzen, wo die Maschine etwas eingetragen hat: Messwert, Dateiname, Zeitmarke, Klauselnummer.',
-      'Do jeder Klauselnummer einen Anker geben, auf den sie selbst verweist, und sie aus einer festen Liste nehmen statt aus der gerade sichtbaren Reihenfolge.',
+      'Do Courier Prime nur dort setzen, wo die Maschine etwas eingetragen hat: Messwert, Dateiname, Zeitmarke.',
+      'Do eine Überschrift so benennen, wie die Leserin die Sache nennt, und prüfen, ob das Wort ausserhalb dieses Projekts jemand sagt.',
       'Do Zustand als Zeichen in die Randspalte setzen und den Klartext über aria-label und title mitliefern.',
       'Do Kontraste in beiden Themen rechnen, bevor eine Palettenänderung als fertig gilt.',
       'Do jeden Zustand entwerfen: Fehler, leer, lädt, Fokus, deaktiviert.',
@@ -466,14 +465,15 @@ const design = {
       'Don\'t eine Karte bauen. Kein weisser Kasten mit Rahmen ringsum und Schatten darunter — Weiss markiert ein Feld oder eine Fläche mit eigener Mechanik, nicht ein Objekt auf dem Papier.',
       'Don\'t eine Ecke runden. „card“ und „nav“ stehen auf 0, und das ist keine Übergangslösung; „pill“ gehört dem Schalterknauf.',
       'Don\'t einem Element auf dem Blatt einen Schatten geben. „elevate-lift“ gehört dem, was wirklich darüber schwebt.',
-      'Don\'t eine Klauselnummer setzen, die nirgendwohin führt, oder eine, die sich beim Tippen in der Suche verschiebt.',
+      'Don\'t einen Abschnitt nummerieren. 1.1, 1.2.1 und ihresgleichen sind gefallen; sie machten eine Werkzeugliste zu einem Rechtstext.',
       'Don\'t Courier Prime als Kostüm für „technisch“ verwenden — nicht für Überschriften, Beschriftungen oder Fliesstext.',
       'Don\'t Cormorant Garamond ausserhalb der Wortmarke einsetzen, und keinen Anzeigeschnitt einführen, den ein Prüfschein nicht hätte.',
       'Don\'t Inter, Roboto, system-ui oder eine „sichere Alternative“ (Geist, Space Grotesk, Poppins) als Fliesstextschrift einsetzen.',
       'Don\'t eine Pixelgrösse von Hand schreiben, wo ein Typo-Token existiert, oder einen Abstand ausserhalb des Rasters.',
       'Don\'t den dunklen Modus aus dem hellen invertieren, und die Bühne überhaupt nicht umfärben.',
       'Don\'t ein Symbol in ein abgerundetes Quadrat über eine Überschrift stapeln, eine versale Beschriftung setzen, die den Reiter darüber wiederholt, oder einen pulsierenden Punkt auf eine Angabe legen, die sich nie ändert.',
-      'Don\'t dreissig Verfahren als gleichmässiges Raster identischer Kacheln zeigen. Es ist eine Liste, und ein nummerierter Index ist ihre Form.',
+      'Don\'t Amtsdeutsch als Sachlichkeit ausgeben. „Prüfgegenstand“, „Verfügbare Verfahren“, „Prüfmittel“ — alle drei standen hier einmal und sind gefallen. Wenn ein Wort nach Formular klingt, ist es das falsche.',
+      'Don\'t die Startseite mit dem Zustand der leeren Sitzung eröffnen. Sie stand einmal als Tabelle aus drei leeren Feldern da; das Erste auf dem Schirm ist die nächste Handlung.',
     ],
   },
 }
