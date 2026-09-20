@@ -54,6 +54,14 @@ Das Wenige, was hier stehen muss, weil es jeden Edit betrifft:
   für genau ein Wort weiter: die Wortmarke ist eine bindende Zusage.
 - **Zustand ist eine Marke am Rand,** kein Kasten: `Notice` annotiert mit
   `●` und `!`, statt den Hinweis einzurahmen.
+- **Jedes Werkzeug hat eine Adresse.** `#umwandeln`, `#tonart`,
+  `#spuren-trennen` — die Slugs stehen in `panelMeta.tsx`, das Routing in
+  `usePanelRoute`. Der Start ist die blanke Wurzel. Ein neues Panel ohne Slug
+  ist unfertig.
+- **`muted` auf einer Tönung ist der Fallstrick dieser Welt.** Auf
+  `panel-mid` mass er sich im dunklen Thema dreimal bei Lc 59.3, Boden ist 60.
+  Auf getöntem Grund gehört Sekundärtext auf `prose` oder die Tönung auf
+  `panel-soft` — aber erst messen, dann setzen.
 - **Kontrast wird gemessen, nicht geschätzt.** APCA: Fliesstext ≥ Lc 75,
   sekundär ≥ 60, Überschriften ≥ 45, Nicht-Text ≥ 15. Eine Palettenänderung
   ist erst fertig, wenn sie durch die Zahlen gelaufen ist — und eine getönte

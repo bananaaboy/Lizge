@@ -118,8 +118,9 @@ export function useGlobalIngest(): { dragging: boolean } {
       }
 
       if (files.length > 0) await ingest(files, 'aus einer anderen App geteilt')
-      // Drop the marker so a reload does not look for files that are gone.
-      window.history.replaceState(null, '', window.location.pathname)
+      // Drop the marker so a reload does not look for files that are gone —
+      // but keep the fragment, which now names the open tool.
+      window.history.replaceState(null, '', window.location.pathname + window.location.hash)
     })()
   }, [ingest])
 

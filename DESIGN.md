@@ -584,14 +584,26 @@ darüber trennt.
 
 **Die Umwandlungszeile (`Conversion`).** Zwei getönte Blöcke mit einem Pfeil
 dazwischen — links, was hereinkommt, rechts in Tinte, was herauskommt. **Der
-rechte Block ist das Bedienelement:** ein echtes `<select>` liegt mit
-Deckkraft 0 darüber, der Block darunter zeichnet nur. Das erhält den nativen
-Formatwähler des Handys, die Tastatur, die Tippsuche und die Ansage im
-Screenreader, die eine nachgebaute Liste alle einzeln braucht. Das `<select>`
-steht im Markup **vor** dem Block, weil `peer-*` zu einem
-Geschwister-Selektor kompiliert. Der Fokusring ist `currentColor` — auf dieser
-Fläche `on-ink`, die einzige Farbe, die sich in beiden Themen garantiert
-abhebt (Lc 101 hell, 78.6 dunkel); `outline-ink` wäre Tinte auf Tinte. Oben je
+rechte Block ist das Bedienelement** (`FormatPicker`): antippen öffnet die
+Formatliste, und was gewählt wird, steht sofort als grosses Wort im Block.
+
+Zuerst lag dafür ein echtes `<select>` mit Deckkraft 0 über dem Block — das
+erhielt den nativen Formatwähler, die Tastatur und die Screenreader-Ansage
+geschenkt. Verworfen, weil der eine Teil eines `<select>`, den kein Stylesheet
+erreicht, ausgerechnet der aufgeklappte ist, und genau den sieht man beim
+Wählen an. Jetzt ist es eine ausgeschriebene Listbox, und alles, was das native
+Element umsonst gab, ist absichtlich nachgebaut: `role`,
+`aria-activedescendant`, Pfeiltasten, Home/End, Enter, Escape, Tippsuche, Klick
+daneben schliesst, Fokus kehrt zum Block zurück. **Wer sie anfasst, fasst all
+das mit an.** Die Liste trägt die eine Schattenstufe — sie ist eins der wenigen
+Dinge, die wirklich über dem Blatt schweben.
+
+Der markierte Eintrag steht auf `panel-soft`, nicht auf `panel-mid`: dort mass
+sich der Hinweistext im dunklen Thema bei APCA Lc 59.3 gegen einen Boden von 60
+— das dritte Mal, dass genau dieses Paar in dieser Welt durchgefallen ist. Die
+Gruppentitel nehmen dafür `panel-mid`, damit beide unterscheidbar bleiben.
+
+Oben je
 das Format als grosses Wort in der Wertschrift, darunter der Dateiname, darunter
 die Messwerte. Der Pfeil dreht sich auf dem Handy um 90°, wo die Blöcke stapeln.
 Rechts steht erst eine Grösse, wenn wirklich eine Datei entstanden ist: eine

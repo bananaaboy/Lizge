@@ -65,6 +65,7 @@ function FormatBlock({
   measured = false,
   strong = false,
   selectable = false,
+  open = false,
   className = '',
 }: {
   badge: string
@@ -75,6 +76,8 @@ function FormatBlock({
   strong?: boolean
   /** Draws the chevron that says this block is the thing you change. */
   selectable?: boolean
+  /** Turns the chevron over while the list is showing. */
+  open?: boolean
   className?: string
 }) {
   return (
@@ -93,7 +96,9 @@ function FormatBlock({
           <svg
             viewBox="0 0 16 16"
             aria-hidden
-            className="h-4 w-4 shrink-0"
+            className={`h-4 w-4 shrink-0 transition-transform duration-[var(--dur-fast)] ${
+              open ? 'rotate-180' : ''
+            }`}
             fill="none"
             stroke="currentColor"
             strokeWidth="1.6"
@@ -122,6 +127,222 @@ function FormatBlock({
       >
         {meta}
       </span>
+    </div>
+  )
+}
+
+interface TargetFormat {
+  id: string
+  label: string
+  hint: string
+}
+
+/**
+ * The target block, which opens its own list of formats.
+ *
+ * A listbox written out rather than a native `<select>`, because the one
+ * thing a `<select>` will not let anyone style is the part that opens — and
+ * that part is what is looked at while choosing. Everything the native
+ * control gave away for free is therefore rebuilt on purpose: roles and
+ * `aria-activedescendant` for the screen reader, arrows and Home/End to move,
+ * Enter or Space to take, Escape to leave it as it was, letters to jump, a
+ * click anywhere else to dismiss, and focus handed back to the block.
+ */
+function FormatPicker({
+  value,
+  groups,
+  onChange,
+  badge,
+  name,
+  meta,
+  measured,
+}: {
+  value: string
+  groups: { label: string; formats: TargetFormat[] }[]
+  onChange: (id: string) => void
+  badge: string
+  name: string
+  meta: string
+  measured: boolean
+}) {
+  const [open, setOpen] = useState(false)
+  const [active, setActive] = useState(value)
+  const rootRef = useRef<HTMLDivElement>(null)
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const listRef = useRef<HTMLDivElement>(null)
+  const typed = useRef({ text: '', at: 0 })
+
+  /* Flat order is what the arrow keys walk; the groups are only a heading. */
+  const flat = useMemo(() => groups.flatMap((group) => group.formats), [groups])
+
+  useEffect(() => {
+    if (open) setActive(value)
+  }, [open, value])
+
+  /* Keep the highlighted row in view when the keyboard walks past the edge. */
+  useEffect(() => {
+    if (!open) return
+    listRef.current?.querySelector(`[data-id="${active}"]`)?.scrollIntoView({ block: 'nearest' })
+  }, [open, active])
+
+  /* A click anywhere else closes it. `pointerdown` rather than `click` so the
+     list is gone before the thing underneath reacts. */
+  useEffect(() => {
+    if (!open) return
+    const onDown = (event: PointerEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false)
+    }
+    document.addEventListener('pointerdown', onDown)
+    return () => document.removeEventListener('pointerdown', onDown)
+  }, [open])
+
+  const close = (restoreFocus = true) => {
+    setOpen(false)
+    if (restoreFocus) triggerRef.current?.focus()
+  }
+
+  const commit = (id: string) => {
+    onChange(id)
+    close()
+  }
+
+  const step = (delta: number) => {
+    const index = flat.findIndex((f) => f.id === active)
+    const next = flat[Math.min(flat.length - 1, Math.max(0, (index === -1 ? 0 : index) + delta))]
+    if (next) setActive(next.id)
+  }
+
+  const onKeyDown = (event: React.KeyboardEvent) => {
+    if (!open) {
+      if (event.key === 'ArrowDown' || event.key === 'ArrowUp' || event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault()
+        setOpen(true)
+      }
+      return
+    }
+    switch (event.key) {
+      case 'Escape':
+        event.preventDefault()
+        close()
+        break
+      case 'ArrowDown':
+        event.preventDefault()
+        step(1)
+        break
+      case 'ArrowUp':
+        event.preventDefault()
+        step(-1)
+        break
+      case 'Home':
+        event.preventDefault()
+        if (flat[0]) setActive(flat[0].id)
+        break
+      case 'End':
+        event.preventDefault()
+        if (flat.length) setActive(flat[flat.length - 1].id)
+        break
+      case 'Enter':
+      case ' ':
+        event.preventDefault()
+        commit(active)
+        break
+      case 'Tab':
+        close(false)
+        break
+      default: {
+        // Type-ahead: letters typed in quick succession jump to a label.
+        if (event.key.length !== 1 || event.metaKey || event.ctrlKey || event.altKey) return
+        const now = Date.now()
+        typed.current = {
+          text: now - typed.current.at > 900 ? event.key : typed.current.text + event.key,
+          at: now,
+        }
+        const hit = flat.find((f) => f.label.toLowerCase().startsWith(typed.current.text.toLowerCase()))
+        if (hit) setActive(hit.id)
+      }
+    }
+  }
+
+  return (
+    <div ref={rootRef} className="relative min-w-0">
+      <button
+        ref={triggerRef}
+        type="button"
+        role="combobox"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-controls="zielformat-liste"
+        aria-label="Zielformat"
+        aria-activedescendant={open ? `zielformat-${active}` : undefined}
+        onClick={() => setOpen((was) => !was)}
+        onKeyDown={onKeyDown}
+        className="block w-full text-left"
+      >
+        <FormatBlock
+          badge={badge}
+          name={name}
+          meta={meta}
+          measured={measured}
+          strong
+          selectable
+          open={open}
+          className="h-full transition-colors duration-[var(--dur-fast)] hover:bg-ink-hover"
+        />
+      </button>
+
+      {open ? (
+        <div
+          ref={listRef}
+          id="zielformat-liste"
+          role="listbox"
+          aria-label="Zielformat"
+          className="rise elevate-lift absolute left-0 right-0 top-[calc(100%+4px)] z-30 max-h-[320px] overflow-y-auto bg-raised ring-1 ring-inset ring-rule"
+        >
+          {groups.map((group) => (
+            <div key={group.label}>
+              {/* Only worth a heading when there is more than one group — a
+                  video has „Video" and „Nur den Ton behalten", audio has one. */}
+              {groups.length > 1 ? (
+                <div className="border-t border-line bg-panel-mid px-[12px] py-[6px] text-small font-semibold text-ink first:border-t-0">
+                  {group.label}
+                </div>
+              ) : null}
+              {group.formats.map((format) => {
+                const chosen = format.id === value
+                const highlighted = format.id === active
+                return (
+                  <div
+                    key={format.id}
+                    id={`zielformat-${format.id}`}
+                    data-id={format.id}
+                    role="option"
+                    aria-selected={chosen}
+                    onPointerEnter={() => setActive(format.id)}
+                    onClick={() => commit(format.id)}
+                    /* The highlight is `panel-soft`, not `panel-mid`: on
+                       `panel-mid` the hint measured APCA Lc 59.3 in the dark
+                       theme against a Lc 60 floor — the third time that exact
+                       pairing has come up short in this design. On
+                       `panel-soft` it is 60.7, and the group headings take
+                       `panel-mid` so the two still read apart. */
+                    className={`flex cursor-pointer items-baseline gap-[8px] border-t border-line px-[12px] py-[10px] first:border-t-0 ${
+                      highlighted ? 'bg-panel-soft' : ''
+                    }`}
+                  >
+                    {/* The mark says which one is in force; it keeps its column
+                        so the labels stay on one axis. */}
+                    <span className={`value w-[1ch] shrink-0 ${chosen ? 'text-ink' : 'text-transparent'}`}>
+                      ●
+                    </span>
+                    <span className="value min-w-0 shrink-0 text-small text-ink">{format.label}</span>
+                    <span className="min-w-0 flex-1 truncate text-small text-muted">{format.hint}</span>
+                  </div>
+                )
+              })}
+            </div>
+          ))}
+        </div>
+      ) : null}
     </div>
   )
 }
@@ -170,44 +391,26 @@ function Conversion({
         </svg>
         <span className="sr-only">wird zu</span>
       </div>
-      {/* The target block *is* the picker.
-          A real `<select>` lies over it at zero opacity rather than a custom
-          popover: that keeps the native wheel on a phone, the keyboard, the
-          type-ahead and the screen reader announcement, none of which a hand
-          built listbox gets for free. The block underneath only draws. It has
-          to come after the select in the DOM for `peer-*` to reach it, since
-          that compiles to a sibling combinator.
+      {/* The target block *is* the picker, and the list it opens is drawn
+          here rather than by the browser.
 
-          The focus ring is `currentColor`, which on this block is `on-ink` —
-          the one colour guaranteed to carry against the fill in both themes
-          (Lc 101 light, 78.6 dark). `outline-ink` would be ink on ink. */}
-      <div className="relative min-w-0">
-        <select
-          aria-label="Zielformat"
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          className="peer absolute inset-0 z-10 h-full w-full cursor-pointer appearance-none opacity-0"
-        >
-          {groups.map((group) => (
-            <optgroup key={group.label} label={group.label}>
-              {group.formats.map((f) => (
-                <option key={f.id} value={f.id}>
-                  {f.label} — {f.hint}
-                </option>
-              ))}
-            </optgroup>
-          ))}
-        </select>
-        <FormatBlock
-          badge={toBadge}
-          name={toName}
-          meta={toMeta}
-          measured={toMeasured}
-          strong
-          selectable
-          className="h-full transition-colors duration-[var(--dur-fast)] peer-hover:bg-ink-hover peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-current"
-        />
-      </div>
+          It was a native `<select>` under a transparent layer first, which
+          bought the phone's wheel, the keyboard and the screen reader for
+          free — but the open list is chrome no stylesheet can reach, and it
+          looked it. So this is a real listbox: same keyboard contract
+          (arrows, Home/End, Enter, Escape, type-ahead), same roles, and a
+          panel that belongs to the rest of the page. The shadow is allowed
+          precisely here — it is one of the three things that genuinely float
+          above the sheet. */}
+      <FormatPicker
+        value={value}
+        groups={groups}
+        onChange={onChange}
+        badge={toBadge}
+        name={toName}
+        meta={toMeta}
+        measured={toMeasured}
+      />
     </div>
   )
 }
