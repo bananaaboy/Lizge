@@ -1,7 +1,18 @@
 /**
  * Writes `.impeccable/design.json` — the sidecar that carries what DESIGN.md's
- * frontmatter schema cannot hold: tonal ramps, shadow and motion tokens,
- * breakpoints, drop-in component snippets, and the narrative.
+ * frontmatter schema cannot hold: tonal ramps, the dark remap, shadow and
+ * motion tokens, breakpoints, drop-in component snippets, and the narrative.
+ *
+ * Run it with `node scripts/build-design-sidecar.mjs` whenever DESIGN.md is
+ * regenerated.
+ *
+ * Every colour, shadow, easing and duration below is **read out of
+ * `src/styles/theme.css` at build time**, not typed in here. The previous
+ * version of this file hard-coded the values of the world before the
+ * calibration-certificate pass, and went stale the moment that world was
+ * replaced — a generator that repeats its source is a second source. If a
+ * token named here has disappeared from the stylesheet, this script throws
+ * rather than writing a plausible-looking lie.
  *
  * The ramps are computed rather than invented. Each one holds the token's own
  * hue and chroma and walks only its lightness, in OKLab, because walking
@@ -12,7 +23,61 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
-/* -- sRGB <-> OKLab ------------------------------------------------------- */
+const THEME = path.join('src', 'styles', 'theme.css')
+
+/* -- reading the stylesheet ------------------------------------------------ */
+
+const css = fs.readFileSync(THEME, 'utf8')
+
+/** The body of a block, found by its opening line and matched brace-for-brace. */
+function block(source, opener) {
+  const start = source.indexOf(opener)
+  if (start === -1) throw new Error(`${THEME}: kein Block „${opener}“ gefunden`)
+  let depth = 0
+  for (let i = start + opener.length - 1; i < source.length; i += 1) {
+    if (source[i] === '{') depth += 1
+    else if (source[i] === '}') {
+      depth -= 1
+      if (depth === 0) return source.slice(start + opener.length, i)
+    }
+  }
+  throw new Error(`${THEME}: Block „${opener}“ wird nicht geschlossen`)
+}
+
+/** Every `--name: value;` in a block, comments stripped. */
+function declarations(body) {
+  const out = new Map()
+  for (const [, name, value] of body.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/--([\w-]+)\s*:\s*([^;]+);/g)) {
+    out.set(name, value.trim())
+  }
+  return out
+}
+
+/** A plain `name: value;` declaration in a block — not a custom property. */
+function property(body, name) {
+  const match = body.replace(/\/\*[\s\S]*?\*\//g, '').match(new RegExp(`(?:^|[;{\\s])${name}\\s*:\\s*([^;]+);`))
+  if (!match) throw new Error(`${THEME}: ${name} fehlt in einem gelesenen Block.`)
+  return match[1].trim()
+}
+
+/* `@theme` carries the light theme; its values double as the defaults. The
+   dark theme is declared twice in the stylesheet — once behind the media
+   query, once behind the attribute — and the attribute block is the one the
+   switch honours in both directions, so it is the one read here. */
+const light = declarations(block(css, '@theme {'))
+const dark = declarations(block(css, ":root[data-theme='dark'] {"))
+const shell = block(css, '@utility shell {')
+
+function token(map, name, where) {
+  const value = map.get(name)
+  if (!value) throw new Error(`${THEME}: --${name} fehlt (${where}). DESIGN.md und dieser Sidecar sind auseinandergelaufen.`)
+  return value
+}
+
+const lightColor = (name) => token(light, `color-${name}`, 'helles Thema')
+const darkColor = (name) => token(dark, `color-${name}`, 'dunkles Thema')
+
+/* -- sRGB <-> OKLab -------------------------------------------------------- */
 
 const toLinear = (c) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4)
 const toGamma = (c) => (c <= 0.0031308 ? c * 12.92 : 1.055 * c ** (1 / 2.4) - 0.055)
@@ -52,20 +117,197 @@ function ramp(hex) {
   return Array.from({ length: 8 }, (_, i) => oklabToHex({ L: 0.15 + (i * (0.95 - 0.15)) / 7, a, b }))
 }
 
-/* -- the record ------------------------------------------------------------ */
+/* -- the human layer -------------------------------------------------------
+   Roles, names and purposes cannot be read out of a stylesheet. The hexes
+   beside them can, and are: this table names tokens, it does not restate
+   their values.
+   ------------------------------------------------------------------------- */
 
-const colors = {
-  ink: ['primary', 'Waldtinte', '#0f3e1c', 'Die einzige gesättigte Farbe. Alles, was anklickbar ist.'],
-  'ink-hover': ['primary', 'Waldtinte gedrückt', '#0a2b13', 'Nur der Hover-Zustand gefüllter Flächen.'],
-  canvas: ['neutral', 'Warmes Papier', '#f4f3ee', 'Die Seite selbst.'],
-  raised: ['neutral', 'Karte', '#ffffff', 'Nur für Dinge, die auf dem Papier liegen.'],
-  'panel-soft': ['neutral', 'Blasse Minze', '#eaf2e9', 'Getönte Blöcke innerhalb einer Karte.'],
-  'panel-cool': ['neutral', 'Kühle Minze', '#e4edef', 'Reserviert für den Hinweis, dass etwas nicht lokal läuft.'],
-  prose: ['neutral', 'Prosa', '#1b231d', 'Fliesstext.'],
-  muted: ['neutral', 'Gedämpft', '#5d6c61', 'Sekundärtext.'],
-  line: ['neutral', 'Linie', '#d5d4c9', 'Jede Trennung. Gemessen auf APCA Lc 15.'],
-  stage: ['tertiary', 'Bühne', '#15181a', 'Die Editor-Fläche. Neutral, damit sie über Farben nicht lügt.'],
-}
+const colors = [
+  ['ink', 'primary', 'Waldtinte', 'Die einzige gesättigte Farbe und die einzige Druckfarbe: Linien, Klauselnummern, Überschriften, Fokusring und die eine gefüllte Aktion je Abschnitt.'],
+  ['ink-hover', 'primary', 'Waldtinte gedrückt', 'Nur der Hover-Zustand gefüllter Flächen. Nie im Ruhezustand.'],
+  ['on-ink', 'primary', 'Papier auf Tinte', 'Text auf gefüllter Tinte.'],
+  ['canvas', 'neutral', 'Warmes Papier', 'Das Blatt selbst, Grund der ganzen App.'],
+  ['raised', 'neutral', 'Feld', 'Weiss erscheint nur, wo ein Feld ausfüllbar ist oder eine Fläche eigene Mechanik hat — nicht als Karte.'],
+  ['panel-soft', 'neutral', 'Blasse Minze', 'Eingesetzte Blöcke und der Hover-Grund von Listenzeilen.'],
+  ['panel-mid', 'neutral', 'Minze', 'Die zweite Tönungsstufe eingesetzter Blöcke.'],
+  ['panel-strong', 'neutral', 'Kräftige Minze', 'Die Textmarkierung (::selection).'],
+  ['panel-cool', 'neutral', 'Kühle Minze', 'Reserviert für den einen Hinweis, dass etwas nicht lokal läuft.'],
+  ['prose', 'neutral', 'Prosa', 'Fliesstext und Beschriftungen.'],
+  ['muted', 'neutral', 'Gedämpft', 'Sekundärtext, Hinweise, Einheiten.'],
+  ['faint', 'neutral', 'Nicht zutreffend', 'Ein Verfahren, das auf die geöffnete Datei nicht passt. Blasser als gedämpft, aber ausdrücklich noch lesbar.'],
+  ['line', 'neutral', 'Haarlinie', 'Die Linie einer Tabelle: jede Trennung zwischen Zeilen, Feldern und Blöcken. Gemessen auf APCA Lc 15.'],
+  ['rule', 'neutral', 'Klausellinie', 'Die schwerere Linie, die einen Abschnitt eröffnet. Eigenes Token statt Deckkraft auf Tinte, weil eine Deckkraft über dunklem Grund ihren Kontrast verliert.'],
+  ['stage', 'tertiary', 'Bühne', 'Die Fläche, auf der ein Bild oder Video bearbeitet wird. In beiden Themen dunkel und neutral, damit sie über Farben nicht lügt.'],
+  ['stage-soft', 'tertiary', 'Bühne gehoben', 'Das Schachbrett der Transparenz und die Knöpfe auf der Bühne.'],
+  ['stage-line', 'tertiary', 'Bühnenlinie', 'Trennung und Ring auf der Bühne.'],
+  ['stage-ink', 'tertiary', 'Bühnenschrift', 'Text auf der Bühne.'],
+  ['stage-muted', 'tertiary', 'Bühne gedämpft', 'Sekundärtext auf der Bühne.'],
+]
+
+/* -- component snippets ----------------------------------------------------
+   Literal values rather than `var(--color-…)`: the panel renders these in a
+   shadow DOM on a different page, where this project's custom properties do
+   not exist. Light theme, because that is the frontmatter's normative side.
+   ------------------------------------------------------------------------- */
+
+/* The two families are read out of the stylesheet like everything else, then
+   stripped of the spaces after their commas so they survive inside a `font:`
+   shorthand. Typing them here would put the type system in two places. */
+const stack = (name) => token(light, `font-${name}`, 'Schriften').replace(/,\s+/g, ',')
+const FORM = stack('sans')
+const VALUE = stack('value')
+const EASE = token(light, 'ease-out', 'Bewegung')
+const FAST = token(light, 'dur-fast', 'Bewegung')
+const INK = lightColor('ink')
+const INK_HOVER = lightColor('ink-hover')
+const ON_INK = lightColor('on-ink')
+const CANVAS = lightColor('canvas')
+const RAISED = lightColor('raised')
+const SOFT = lightColor('panel-soft')
+const MID = lightColor('panel-mid')
+const PROSE = lightColor('prose')
+const MUTED = lightColor('muted')
+const LINE = lightColor('line')
+const RULE = lightColor('rule')
+
+const focus = (selector) => `${selector}:focus-visible{outline:2px solid ${INK};outline-offset:2px}`
+
+const components = [
+  {
+    name: 'Primary Button',
+    kind: 'button',
+    refersTo: 'button-primary',
+    description: 'Die eine Aktion, um die ein Abschnitt bittet. Eckig, ungeschattet, gefüllte Tinte.',
+    html: '<button class="ds-btn-primary">Datei öffnen</button>',
+    css:
+      `.ds-btn-primary{display:inline-flex;align-items:center;gap:8px;background:${INK};color:${ON_INK};font:500 16px/1.55 ${FORM};padding:12px 16px;border:none;border-radius:0;cursor:pointer;transition:background ${FAST} ${EASE},transform ${FAST} ${EASE}}` +
+      `.ds-btn-primary:hover{background:${INK_HOVER}}` +
+      `.ds-btn-primary:active{transform:translateY(1px)}` +
+      focus('.ds-btn-primary') +
+      `.ds-btn-primary:disabled{opacity:.4;cursor:not-allowed;transform:none}`,
+  },
+  {
+    name: 'Quiet Button',
+    kind: 'button',
+    refersTo: 'button-quiet',
+    description: 'Die zweite Wahl, die sichtbar die zweite ist: Feldweiss mit Klausellinien-Ring.',
+    html: '<button class="ds-btn-quiet">In die Sitzung übernehmen</button>',
+    css:
+      `.ds-btn-quiet{display:inline-flex;align-items:center;gap:8px;background:${RAISED};color:${INK};font:500 16px/1.55 ${FORM};padding:12px 16px;border:none;border-radius:0;box-shadow:inset 0 0 0 1px ${RULE};cursor:pointer;transition:background ${FAST} ${EASE},transform ${FAST} ${EASE}}` +
+      `.ds-btn-quiet:hover{background:${SOFT}}` +
+      `.ds-btn-quiet:active{transform:translateY(1px)}` +
+      focus('.ds-btn-quiet'),
+  },
+  {
+    name: 'Text Input',
+    kind: 'input',
+    refersTo: 'input',
+    description: 'Was eingetippt wird, steht in der Schrift der eingetragenen Dinge. Ring statt Rahmen, Fokus wechselt ihn auf Tinte.',
+    html: '<input class="ds-input" type="text" value="https://www.youtube.com/watch?v=…" aria-label="Adresse" />',
+    css:
+      `.ds-input{width:100%;box-sizing:border-box;background:${RAISED};color:${PROSE};font:400 13px/1.5 ${VALUE};font-variant-numeric:tabular-nums;letter-spacing:-.02em;padding:8px 12px;border:none;border-radius:0;box-shadow:inset 0 0 0 1px ${LINE};outline:none}` +
+      `.ds-input::placeholder{font-family:${FORM};color:${MUTED}}` +
+      `.ds-input:focus{box-shadow:inset 0 0 0 1px ${INK}}`,
+  },
+  {
+    name: 'Choice Chip',
+    kind: 'chip',
+    refersTo: 'chip',
+    description: 'Eins aus vier — Seitenverhältnis, Drehung, Format. Ausgewählt ist gefüllte Tinte ohne Ring.',
+    html: '<div style="display:flex;gap:4px"><button class="ds-chip" aria-pressed="false">Frei</button><button class="ds-chip ds-chip-on" aria-pressed="true">16:9</button><button class="ds-chip" aria-pressed="false">4:3</button></div>',
+    css:
+      `.ds-chip{background:${SOFT};color:${PROSE};font:400 13px/1 ${FORM};padding:8px;border:none;border-radius:0;box-shadow:inset 0 0 0 1px ${LINE};cursor:pointer;transition:background ${FAST} ${EASE},transform ${FAST} ${EASE}}` +
+      `.ds-chip:hover{background:${MID}}` +
+      `.ds-chip:active{transform:translateY(1px)}` +
+      `.ds-chip-on{background:${INK};color:${ON_INK};box-shadow:none}` +
+      focus('.ds-chip'),
+  },
+  {
+    name: 'Panel Tabs',
+    kind: 'nav',
+    refersTo: 'tab',
+    description: 'Die Werkzeugleiste. Jeder Reiter trägt seine Nummer in der Klauselschrift; ausgewählt ist gefüllte Tinte.',
+    html: '<div class="ds-tabs" role="tablist"><button class="ds-tab ds-tab-on" role="tab" aria-selected="true"><span class="ds-tab-no">1</span>Start</button><button class="ds-tab" role="tab" aria-selected="false"><span class="ds-tab-no">2</span>Herunterladen</button><button class="ds-tab" role="tab" aria-selected="false"><span class="ds-tab-no">3</span>Umwandeln</button></div>',
+    css:
+      `.ds-tabs{display:flex;gap:4px;background:${RAISED};padding:4px;box-shadow:inset 0 0 0 1px ${LINE}}` +
+      `.ds-tab{display:flex;align-items:center;gap:8px;background:transparent;color:${PROSE};font:400 13px/1.5 ${FORM};padding:8px 12px;border:none;border-radius:0;cursor:pointer;transition:background ${FAST} ${EASE}}` +
+      `.ds-tab:hover{background:${SOFT}}` +
+      `.ds-tab-no{font:400 13px/1 ${VALUE};font-variant-numeric:tabular-nums;color:${MUTED}}` +
+      `.ds-tab-on{background:${INK};color:${ON_INK}}` +
+      `.ds-tab-on .ds-tab-no{color:${ON_INK};opacity:.7}` +
+      focus('.ds-tab'),
+  },
+  {
+    name: 'Toggle',
+    kind: 'custom',
+    refersTo: 'toggle-track',
+    description: 'Eckiger Körper, runder Knauf: der Schalter ist der eine physische Gegenstand auf einem Blatt Papier und darf deshalb als einziges eine Rundung haben.',
+    html: '<button class="ds-toggle" role="switch" aria-checked="true"><span class="ds-toggle-track"><span class="ds-toggle-knob"></span></span><span class="ds-toggle-text"><span class="ds-toggle-label">Mehrkern verwenden</span><span class="ds-toggle-hint">Braucht Cross-Origin-Isolation.</span></span></button>',
+    css:
+      `.ds-toggle{display:flex;align-items:flex-start;gap:12px;background:none;border:none;padding:0;text-align:left;cursor:pointer;font-family:${FORM}}` +
+      `.ds-toggle-track{display:flex;align-items:center;flex-shrink:0;margin-top:2px;width:28px;height:16px;padding:2px;box-sizing:border-box;background:${INK};border-radius:0}` +
+      `.ds-toggle-knob{width:12px;height:12px;border-radius:999px;background:${ON_INK};transform:translateX(12px);transition:transform 240ms cubic-bezier(.16,1,.3,1)}` +
+      `.ds-toggle[aria-checked="false"] .ds-toggle-track{background:transparent;box-shadow:inset 0 0 0 1px ${RULE}}` +
+      `.ds-toggle[aria-checked="false"] .ds-toggle-knob{transform:translateX(0);background:${INK};opacity:.55}` +
+      `.ds-toggle-text{display:flex;flex-direction:column;gap:2px}` +
+      `.ds-toggle-label{font:400 13px/1.5 ${FORM};color:${PROSE}}` +
+      `.ds-toggle-hint{font:400 13px/1.45 ${FORM};color:${MUTED}}` +
+      focus('.ds-toggle'),
+  },
+  {
+    name: 'Stat Row',
+    kind: 'custom',
+    refersTo: 'stat-row',
+    description: 'Eine Messzeile: was gemessen wurde links, was herauskam rechts in der Wertschrift, die Einheit in eigener Spalte. Haarlinie oben statt Kasten ringsum.',
+    html: '<div class="ds-stats"><div class="ds-stat"><span class="ds-stat-label">Integrierte Lautheit</span><span class="ds-stat-figure"><span class="ds-stat-value">-14.2</span><span class="ds-stat-unit">LUFS</span></span></div><div class="ds-stat"><span class="ds-stat-label">True Peak</span><span class="ds-stat-figure"><span class="ds-stat-value">-1.0</span><span class="ds-stat-unit">dBTP</span></span></div><div class="ds-stat"><span class="ds-stat-label">Dynamikumfang</span><span class="ds-stat-figure"><span class="ds-stat-value">7.4</span><span class="ds-stat-unit">LU</span></span></div></div>',
+    css:
+      `.ds-stats{font-family:${FORM};background:${CANVAS};max-width:420px}` +
+      `.ds-stat{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid ${LINE}}` +
+      `.ds-stat-label{font:400 13px/1.5 ${FORM};color:${PROSE}}` +
+      `.ds-stat-figure{display:flex;align-items:baseline;gap:4px;flex-shrink:0}` +
+      `.ds-stat-value{font:400 13px/1.5 ${VALUE};font-variant-numeric:tabular-nums;letter-spacing:-.02em;color:${INK}}` +
+      `.ds-stat-unit{width:4ch;text-align:left;font:400 13px/1.5 ${FORM};color:${MUTED}}`,
+  },
+  {
+    name: 'Clause Header',
+    kind: 'custom',
+    refersTo: 'entry-row',
+    description: 'Der Kopf einer Klausel: die Nummer im linken Rand, als Verweis auf den eigenen Anker, daneben die Überschrift. Die Linie darüber trennt — es gibt keinen Kasten.',
+    html: '<div class="ds-clause"><h2 class="ds-clause-head"><a class="ds-clause-no" href="#v-1.1" title="Adresse dieser Klausel: 1.1">1.1</a><span class="ds-clause-title">Prüfgegenstand</span></h2><div class="ds-clause-row"><span class="ds-clause-mark">●</span><span class="ds-clause-key">Datei</span><span class="ds-clause-val">out_audio.wav</span></div><div class="ds-clause-row"><span class="ds-clause-mark ds-clause-mark-blank">—</span><span class="ds-clause-key">Art</span><span class="ds-clause-val ds-clause-val-blank">—</span></div></div>',
+    css:
+      `.ds-clause{font-family:${FORM};background:${CANVAS};max-width:420px}` +
+      `.ds-clause-head{display:flex;align-items:baseline;gap:12px;margin:0;padding-top:12px;border-top:2px solid ${RULE}}` +
+      `.ds-clause-no{width:5ch;flex-shrink:0;font:400 13px/1 ${VALUE};font-variant-numeric:tabular-nums;color:${INK};text-decoration:none}` +
+      `.ds-clause-no:hover{text-decoration:underline}` +
+      `.ds-clause-title{font:700 25px/1.25 ${FORM};letter-spacing:-.015em;color:${INK}}` +
+      `.ds-clause-row{display:flex;align-items:baseline;gap:12px;padding:6px 0;border-top:1px solid ${LINE};margin-top:12px}` +
+      `.ds-clause-row+.ds-clause-row{margin-top:0}` +
+      `.ds-clause-mark{width:1ch;text-align:center;flex-shrink:0;font:400 13px/1 ${VALUE};color:${INK};opacity:.7}` +
+      `.ds-clause-mark-blank{color:${MUTED};opacity:1}` +
+      `.ds-clause-key{flex:1;font:400 13px/1.5 ${FORM};color:${MUTED}}` +
+      `.ds-clause-val{font:400 13px/1.5 ${VALUE};font-variant-numeric:tabular-nums;letter-spacing:-.02em;color:${INK};text-align:right}` +
+      `.ds-clause-val-blank{color:${MUTED}}`,
+  },
+  {
+    name: 'Procedure Row',
+    kind: 'custom',
+    refersTo: 'procedure-row',
+    description: 'Eine Zeile des nummerierten Verfahrensindex: Linie oben, Symbol auf der Beschriftungszeile, Hinweis darunter. Ersetzt das Raster identisch grosser Kacheln.',
+    html: '<div class="ds-index"><button class="ds-proc"><span class="ds-proc-label"><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3.2h12v9.6H2zM2 10l3.4-3.2 3 2.8 2.2-2 3.4 3.2M5.6 6.2a.9.9 0 100-1.8.9.9 0 000 1.8z"/></svg>Bild zuschneiden</span><span class="ds-proc-hint">Ausschnitt aufziehen</span></button><button class="ds-proc"><span class="ds-proc-label"><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"><path d="M2.6 5.4h9.2m0 0L9.4 3.1m2.4 2.3L9.4 7.7M13.4 10.6H4.2m0 0l2.4-2.3m-2.4 2.3l2.4 2.3"/></svg>Bildformat ändern</span><span class="ds-proc-hint">PNG, JPEG oder WebP</span></button></div>',
+    css:
+      `.ds-index{background:${CANVAS};max-width:420px}` +
+      `.ds-proc{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;background:transparent;border:none;border-top:1px solid ${LINE};border-radius:0;padding:10px 4px;text-align:left;cursor:pointer;transition:background ${FAST} ${EASE}}` +
+      `.ds-proc:hover{background:${SOFT}}` +
+      `.ds-proc-label{display:flex;align-items:center;gap:8px;font:600 13px/1.3 ${FORM};color:${INK}}` +
+      `.ds-proc-label svg{color:${MUTED};flex-shrink:0;transition:color ${FAST} ${EASE}}` +
+      `.ds-proc:hover .ds-proc-label svg{color:${INK}}` +
+      `.ds-proc-hint{font:400 13px/1.4 ${FORM};color:${MUTED}}` +
+      `.ds-proc:focus-visible{outline:2px solid ${INK};outline-offset:-2px}`,
+  },
+]
+
+/* -- the record ------------------------------------------------------------ */
 
 const design = {
   schemaVersion: 2,
@@ -73,165 +315,165 @@ const design = {
   title: 'Design System: Sondra',
   extensions: {
     colorMeta: Object.fromEntries(
-      Object.entries(colors).map(([key, [role, displayName, canonical, purpose]]) => [
+      colors.map(([key, role, displayName, purpose]) => [
         key,
-        { role, displayName, canonical, purpose, tonalRamp: ramp(canonical) },
+        {
+          role,
+          displayName,
+          canonical: lightColor(key),
+          dark: darkColor(key),
+          purpose,
+          tonalRamp: ramp(lightColor(key)),
+        },
       ]),
     ),
     typographyMeta: {
-      display: { displayName: 'Display', purpose: 'Die eine grosse Zeile pro Bildschirm. Nur Gewicht 300.' },
-      headline: { displayName: 'Headline', purpose: 'Abschnittsüberschriften in Karten.' },
-      title: { displayName: 'Title', purpose: 'Zwischenüberschriften, Dateiname im Editorkopf.' },
-      body: { displayName: 'Body', purpose: 'Fliesstext und primäre Bedienelemente. 16px, weil Deutsch lange Wörter hat.' },
-      small: { displayName: 'Small', purpose: 'Die dichte Werkzeugleiste: Anzeigen, Hinweise, Chips, Reiter.' },
-      label: { displayName: 'Label', purpose: 'Die einzige Grossbuchstaben-Behandlung im System.' },
+      display: { displayName: 'Display', purpose: 'Die eine grosse Zeile einer Fläche. Steht in Tinte.' },
+      headline: { displayName: 'Headline', purpose: 'Der Kopf einer Hauptklausel, neben seiner Klauselnummer.' },
+      title: { displayName: 'Title', purpose: 'Dialogtitel und Zwischenüberschriften.' },
+      body: { displayName: 'Body', purpose: 'Fliesstext und die grosse Schaltflächengrösse. 16px, weil Deutsch lange Wörter hat.' },
+      small: { displayName: 'Small', purpose: 'Das dichte Werkzeug-Chrome: Anzeigen, Hinweise, Chips, Reiter, Formularzeilen.' },
+      label: { displayName: 'Label', purpose: 'Die kleinste Stufe: Kopfzeilen-Angaben, Beschriftungen der Werkzeugschiene, und als einzige Versalbehandlung der gestempelte Badge.' },
+      value: { displayName: 'Value', purpose: 'Was die Maschine gefunden hat: Messwert, Dateiname, Zeitmarke. Rechtsbündig, Tabellenziffern, Einheit in eigener Spalte. Nie als Kostüm für „technisch“.' },
+      clause: { displayName: 'Clause', purpose: 'Die Adresse einer Klausel, im linken Rand ausserhalb der Textspalte.' },
+      wordmark: { displayName: 'Wordmark', purpose: 'Cormorant Garamond, geladen als eigene Familie „Sondra Wordmark“ für genau ein Wort. Sonst nirgends erlaubt.' },
     },
     shadows: [
       {
-        name: 'card',
-        value: '0 1px 2px rgb(20 35 25 / 0.04), 0 4px 16px -8px rgb(20 35 25 / 0.1)',
-        purpose: 'Hebt eine Karte vom Papier ab. Der Ruhezustand.',
+        name: 'lift',
+        value: token(light, 'shadow-lift', 'Tiefe, helles Thema'),
+        purpose: 'Die einzige Tiefenstufe, und im Ruhezustand nirgends auf dem Blatt. Getragen wird sie vom Lokalitäts-Popover, von der Ablage-Überlagerung und von der Rasterdatei auf der Bühne.',
       },
       {
-        name: 'lift',
-        value: '0 2px 6px rgb(20 35 25 / 0.06), 0 12px 30px -12px rgb(20 35 25 / 0.18)',
-        purpose: 'Antwort auf den Zeiger oder auf Ziehen. Nie im Ruhezustand.',
+        name: 'lift-dark',
+        value: token(dark, 'shadow-lift', 'Tiefe, dunkles Thema'),
+        purpose: 'Dieselbe Stufe im dunklen Thema — eine eigene, deutlich tiefere Umrechnung, keine Anpassung des hellen.',
       },
     ],
     motion: [
-      { name: 'ease-out', value: 'cubic-bezier(0.22, 0.72, 0.28, 1)', purpose: 'Standard für jeden Zustandswechsel.' },
-      { name: 'ease-spring', value: 'cubic-bezier(0.34, 1.32, 0.5, 1)', purpose: 'Nur für etwas, das gerade entstanden ist.' },
-      { name: 'dur-fast', value: '130ms', purpose: 'Farbwechsel, Druck, alles, was sofort antworten muss.' },
-      { name: 'dur-base', value: '240ms', purpose: 'Eintritt neuer Inhalte.' },
-      { name: 'dur-slow', value: '420ms', purpose: 'Die seltene grosse Bewegung.' },
+      { name: 'ease-out', value: token(light, 'ease-out', 'Bewegung'), purpose: 'Standard für jeden Zustandswechsel und für „rise“.' },
+      { name: 'ease-settle', value: token(light, 'ease-settle', 'Bewegung'), purpose: 'Exponentielles Auslaufen für „pop“ und den Schalterknauf. Kein Feder-Effekt: echte Objekte bremsen ab, sie wackeln nicht in Position.' },
+      { name: 'dur-fast', value: token(light, 'dur-fast', 'Bewegung'), purpose: 'Farbwechsel, Druck, alles, was sofort antworten muss.' },
+      { name: 'dur-base', value: token(light, 'dur-base', 'Bewegung'), purpose: 'Eintritt neuer Inhalte („rise“, „pop“) und der Weg des Schalterknaufs.' },
+      { name: 'dur-slow', value: token(light, 'dur-slow', 'Bewegung'), purpose: 'Die grosse Bewegung. Im gebauten Stand deklariert, aber von keiner Fläche verwendet.' },
     ],
+    /* `sm` and `lg` are Tailwind's own defaults — the project does not
+       redeclare them, so there is no token to read. `shell-max` is the
+       project's, and is read. */
     breakpoints: [
       { name: 'sm', value: '640px' },
       { name: 'lg', value: '1024px' },
-      { name: 'shell-max', value: '1280px' },
+      { name: 'shell-max', value: property(shell, 'max-width') },
     ],
   },
-  components: [
-    {
-      name: 'Primary Button',
-      kind: 'button',
-      refersTo: 'button-primary',
-      description: 'Die eine primäre Aktion eines Bereichs.',
-      html: '<button class="ds-btn-primary">Datei speichern</button>',
-      css: '.ds-btn-primary{background:#0f3e1c;color:#fff;font:400 16px/1.55 Archivo,system-ui,sans-serif;padding:12px 20px;border:none;border-radius:14px;box-shadow:0 1px 2px rgb(20 35 25/.04),0 4px 16px -8px rgb(20 35 25/.1);transition:background 130ms cubic-bezier(.22,.72,.28,1),transform 130ms cubic-bezier(.22,.72,.28,1);cursor:pointer}.ds-btn-primary:hover{background:#0a2b13}.ds-btn-primary:active{transform:translateY(1px)}.ds-btn-primary:focus-visible{outline:2px solid #0f3e1c;outline-offset:2px}.ds-btn-primary:disabled{opacity:.4;cursor:not-allowed}',
-    },
-    {
-      name: 'Quiet Button',
-      kind: 'button',
-      refersTo: 'button-quiet',
-      description: 'Die zweite Wahl, die sichtbar die zweite ist.',
-      html: '<button class="ds-btn-quiet">In die Sitzung übernehmen</button>',
-      css: '.ds-btn-quiet{background:#fff;color:#0f3e1c;font:400 16px/1.55 Archivo,system-ui,sans-serif;padding:12px 20px;border:none;border-radius:14px;box-shadow:inset 0 0 0 1px #d5d4c9;transition:background 130ms cubic-bezier(.22,.72,.28,1);cursor:pointer}.ds-btn-quiet:hover{background:#eaf2e9}.ds-btn-quiet:focus-visible{outline:2px solid #0f3e1c;outline-offset:2px}',
-    },
-    {
-      name: 'Choice Chip',
-      kind: 'chip',
-      refersTo: 'chip',
-      description: 'Eins aus vier: Seitenverhältnis, Format, Tempo. Ausgewählt ist gefüllt.',
-      html: '<div style="display:flex;gap:5px"><button class="ds-chip" aria-pressed="false">Frei</button><button class="ds-chip ds-chip-on" aria-pressed="true">16:9</button></div>',
-      css: '.ds-chip{background:#eaf2e9;color:#1b231d;font:400 13px/1.5 Archivo,system-ui,sans-serif;padding:8px 12px;border:none;border-radius:7px;box-shadow:inset 0 0 0 1px #d5d4c9;cursor:pointer;transition:background 130ms cubic-bezier(.22,.72,.28,1)}.ds-chip:hover{background:#e2ebe1}.ds-chip-on{background:#0f3e1c;color:#fff;box-shadow:none}.ds-chip:focus-visible{outline:2px solid #0f3e1c;outline-offset:2px}',
-    },
-    {
-      name: 'Card',
-      kind: 'card',
-      refersTo: 'card',
-      description: 'Weiss auf Papier. Das einzige, was vier Seiten Rahmen bekommt.',
-      html: '<div class="ds-card"><p class="ds-card-eyebrow">Ergebnis</p><p class="ds-card-title">clip.mp4</p><p class="ds-card-meta">1.2 MB · 20 % der Quelle</p></div>',
-      css: '.ds-card{background:#fff;border-radius:14px;padding:24px;box-shadow:inset 0 0 0 1px #d5d4c9,0 1px 2px rgb(20 35 25/.04),0 4px 16px -8px rgb(20 35 25/.1);font-family:Archivo,system-ui,sans-serif;max-width:320px}.ds-card-eyebrow{margin:0;font:600 11px/1.45 Archivo,system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#0f3e1c}.ds-card-title{margin:4px 0 0;font:400 20px/1.35 Archivo,system-ui,sans-serif;color:#0f3e1c}.ds-card-meta{margin:2px 0 0;font:400 13px/1.5 Archivo,system-ui,sans-serif;font-variant-numeric:tabular-nums;color:#5d6c61}',
-    },
-    {
-      name: 'Text Input',
-      kind: 'input',
-      refersTo: 'input',
-      description: 'Fliesstextgrösse, damit iOS beim Fokussieren nicht hineinzoomt.',
-      html: '<input class="ds-input" type="text" placeholder="https://www.youtube.com/watch?v=…" />',
-      css: '.ds-input{width:100%;background:#fff;color:#1b231d;font:400 16px/1.55 Archivo,system-ui,sans-serif;padding:12px 16px;border:none;border-radius:7px;box-shadow:inset 0 0 0 1px #d5d4c9;outline:none}.ds-input::placeholder{color:#5d6c61}.ds-input:focus{box-shadow:inset 0 0 0 1px #0f3e1c}',
-    },
-    {
-      name: 'Tool Row',
-      kind: 'custom',
-      refersTo: 'tool-row',
-      description:
-        'Die Signaturkomponente des Startbildschirms. Eine Linie oben statt eines Kastens ringsum; ein Symbol auf der Beschriftungszeile statt darüber.',
-      html: '<div style="background:#f4f3ee;padding:0 0 1px"><button class="ds-tool"><span class="ds-tool-label"><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3.2h12v9.6H2zM2 10l3.4-3.2 3 2.8 2.2-2 3.4 3.2M5.6 6.2a.9.9 0 100-1.8.9.9 0 000 1.8z"/></svg>Bild zuschneiden</span><span class="ds-tool-hint">Ausschnitt aufziehen</span></button><button class="ds-tool"><span class="ds-tool-label"><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"><path d="M2.6 5.4h9.2m0 0L9.4 3.1m2.4 2.3L9.4 7.7M13.4 10.6H4.2m0 0l2.4-2.3m-2.4 2.3l2.4 2.3"/></svg>Bildformat ändern</span><span class="ds-tool-hint">PNG, JPEG oder WebP</span></button></div>',
-      css: '.ds-tool{display:flex;flex-direction:column;align-items:flex-start;gap:4px;width:100%;background:transparent;border:none;border-top:1px solid #d5d4c9;padding:12px 16px;text-align:left;cursor:pointer;transition:background 130ms cubic-bezier(.22,.72,.28,1)}.ds-tool:hover{background:#eaf2e9}.ds-tool-label{display:flex;align-items:center;gap:8px;font:600 13px/1.3 Archivo,system-ui,sans-serif;color:#0f3e1c}.ds-tool-label svg{color:#5d6c61;transition:color 130ms cubic-bezier(.22,.72,.28,1)}.ds-tool:hover .ds-tool-label svg{color:#0f3e1c}.ds-tool-hint{font:400 13px/1.4 Archivo,system-ui,sans-serif;color:#5d6c61}.ds-tool:focus-visible{outline:2px solid #0f3e1c;outline-offset:-2px}',
-    },
-  ],
+  components,
   narrative: {
-    northStar: 'Schweizer Messinstrument auf warmem Papier',
+    northStar: 'Der Eichschein',
     overview:
-      'Sondra ist ein Werkzeug, kein Schaufenster. Man kommt mit einer Datei und einem Vorhaben, und jeder Bildschirm ist dafür da, dieses Vorhaben auszuführen. Das ist die ganze Begründung für die Dichte: 13px Bedienelemente, Tabellenziffern in jeder Anzeige, Regler direkt neben dem, worauf sie wirken.\n\nDas Papier ist die zweite Hälfte. Die Fläche ist kein kaltes Grau, sondern ein warmes Cremeweiss, auf dem weisse Karten wirklich liegen — und die einzige gesättigte Farbe im ganzen Aufbau ist ein dunkles Waldgrün, das ausschliesslich eines bedeutet: hier kannst du etwas tun.\n\nDie dritte Fläche widerspricht beiden mit Absicht: die Bühne der Editoren ist ein neutrales Dunkel. Die eine Fläche, deren Aufgabe es ist, über Farben nicht zu lügen, ist die, auf der man sie bearbeitet.',
+      'Sondra misst, und die Oberfläche ist das Protokoll, das dabei herauskommt. Ein Schweizer Prüfprotokoll nennt zuerst das Gerät, dann das Verfahren, dann das Datum, und erst danach einen einzigen Wert — und genau in dieser Reihenfolge beginnt hier jede Seite. Das ist keine Anmutung, sondern die eine Behauptung des Produkts in sichtbarer Form: jede Zahl in dieser App wurde gemessen statt geschätzt, und sie wurde auf dem Gerät der Besucherin gemessen.\n\nDaraus folgt alles Weitere, und zwar als Verzicht. Es gibt keine Karten: ein Formular hat keine Kästen, es hat Linien. Es gibt keine runden Ecken, weil eine gerasterte Seite keine hat. Es gibt keinen Schatten auf dem Blatt, weil nichts auf dem Blatt liegt — die eine Tiefenstufe ist für die drei Dinge reserviert, die wirklich darüber schweben. Getrennt wird durch eine gezogene Linie und durch Raum, nie durch einen Rahmen auf vier Seiten.\n\nZwei Schriften teilen sich die Arbeit nach Bedeutung, nicht nach Geschmack. Public Sans ist das gedruckte Formular. Courier Prime ist das, was die Maschine nachträglich eingetragen hat: Messwerte, Dateinamen, Zeitmarken. Wer die beiden unterscheiden kann, sieht auf einen Blick, was das Formular fragt und was gefunden wurde. Die Serife der vorigen Welt ist aus dem System verschwunden und überlebt allein in der Wortmarke, als eigene Familie „Sondra Wordmark“ — eine gegebene Zusage ist etwas anderes als eine Gewohnheit.',
     keyCharacteristics: [
-      'Ein einziger Akzent, der eine einzige Bedeutung hat',
-      'Dichte als Respekt vor jemandem, der arbeitet — nicht als Sparsamkeit',
-      'Gemessene Kontraste statt Augenmass',
-      'Eine Linie auf einer Seite, wo andere eine Kiste bauen',
-      'Zwei Schriften mit klarer Arbeitsteilung, sechs Grössen, kein Zwischenschritt',
+      'Jede Fläche nennt, was gemessen wurde, womit und nach welchem Verfahren',
+      'Keine Karten, keine runden Ecken, kein Schatten auf dem Blatt',
+      'Zwei Linienstärken statt Rahmen: die Haarlinie einer Tabelle, die schwerere Linie einer Klausel',
+      'Zwei Schriften, getrennt nach Bedeutung: gedrucktes Formular und eingetragener Wert',
+      'Klauselnummern sind Adressen — jede ist ein Anker und lässt sich zitieren',
+      'Zustand steht als Zeichen am Rand, nicht als Satz',
+      'Ein einziger gesättigter Farbwert, gemessene Kontraste in beiden Themen',
     ],
     rules: [
       {
-        name: 'Die Ein-Stimme-Regel',
-        body: 'Der Akzent liegt auf höchstens einem Zehntel eines Bildschirms. Liegt er auf jedem dritten Element, ist er kein Akzent mehr, sondern Dekoration.',
+        name: 'Die Tinte-wird-ausgegeben-Regel',
+        body: 'Tinte liegt auf Linien, Klauselnummern und der einen Aktion, um die ein Abschnitt bittet. Überall sonst ist die Seite Papier und Graphit. Deckt sie mehr als etwa ein Zehntel eines Bildschirms, ist sie keine Tinte mehr, sondern Farbe.',
         section: 'colors',
       },
       {
         name: 'Die Messregel',
-        body: 'Kontrast wird gerechnet, nicht geschätzt. APCA: Fliesstext ≥ Lc 75, Sekundärtext ≥ Lc 60, Überschriften ≥ Lc 45, Nicht-Text ≥ Lc 15.',
+        body: 'Kontrast wird gerechnet, nicht geschätzt, und in beiden Themen. APCA: Fliesstext ≥ Lc 75, Sekundärtext ≥ Lc 60, Überschriften ≥ Lc 45, Nicht-Text ≥ Lc 15. Eine Palettenänderung ist erst fertig, wenn sie durch die Zahlen gelaufen ist — dieser Durchgang fand eine Trennlinie bei Lc 0.0 und eine gefüllte Schaltfläche bei Lc 70.',
         section: 'colors',
       },
       {
-        name: 'Die Dunkelmodus-Regel',
-        body: 'Dunkel ist eine eigene Abbildung mit eigenem Kontrastdurchgang, nie eine Invertierung.',
+        name: 'Die Umrechnungsregel',
+        body: 'Dunkel ist eine eigene Abbildung mit eigenem Kontrastdurchgang, nie eine Invertierung. Tinte und ihr Grund tauschen dort die Rollen: der einzige gesättigte Wert muss der helle sein, sonst verschwinden Überschriften und gefüllte Schaltflächen.',
         section: 'colors',
+      },
+      {
+        name: 'Die Ehrliche-Bühne-Regel',
+        body: 'Die Bühne der Editoren bleibt neutral dunkel und nimmt an keinem Themenwechsel teil. Sie ist kein Gestaltungsspielraum.',
+        section: 'colors',
+      },
+      {
+        name: 'Die Zwei-Schriften-Regel',
+        body: 'Courier Prime steht für etwas, das tatsächlich gefunden wurde: ein Messwert, ein Dateiname, eine Zeitmarke, eine Klauselnummer. Nie als Kostüm für „technisch“. Was das Formular fragt, steht in Public Sans.',
+        section: 'typography',
       },
       {
         name: 'Die Sechs-Stufen-Regel',
-        body: 'Eine grosse Terz ab 16px, genau sechs Stufen, nichts dazwischen. Grössen, die einen Pixel auseinanderliegen, sind keine Hierarchie.',
+        body: 'Eine grosse Terz ab 16px, genau sechs Stufen, nichts dazwischen. Die Vorgängerwelt erklärte fünf Stufen und schrieb daneben 220 Grössen von Hand, darunter 9, 10, 10.5, 11, 12, 13, 13.5 und 14px für dieselbe Aufgabe. Zwei Grössen einen Pixel auseinander sind keine Hierarchie, sondern eine nicht getroffene Entscheidung.',
         section: 'typography',
       },
       {
-        name: 'Die Ergebnis-Regel',
-        body: 'Beschriftungen benennen das Ergebnis, nicht die Technik. Wer mit einer Aufnahme und einer Frage ankommt, kennt das Fachwort noch nicht.',
+        name: 'Die Kein-Anzeigeschnitt-Regel',
+        body: 'Überschriften sind dieselbe Grotesk, nur grösser und schwerer. Ein Prüfschein hat keine Anzeigeschrift, und die, die diese App hatte, steht auf jeder Liste von Schriften, nach denen ein Modell greift, ohne hinzusehen.',
         section: 'typography',
       },
       {
-        name: 'Die Eine-Stufe-tief-Regel',
-        body: 'Tiefe geht genau einen Schritt. Eine Karte liegt auf dem Papier; alles Getönte sitzt flach darin.',
+        name: 'Die Ein-Wort-Regel',
+        body: 'Cormorant Garamond lädt als eigene Familie „Sondra Wordmark“ und setzt genau ein Wort. Sie ist nirgendwo sonst erlaubt — auch nicht dort, wo eine Überschrift sie „auch“ verwenden könnte.',
+        section: 'typography',
+      },
+      {
+        name: 'Die Adressregel',
+        body: 'Eine Klauselnummer wird nur gesetzt, wenn sie eine Adresse ist: sie rendert als Verweis auf den eigenen Anker, ist aus der Adresszeile kopierbar und führt beim Einfügen wieder dorthin. Eine Nummer, die nur schmückt, ist verboten. Die Nummern stammen aus einer festen Liste, nicht aus der Reihenfolge einer gefilterten Darstellung — eine Nummer, die sich beim Tippen verschiebt, ist keine Adresse.',
+        section: 'layout',
+      },
+      {
+        name: 'Die 34em-Regel',
+        body: 'Die Textspalte wird nicht breiter, weil das Fenster es wurde. Die Einheit ist „em“ und nicht „ch“: ein „ch“ ist die Breite der Null und damit breiter als der Durchschnittsbuchstabe, weshalb eine Deckelung bei 68ch in Wahrheit bei 90 Zeichen landete.',
+        section: 'layout',
+      },
+      {
+        name: 'Die Nichts-liegt-auf-dem-Blatt-Regel',
+        body: 'Bevor etwas einen Schatten bekommt, muss beantwortet sein, worüber es schwebt. Lässt sich das nicht beantworten, schwebt es nicht: dann trennen Linie und Raum.',
+        section: 'elevation',
+      },
+      {
+        name: 'Die Getönt-statt-gehoben-Regel',
+        body: 'Ein Block, der in einem Abschnitt sitzt, bekommt eine Tönung, damit das Auge ihn als eingesetzt liest — nicht einen Schatten, der ihn als weiteres gestapeltes Objekt behauptet.',
         section: 'elevation',
       },
       {
         name: 'Die Eine-Linie-Regel',
-        body: 'Ein Rahmen auf allen vier Seiten behauptet, das hier sei ein Objekt. Das stimmt für eine Karte und fast nichts sonst. Sonst: eine einzige Haarlinie auf der Seite, die dem zugewandt ist, wovon getrennt wird.',
+        body: 'Ein Rahmen auf allen vier Seiten behauptet, das hier sei ein Objekt auf einer Fläche. In dieser Welt stimmt das für fast nichts. Die Reihenfolge, in der gegriffen wird: erst Raum, dann Tönung, dann eine Linie, und erst ganz zuletzt ein Umriss — und der nur für eine Fläche mit eigener Mechanik.',
         section: 'shapes',
       },
       {
-        name: 'Die Mehr-für-Wichtiges-Regel',
-        body: 'Ein System ist nicht dasselbe wie Gleichförmigkeit. Um das, was mehr zählt, steht mehr Raum.',
-        section: 'layout',
+        name: 'Die Zwei-Stärken-Regel',
+        body: 'Es gibt genau zwei Linien: die Haarlinie der Tabelle und die schwerere Linie der Klausel. Beide sind eigene Farbtokens und keine Deckkraft auf Tinte — dieselbe Tinte bei 25 % mass sich auf Papier bei APCA Lc 25 und im dunklen Thema bei Lc 7.',
+        section: 'shapes',
       },
     ],
     dos: [
-      'Do den Akzent für genau eine Bedeutung verwenden: hier kannst du etwas tun. Höchstens ein Zehntel eines Bildschirms.',
+      'Do die Tinte für genau eine Bedeutung ausgeben: hier können Sie etwas tun. Höchstens ein Zehntel eines Bildschirms.',
+      'Do mit Raum trennen, dann mit einer Tönung, dann mit einer Linie auf einer Seite — und einen Umriss nur für eine Fläche mit eigener Mechanik.',
       'Do jede Grösse aus den sechs Typo-Tokens nehmen und jeden Abstand aus dem 4-px-Raster.',
-      'Do Kontraste rechnen, bevor eine Palettenänderung als fertig gilt.',
-      'Do Listenzeilen mit einer Linie trennen und Karten für echte Objekte reservieren.',
+      'Do Courier Prime nur dort setzen, wo die Maschine etwas eingetragen hat: Messwert, Dateiname, Zeitmarke, Klauselnummer.',
+      'Do jeder Klauselnummer einen Anker geben, auf den sie selbst verweist, und sie aus einer festen Liste nehmen statt aus der gerade sichtbaren Reihenfolge.',
+      'Do Zustand als Zeichen in die Randspalte setzen und den Klartext über aria-label und title mitliefern.',
+      'Do Kontraste in beiden Themen rechnen, bevor eine Palettenänderung als fertig gilt.',
       'Do jeden Zustand entwerfen: Fehler, leer, lädt, Fokus, deaktiviert.',
-      'Do Bewegung nur dort, wo sie etwas mitteilt — und alles unter prefers-reduced-motion neutralisieren.',
     ],
     donts: [
-      'Don\'t eine Pixelgrösse von Hand schreiben oder einen Abstand ausserhalb des Rasters.',
-      'Don\'t eine Kiste um etwas bauen, das kein Objekt ist.',
-      'Don\'t einen farbigen Streifen an die Kante einer Karte setzen.',
-      'Don\'t ein Symbol in ein abgerundetes Quadrat über eine Überschrift stapeln.',
-      'Don\'t eine versale Beschriftung setzen, die den Reiter direkt darüber wiederholt.',
-      'Don\'t einen pulsierenden Punkt auf eine Angabe setzen, die sich nie ändert.',
-      'Don\'t Inter, Roboto oder system-ui als Fliesstextschrift einsetzen.',
-      'Don\'t den Dunkelmodus aus dem hellen invertieren.',
+      'Don\'t eine Karte bauen. Kein weisser Kasten mit Rahmen ringsum und Schatten darunter — Weiss markiert ein Feld oder eine Fläche mit eigener Mechanik, nicht ein Objekt auf dem Papier.',
+      'Don\'t eine Ecke runden. „card“ und „nav“ stehen auf 0, und das ist keine Übergangslösung; „pill“ gehört dem Schalterknauf.',
+      'Don\'t einem Element auf dem Blatt einen Schatten geben. „elevate-lift“ gehört dem, was wirklich darüber schwebt.',
+      'Don\'t eine Klauselnummer setzen, die nirgendwohin führt, oder eine, die sich beim Tippen in der Suche verschiebt.',
+      'Don\'t Courier Prime als Kostüm für „technisch“ verwenden — nicht für Überschriften, Beschriftungen oder Fliesstext.',
+      'Don\'t Cormorant Garamond ausserhalb der Wortmarke einsetzen, und keinen Anzeigeschnitt einführen, den ein Prüfschein nicht hätte.',
+      'Don\'t Inter, Roboto, system-ui oder eine „sichere Alternative“ (Geist, Space Grotesk, Poppins) als Fliesstextschrift einsetzen.',
+      'Don\'t eine Pixelgrösse von Hand schreiben, wo ein Typo-Token existiert, oder einen Abstand ausserhalb des Rasters.',
+      'Don\'t den dunklen Modus aus dem hellen invertieren, und die Bühne überhaupt nicht umfärben.',
+      'Don\'t ein Symbol in ein abgerundetes Quadrat über eine Überschrift stapeln, eine versale Beschriftung setzen, die den Reiter darüber wiederholt, oder einen pulsierenden Punkt auf eine Angabe legen, die sich nie ändert.',
+      'Don\'t dreissig Verfahren als gleichmässiges Raster identischer Kacheln zeigen. Es ist eine Liste, und ein nummerierter Index ist ihre Form.',
     ],
   },
 }
@@ -239,4 +481,8 @@ const design = {
 const out = path.join('.impeccable', 'design.json')
 fs.mkdirSync('.impeccable', { recursive: true })
 fs.writeFileSync(out, JSON.stringify(design, null, 2) + '\n', 'utf8')
-console.log(`${out} geschrieben — ${design.components.length} Komponenten, ${Object.keys(design.extensions.colorMeta).length} Farben mit Tonleiter`)
+console.log(
+  `${out} geschrieben — ${design.components.length} Komponenten, ` +
+    `${Object.keys(design.extensions.colorMeta).length} Farben mit Tonleiter und dunkler Entsprechung, ` +
+    `gelesen aus ${THEME}`,
+)

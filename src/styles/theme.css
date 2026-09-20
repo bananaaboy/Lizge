@@ -157,8 +157,6 @@
        0.0 — not "subtle", invisible. Since a hairline ring is how every
        container in this app is separated, dark mode had no card edges at all. */
     --color-line: #525f55;
-  --color-rule: #6b7a6e;
-  --color-faint: #7d8d81;
     --color-rule: #6b7a6e;
     --color-faint: #7d8d81;
     --color-stage: #0d1011;
