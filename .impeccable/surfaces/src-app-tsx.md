@@ -82,6 +82,28 @@ that were not taken: the CD-ROM console and the Miura fold.
 the finish review, the verdict, DESIGN.md, and every shipping raster carrying
 its provenance
 
+## Adaptations, cited
+
+Two places where the built surface departs from the contract above. Both are
+deliberate; an uncited deviation is a defect, so they are named here.
+
+**The header stacks rather than splits.** FIRST VIEWPORT puts the wordmark left
+and the Gerät / Verfahren / Stand block right. The build puts the block under
+the wordmark and gives the right edge to the action cluster — search, the
+locality badge, the theme switch, the file button. Forced by the surface's own
+mode: this is Operate, the controls are used on every visit and the header
+block is read once, so the side that the hand goes to belongs to the controls.
+Splitting it as written would have pushed the actions to a second row at
+1440px.
+
+**Three axes in the index, not one.** OWN-WORLD promises a single continuous
+vertical axis. It holds at clause level — 1.1, 1.2, 1.3 all register to one
+line down the sheet — and is broken one level down, where the thirty
+procedures run in two and three columns. Forced by the content: thirty
+single-column rows is a 30-row scroll for a menu whose whole job is to be
+scanned. The axis is kept where it carries meaning (the clause spine) and
+spent where it would only have cost reading speed.
+
 ## Unresolved
 
 - Whether the editor stage keeps its neutral dark or becomes a mounted plate
