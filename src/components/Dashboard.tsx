@@ -337,7 +337,12 @@ export function Dashboard({ theme }: { theme: ResolvedTheme }) {
 
   return (
     <section id="studio" className="shell flex flex-col gap-[16px] py-[16px]">
-      <PanelTabs />
+      {/* On the start screen the tiles below are the navigation, so the
+          strip is one cut-off copy of them on a phone. It stays from `sm` up,
+          where it fits, and inside every tool, where it is the way back. */}
+      <div className={panel === 'start' ? 'hidden sm:block' : undefined}>
+        <PanelTabs />
+      </div>
 
       {/* Keyed on the panel so every switch replays the entrance rather than
           swapping content in place, which reads as a jump. */}

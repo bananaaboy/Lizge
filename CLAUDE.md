@@ -40,7 +40,11 @@ Das Wenige, was hier stehen muss, weil es jeden Edit betrifft:
 - **Werkzeuge sind Kacheln.** Die dreissig Werkzeuge stehen als Kachelfeld,
   nach Gruppen geordnet und über ein Feld filterbar — ausdrücklich so
   gewünscht. Eine getönte Fläche gibt der Kachel ihre Kante, kein Rahmen und
-  kein Schatten.
+  kein Schatten. Zweispaltig ab der kleinsten Breite; die Reiterleiste ist auf
+  der Startseite unterhalb `sm` ausgeblendet, weil sie dort dasselbe doppelt
+  sagt und dabei abgeschnitten wird.
+- **Nichts steht vor der Seite.** FFmpeg lädt im Hintergrund, nie hinter einem
+  Ladebildschirm. Ein Werkzeug, das wartet, zeigt das Warten bei sich.
 - **Der Einstieg zeigt die nächste Handlung,** nicht den Zustand der leeren
   Sitzung. Ohne Datei steht dort, was die Seite kann und der Knopf, der sie
   startet — kein Formular mit leeren Feldern.

@@ -251,12 +251,21 @@ Adresse nach außen gibt. Wird sie eingeschaltet, steht der Hinweis dauerhaft im
 Panel: was übertragen wird, an wen, und dass die Nutzung auf eigenes Risiko
 erfolgt.
 
-### FFmpeg lädt beim Öffnen, nicht beim ersten Klick
+### FFmpeg lädt im Hintergrund, nicht vor der Seite
 
-Der Kern ist rund 31 MB. Ihn erst beim ersten Umwandeln zu holen hieß, dass die
-erste echte Handlung einer Sitzung eine halbe Minute ohne Erklärung stand — was
-sich wie eine kaputte Seite liest, nicht wie eine beschäftigte. Er wird deshalb
-beim Öffnen geholt, sichtbar, und die Werkzeuge erscheinen, sobald er da ist.
+Der Kern ist rund 31 MB. Ihn erst beim ersten Umwandeln zu holen hieße, dass die
+erste echte Handlung einer Sitzung eine halbe Minute stünde; ihn *vor* der Seite
+zu holen hieß etwas Schlimmeres. Genau das tat diese App bis zum 20.9.2026: ein
+`BootGate` hielt die ganze Oberfläche hinter einem Ladebalken, auch die zwei
+Drittel, die FFmpeg nie anfassen — die Seite zu besuchen hieß, einem Balken
+zuzusehen. Der Nutzer hat es abgeräumt, zu Recht.
+
+Jetzt wird der Kern beim Öffnen geholt, aber **hinter** der Seite. Die
+Oberfläche steht nach rund 180 ms, mit oder ohne FFmpeg. Nichts geht dabei
+verloren: jedes Panel wartet ohnehin selbst mit `await loadFfmpeg()` und zeigt
+dabei seinen eigenen Laufzustand, ein Werkzeug also, das vor dem Kern gedrückt
+wird, meldet das Warten dort, wo gewartet wird. Der Stand steht unter „Unter
+der Haube", samt Knopf zum Nachladen.
 
 Zwei Dinge halten das Warten ehrlich:
 
@@ -269,12 +278,13 @@ Zwei Dinge halten das Warten ehrlich:
   der Balken unbestimmt weiter, statt bei einem Drittel vollzulaufen und zu
   lügen.
 * **Ein Fehlschlag ist keine verschlossene Tür.** Spurentrennung, Lautheit,
-  Chopper und Harmonie rühren FFmpeg nie an. Scheitert das Laden, steht der
-  Grund da und daneben ein Weg vorbei, statt einer Sackgasse. Überspringen geht
-  auch währenddessen.
+  Chopper und Harmonie rühren FFmpeg nie an. Scheitert das Laden, merkt die
+  Seite es gar nicht; scheitert es dort, wo es gebraucht wird, steht der Grund
+  im Werkzeug. Nachgemessen mit blockiertem Kern: die Seite steht nach 182 ms
+  und „Spuren trennen" öffnet normal.
 
-Beim zweiten Besuch liegt der Kern im Zwischenspeicher des Service Workers, die
-Seite startet also sofort und auch ohne Netz.
+Beim zweiten Besuch liegt der Kern im Zwischenspeicher des Service Workers, er
+ist also sofort da.
 
 ### Eine Frage, einmal beantwortet
 
