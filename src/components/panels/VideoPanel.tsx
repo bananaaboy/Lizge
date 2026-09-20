@@ -182,7 +182,7 @@ function Timeline({
             className="absolute inset-y-0 z-10 w-[14px] -translate-x-1/2 cursor-ew-resize"
             style={{ left: `${percent(side === 'start' ? start : end)}%` }}
           >
-            <div className="mx-auto h-full w-[4px] rounded-pill bg-ink" />
+            <div className="mx-auto h-full w-[4px] bg-ink" />
           </div>
         ))}
 
@@ -194,9 +194,9 @@ function Timeline({
       </div>
 
       <div className="mt-[8px] flex items-center justify-between text-small text-muted">
-        <span className="numeric">{formatTimecode(start)}</span>
-        <span className="numeric text-ink">Auswahl {formatTimecode(Math.max(0, end - start))}</span>
-        <span className="numeric">{formatTimecode(end)}</span>
+        <span className="value">{formatTimecode(start)}</span>
+        <span className="value text-ink">Auswahl {formatTimecode(Math.max(0, end - start))}</span>
+        <span className="value">{formatTimecode(end)}</span>
       </div>
     </div>
   )
@@ -544,7 +544,7 @@ export function VideoPanel() {
                 </svg>
               )}
             </IconButton>
-            <span className="numeric px-[8px] text-small text-stage-ink">
+            <span className="value px-[8px] text-small text-stage-ink">
               {formatTimecode(position)} / {formatTimecode(duration)}
             </span>
             <IconButton label="Ton im Vorhören" onStage active={!ops.mute} onClick={() => patch({ mute: !ops.mute })}>
@@ -626,11 +626,11 @@ export function VideoPanel() {
       ) : null}
 
       {outcome ? (
-        <div className="rise flex flex-col gap-[16px] rounded-card bg-raised p-[16px] ring-1 ring-inset ring-line elevate sm:flex-row sm:items-center">
+        <div className="rise flex flex-col gap-[16px] rounded-card bg-raised p-[16px] ring-1 ring-inset ring-line sm:flex-row sm:items-center">
           <div className="min-w-0 flex-1">
             <p className="eyebrow">Ergebnis</p>
             <p className="mt-[4px] truncate text-body text-ink">{outcome.name}</p>
-            <p className="numeric text-small text-muted">
+            <p className="value text-small text-muted">
               {formatBytes(outcome.bytes.byteLength)}
               {asset.sizeBytes > 0 && outcome.kind === 'video'
                 ? ` · ${Math.round((outcome.bytes.byteLength / asset.sizeBytes) * 100)} % der Quelle`
@@ -715,7 +715,7 @@ function VideoInspector({
             Ende hier
           </Button>
         </div>
-        <div className="numeric rounded-nav bg-panel-soft px-[12px] py-[8px] text-small text-prose">
+        <div className="value rounded-nav bg-panel-soft px-[12px] py-[8px] text-small text-prose">
           {formatTimecode(ops.start)} – {formatTimecode(selectionEnd)}
           <span className="mt-[4px] block text-muted">
             {formatTimecode(Math.max(0, selectionEnd - ops.start))} von {formatTimecode(duration)}
@@ -747,7 +747,7 @@ function VideoInspector({
           onChange={chooseAspect}
           options={ASPECTS.map((entry) => ({ value: entry.id, label: entry.label }))}
         />
-        <div className="numeric rounded-nav bg-panel-soft px-[12px] py-[8px] text-small text-prose">
+        <div className="value rounded-nav bg-panel-soft px-[12px] py-[8px] text-small text-prose">
           {ops.crop
             ? `${Math.round(ops.crop.width * frame.width)} × ${Math.round(ops.crop.height * frame.height)} px`
             : `Ganzes Bild — ${frame.width} × ${frame.height} px`}
@@ -837,7 +837,7 @@ function VideoInspector({
           display={`${ops.speed.toFixed(2)}×`}
           onChange={(event) => patch({ speed: Number(event.target.value) })}
         />
-        <div className="numeric rounded-nav bg-panel-soft px-[12px] py-[8px] text-small text-prose">
+        <div className="value rounded-nav bg-panel-soft px-[12px] py-[8px] text-small text-prose">
           {duration > 0 ? formatTimecode((selectionEnd - ops.start) / ops.speed) : '—'}
           <span className="mt-[4px] block text-muted">Länge danach</span>
         </div>

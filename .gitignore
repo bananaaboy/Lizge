@@ -10,3 +10,10 @@ dist-ssr
 
 # TypeScript incremental build state
 *.tsbuildinfo
+
+# Impeccable working files. The surface brief under .impeccable/surfaces/ is
+# durable strategy and is committed; the rest is per-run evidence.
+.impeccable/review/
+.impeccable/mocks/
+.impeccable/build/
+.impeccable/live/

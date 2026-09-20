@@ -33,7 +33,7 @@ import {
   ArrowRight,
   Button,
   Card,
-  Eyebrow,
+  ClauseHead,
   Field,
   Notice,
   Progress,
@@ -476,7 +476,7 @@ export function ConverterPanel() {
                           })
                         }}
                       />
-                      <p className="numeric text-small text-muted sm:col-span-2">
+                      <p className="value text-small text-muted sm:col-span-2">
                         Ausschnitt{' '}
                         {formatTimecode(
                           (settings.trimEndSeconds ?? duration) - (settings.trimStartSeconds ?? 0),
@@ -544,8 +544,8 @@ export function ConverterPanel() {
         {queue ? (
           <Card tone="slate">
             <div className="flex flex-wrap items-baseline justify-between gap-3">
-              <Eyebrow>Stapel</Eyebrow>
-              <span className="numeric text-small text-muted">
+              <ClauseHead>Stapel</ClauseHead>
+              <span className="value text-small text-muted">
                 {queue.filter((item) => item.state === 'done').length} von {queue.length} fertig
               </span>
             </div>
@@ -558,7 +558,7 @@ export function ConverterPanel() {
                 >
                   <span
                     aria-hidden
-                    className={`numeric w-[14px] shrink-0 text-center text-small ${
+                    className={`value w-[14px] shrink-0 text-center text-small ${
                       item.state === 'running' ? 'text-ink pulse-dot' : 'text-muted'
                     }`}
                   >
@@ -566,7 +566,7 @@ export function ConverterPanel() {
                   </span>
                   <span className="min-w-0 flex-1 truncate text-body text-ink">{item.name}</span>
                   {item.outputBytes !== null ? (
-                    <span className="numeric shrink-0 text-small text-muted">
+                    <span className="value shrink-0 text-small text-muted">
                       {formatBytes(item.outputBytes)}
                     </span>
                   ) : null}
@@ -594,7 +594,7 @@ export function ConverterPanel() {
 
         {outcome ? (
           <Card tone="slate">
-            <Eyebrow>Ergebnis</Eyebrow>
+            <ClauseHead>Ergebnis</ClauseHead>
             <div className="mt-[16px] grid gap-[20px] rounded-card bg-raised p-[28px] sm:grid-cols-3">
               <Stat label="Größe" value={formatBytes(outcome.bytes.byteLength)} emphasis />
               <Stat
@@ -606,7 +606,7 @@ export function ConverterPanel() {
             </div>
             {preview ? (
               <div className="mt-[16px] rounded-card bg-raised p-[16px]">
-                <p className="mb-[12px] text-micro font-semibold uppercase tracking-[0.08em] text-ink">
+                <p className="mb-[12px] text-small font-semibold text-ink">
                   Anhören
                 </p>
                 <AudioPreview

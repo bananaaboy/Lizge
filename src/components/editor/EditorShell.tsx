@@ -198,7 +198,7 @@ function Rail({
             {entry.touched ? (
               <span
                 aria-hidden
-                className={`absolute right-[7px] top-[7px] h-[5px] w-[5px] rounded-pill ${
+                className={`absolute right-[7px] top-[7px] h-[5px] w-[5px] ${
                   active ? 'bg-on-ink' : 'bg-ink'
                 }`}
               />
@@ -239,11 +239,11 @@ export function EditorShell({
   status?: ReactNode
 }) {
   return (
-    <div className="elevate flex flex-col overflow-hidden rounded-card bg-raised ring-1 ring-inset ring-line">
+    <div className="flex flex-col overflow-hidden bg-raised ring-1 ring-inset ring-line">
       <header className="flex flex-wrap items-center gap-x-[16px] gap-y-[8px] border-b border-line px-[16px] py-[8px]">
         <div className="min-w-0 flex-1">
           <p className="truncate text-small font-semibold text-ink">{title}</p>
-          {subtitle ? <p className="numeric truncate text-small text-muted">{subtitle}</p> : null}
+          {subtitle ? <p className="value truncate text-small text-muted">{subtitle}</p> : null}
         </div>
         {actions ? <div className="flex shrink-0 items-center gap-[4px]">{actions}</div> : null}
       </header>
@@ -265,7 +265,7 @@ export function EditorShell({
             {stage}
             {stageOverlay ? (
               <div className="pointer-events-none absolute inset-x-0 bottom-[12px] flex justify-center">
-                <div className="pointer-events-auto flex items-center gap-[4px] rounded-pill bg-stage/80 p-[4px] ring-1 ring-inset ring-stage-line backdrop-blur-[6px]">
+                <div className="pointer-events-auto flex items-center gap-[4px] bg-stage/80 p-[4px] ring-1 ring-inset ring-stage-line backdrop-blur-[6px]">
                   {stageOverlay}
                 </div>
               </div>

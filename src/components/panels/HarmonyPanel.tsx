@@ -31,7 +31,7 @@ import {
   Badge,
   Button,
   Card,
-  Eyebrow,
+  ClauseHead,
   Field,
   Notice,
   Progress,
@@ -201,7 +201,7 @@ export function HarmonyPanel() {
       <div className="flex flex-col gap-[16px]">
         <Card tone="keylime" size="compact">
           <div className="flex flex-wrap items-center justify-between gap-x-[16px] gap-y-[8px]">
-            <div role="radiogroup" aria-label="Ansicht" className="flex gap-[4px] rounded-pill bg-panel-soft p-[4px]">
+            <div role="radiogroup" aria-label="Ansicht" className="flex gap-[4px] bg-panel-soft p-[4px]">
               {(['einfach', 'detail'] as ViewMode[]).map((entry) => (
                 <button
                   key={entry}
@@ -209,7 +209,7 @@ export function HarmonyPanel() {
                   role="radio"
                   aria-checked={mode === entry}
                   onClick={() => setMode(entry)}
-                  className={`rounded-pill px-[16px] py-[4px] text-small transition-colors ${
+                  className={`px-[16px] py-[4px] text-small transition-colors ${
                     mode === entry ? 'bg-ink text-on-ink' : 'text-ink hover:bg-panel-mid'
                   }`}
                 >
@@ -327,7 +327,7 @@ export function HarmonyPanel() {
               </div>
 
               <div className="mt-[16px] rounded-card bg-raised p-[16px]">
-                <p className="mb-[12px] text-micro font-semibold uppercase tracking-[0.08em] text-ink">
+                <p className="mb-[12px] text-small font-semibold text-ink">
                   Tonklassen
                 </p>
                 <ChromaChart chroma={result.chroma} />
@@ -336,13 +336,13 @@ export function HarmonyPanel() {
 
             {result.chords.length > 0 ? (
               <Card tone="mint" size="compact">
-                <Eyebrow>Akkorde · {result.chords.filter((span) => span.root !== null).length}</Eyebrow>
+                <ClauseHead>Akkorde · {result.chords.filter((span) => span.root !== null).length}</ClauseHead>
                 <div className="mt-[16px] flex flex-wrap gap-[4px]">
                   {result.chords.map((span, index) => (
                     <span
                       key={`${span.label}-${span.startSeconds}-${index}`}
                       title={`${formatTimecode(span.startSeconds)} – ${formatTimecode(span.endSeconds)}`}
-                      className={`numeric rounded-nav px-[12px] py-[8px] text-small ${
+                      className={`value rounded-nav px-[12px] py-[8px] text-small ${
                         span.root === null ? 'bg-raised text-muted' : 'bg-raised text-ink'
                       }`}
                     >
@@ -356,8 +356,8 @@ export function HarmonyPanel() {
             {result.notes.length > 0 ? (
               <Card tone="slate" size="compact">
                 <div className="flex flex-wrap items-baseline justify-between gap-3">
-                  <Eyebrow>Melodie · {result.notes.length} Noten</Eyebrow>
-                  <span className="numeric text-small text-muted">
+                  <ClauseHead>Melodie · {result.notes.length} Noten</ClauseHead>
+                  <span className="value text-small text-muted">
                     {midiName(Math.min(...result.notes.map((n) => n.midi)))} –{' '}
                     {midiName(Math.max(...result.notes.map((n) => n.midi)))} · {bpm} BPM
                   </span>
@@ -391,7 +391,7 @@ export function HarmonyPanel() {
       <aside className="flex flex-col gap-[16px]">
         {mode === 'detail' ? (
         <Card tone="mint" size="compact">
-          <Eyebrow>Einstellungen</Eyebrow>
+          <ClauseHead>Einstellungen</ClauseHead>
           <div className="mt-[12px] flex flex-col gap-[16px]">
             <Field label="Akkordfenster" hint="Kürzer folgt schnellen Wechseln, länger ist ruhiger.">
               <Select value={chordWindow} onChange={(event) => setChordWindow(Number(event.target.value))}>
@@ -445,14 +445,14 @@ export function HarmonyPanel() {
 
         {result && mode === 'detail' ? (
           <Card tone="cream" size="compact">
-            <Eyebrow>Nächstbeste</Eyebrow>
+            <ClauseHead>Nächstbeste</ClauseHead>
             <ul className="mt-[12px] flex flex-col gap-[8px] text-small">
               {result.key.scores.map((entry) => (
                 <li key={entry.label} className="flex items-baseline justify-between gap-3">
                   <span className="text-prose/85">
                     {entry.label} <span className="text-muted">{entry.camelot}</span>
                   </span>
-                  <span className="numeric shrink-0 text-muted">{entry.score.toFixed(2)}</span>
+                  <span className="value shrink-0 text-muted">{entry.score.toFixed(2)}</span>
                 </li>
               ))}
             </ul>

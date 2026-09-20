@@ -56,7 +56,7 @@ export function ThemeToggle({
     <div
       role="radiogroup"
       aria-label="Erscheinungsbild"
-      className="flex items-center gap-[2px] rounded-pill bg-panel-soft p-[4px]"
+      className="flex items-center gap-[2px] bg-panel-soft p-[4px]"
     >
       {OPTIONS.map((option) => {
         const active = option.value === choice
@@ -68,7 +68,7 @@ export function ThemeToggle({
             aria-checked={active}
             title={option.title}
             onClick={() => onChange(option.value)}
-            className={`press flex items-center justify-center rounded-pill p-[8px] ${
+            className={`press flex items-center justify-center p-[8px] ${
               active ? 'bg-ink text-on-ink' : 'text-ink hover:bg-panel-mid'
             }`}
           >

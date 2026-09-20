@@ -205,14 +205,14 @@ export function DownloaderPanel() {
             ) : null}
             <div className="min-w-0 flex-1">
               <p className="truncate text-subheading text-ink">{result.title}</p>
-              <p className="numeric mt-[2px] text-small text-muted">
+              <p className="value mt-[2px] text-small text-muted">
                 {[result.author, result.durationSeconds ? formatDuration(result.durationSeconds) : null]
                   .filter(Boolean)
                   .join(' · ')}
               </p>
               {/* Which route answered. Not a detail: it decides the resolution
                   on offer, and it decides who saw the address. */}
-              <p className="mt-[8px] text-micro uppercase tracking-[0.08em] text-muted">
+              <p className="mt-[8px] text-small text-muted">
                 {result.source === 'provider'
                   ? 'Über den hinterlegten Anbieter'
                   : result.source === 'youtube'
@@ -231,7 +231,7 @@ export function DownloaderPanel() {
                 className="flex flex-wrap items-center gap-x-[12px] gap-y-[8px] border-t border-line px-[4px] py-[12px]"
               >
                 <span className="min-w-0 flex-1 text-small text-ink">{stream.label}</span>
-                <span className="numeric text-small text-muted">
+                <span className="value text-small text-muted">
                   {stream.ext.toUpperCase()}
                   {stream.bytes ? ` · ${formatBytes(stream.bytes)}` : ''}
                 </span>

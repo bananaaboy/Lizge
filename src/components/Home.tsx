@@ -34,24 +34,28 @@ const ICONS: Record<PanelId, ReactNode> = Object.fromEntries(
 const GROUP_ORDER: ToolGroup[] = ['holen', 'bild', 'video', 'ton', 'musik']
 
 /**
- * One way in, as a row rather than a card.
+ * One procedure, as a numbered line of the index.
  *
- * The first version of this was the template every generated interface reaches
- * for: an icon in a rounded square, a bold label under it, a grey line under
- * that, boxed, repeated in an even four-column grid of identical heights. It
- * is a feature-card wall, and this is not a feature-card wall — it is a menu
- * of thirty things, which is a list. So the icon sits on the label line where
- * it belongs, the boxes are gone, and the hairlines between rows come from the
- * grid gap showing the surface underneath. Denser, faster to scan, and it
- * stops claiming that each of the thirty is a headline.
+ * The number is the point, and it is the reason this is allowed to carry one
+ * at all: it is an address. Every procedure can be linked to, quoted and
+ * jumped to, the way you cite a clause rather than describing where on the
+ * page you saw it. A number that only decorated the row would be a habit; one
+ * you can put in a URL is information.
+ *
+ * What it replaced: an even grid of identically sized cards, each with an icon
+ * in a rounded square above its heading — the arrangement every generated
+ * interface reaches for, and the arrangement that claims each of thirty items
+ * is a headline.
  */
 function Tool({
+  clause,
   icon,
   label,
   hint,
   onClick,
   dimmed = false,
 }: {
+  clause: string
   icon: ReactNode
   label: string
   hint: string
@@ -60,43 +64,49 @@ function Tool({
 }) {
   return (
     <button
+      id={`v-${clause}`}
       type="button"
       onClick={onClick}
-      // One line, on one side. A box on all four sides claims "this is an
-      // object"; a row in a list of thirty is not an object, it is an item,
-      // and an item is separated from the one above it by a rule. The rule
-      // above the first row doubles as the group's own top edge, so the group
-      // needs no box either — and an empty cell at the end of a group draws
-      // nothing at all, which is what an empty cell should do.
-      className="press group flex flex-col items-start gap-[4px] border-t border-line px-[16px] py-[12px] text-left hover:bg-panel-soft"
+      className="press group flex scroll-mt-[96px] items-baseline gap-[12px] border-t border-line px-[4px] py-[10px] text-left hover:bg-panel-soft"
     >
-      <span className="flex items-center gap-[8px] text-small font-semibold leading-[1.3] text-ink">
-        {/* When the tool needs a kind of file the session does not hold, only
-            the icon says so. Fading the whole row was the first attempt and it
-            measured at APCA Lc 48 against a Lc 60 target — a legibility cost
-            paid for a hint, on a row that works perfectly well anyway: every
-            panel opens on its own drop zone. */}
-        <span
-          className={`transition-colors duration-[var(--dur-fast)] group-hover:text-ink ${
-            dimmed ? 'text-muted/45' : 'text-muted'
-          }`}
-        >
-          {icon}
-        </span>
-        {label}
+      <span className="clause w-[4ch] shrink-0 text-muted transition-colors group-hover:text-ink">
+        {clause}
       </span>
-      <span className="text-small leading-[1.4] text-muted">{hint}</span>
+      <span className="min-w-0 flex-1">
+        <span className="flex items-center gap-[8px] text-small font-semibold leading-[1.3] text-ink">
+          {/* When a procedure needs a kind of file the session does not hold,
+              only the mark says so. Fading the whole row was the first attempt
+              and it measured at APCA Lc 48 against a Lc 60 target — a
+              legibility cost paid for a hint the empty state already gives. */}
+          <span
+            className={`transition-colors duration-[var(--dur-fast)] group-hover:text-ink ${
+              dimmed ? 'text-faint' : 'text-muted'
+            }`}
+          >
+            {icon}
+          </span>
+          {label}
+        </span>
+        <span className="mt-[2px] block text-small leading-[1.4] text-muted">{hint}</span>
+      </span>
     </button>
   )
 }
 
-/** The two ways a file gets here. These *are* headlines, so they stay big. */
+/**
+ * How the object under test gets onto the sheet.
+ *
+ * Section 1 of a certificate is always the same question — what is being
+ * examined — so these two stay large while the thirty procedures stay a list.
+ */
 function Entry({
+  clause,
   icon,
   label,
   hint,
   onClick,
 }: {
+  clause: string
   icon: ReactNode
   label: string
   hint: string
@@ -106,21 +116,27 @@ function Entry({
     <button
       type="button"
       onClick={onClick}
-      className="tile flex flex-col items-start gap-[8px] rounded-card bg-panel-soft p-[20px] text-left ring-1 ring-inset ring-ink/15"
+      className="press flex items-start gap-[12px] border-t-2 border-rule px-[4px] py-[16px] text-left hover:bg-panel-soft"
     >
-      <span className="flex items-center gap-[8px] text-subheading text-ink">
-        {icon}
-        {label}
+      <span className="clause w-[4ch] shrink-0 text-ink">{clause}</span>
+      <span className="min-w-0 flex-1">
+        <span className="flex items-center gap-[8px] text-subheading font-semibold text-ink">
+          {icon}
+          {label}
+        </span>
+        <span className="mt-[4px] block text-small leading-[1.45] text-muted">{hint}</span>
       </span>
-      <span className="text-small leading-[1.45] text-muted">{hint}</span>
     </button>
   )
 }
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
+function Section({ clause, title, children }: { clause: string; title: string; children: ReactNode }) {
   return (
-    <section className="flex flex-col gap-[8px]">
-      <h3 className="eyebrow">{title}</h3>
+    <section id={`v-${clause}`} className="flex scroll-mt-[96px] flex-col">
+      <h3 className="flex items-baseline gap-[12px] border-t-2 border-rule px-[4px] pb-[4px] pt-[12px]">
+        <span className="clause w-[4ch] shrink-0 text-ink">{clause}</span>
+        <span className="text-small font-semibold tracking-[-0.005em] text-ink">{title}</span>
+      </h3>
       <div className="grid sm:grid-cols-2 lg:grid-cols-3">{children}</div>
     </section>
   )
@@ -165,25 +181,82 @@ export function Home() {
 
   return (
     <div className="flex flex-col gap-[24px]">
-      {/* -- the opening question ------------------------------------------ */}
-      <div className="flex flex-col gap-[16px] rounded-card bg-raised p-[24px] ring-1 ring-inset ring-line elevate sm:p-[28px]">
-        <div className="flex flex-col gap-[16px] sm:flex-row sm:items-end sm:justify-between">
+      {/* -- clause 1: what is being examined ------------------------------- */}
+      <section id="v-1" className="flex scroll-mt-[96px] flex-col gap-[16px]">
+        <div className="flex flex-col gap-[16px]">
           <div className="min-w-0">
-            <p className="display-md">Was möchten Sie machen?</p>
-            <p className="mt-[8px] max-w-[54ch] text-body leading-[1.55] text-prose/85">
-              {active
-                ? `Offen: ${active.name} — ${KIND_LABEL[active.kind]}. Wählen Sie eine Kachel, oder tippen Sie, was Sie suchen.`
-                : 'Öffnen Sie eine Datei, oder holen Sie sich eine über eine Adresse. Gerechnet wird auf Ihrem Gerät.'}
-            </p>
+            <h2 className="flex items-baseline gap-[12px]">
+              <span className="clause w-[4ch] shrink-0 text-ink">1</span>
+              <span className="display-md">Prüfgegenstand</span>
+            </h2>
+            {/* The object under test, stated as the form states it: the field
+                is either filled or visibly blank. */}
+            <dl className="mt-[12px] flex flex-col pl-[calc(4ch+12px)] text-small">
+              <div className="flex items-baseline gap-[12px] border-t border-line py-[6px]">
+                <dt className="w-[14ch] shrink-0 text-muted">Datei</dt>
+                <dd className="value min-w-0 flex-1 truncate text-ink">
+                  {active ? active.name : <span className="text-muted">— keine geöffnet</span>}
+                </dd>
+              </div>
+              <div className="flex items-baseline gap-[12px] border-t border-line py-[6px]">
+                <dt className="w-[14ch] shrink-0 text-muted">Art</dt>
+                <dd className="value min-w-0 flex-1 text-ink">
+                  {active ? KIND_LABEL[active.kind] : <span className="text-muted">—</span>}
+                </dd>
+              </div>
+              <div className="flex items-baseline gap-[12px] border-t border-line py-[6px]">
+                <dt className="w-[14ch] shrink-0 text-muted">In der Sitzung</dt>
+                <dd className="value min-w-0 flex-1 text-ink">
+                  {assets > 0 ? `${assets}` : <span className="text-muted">0</span>}
+                </dd>
+              </div>
+            </dl>
           </div>
-          <div className="flex shrink-0 flex-col items-start gap-[8px]">
-            <OpenFileButton size="md" />
-            <span className="text-small text-muted">
-              {assets > 0 ? `${assets} in der Sitzung` : 'oder ins Fenster ziehen'}
-            </span>
-          </div>
+            {/* The one thing this clause is asking for, at its foot and lined
+                up with the values above it — where a form puts the line you
+                sign after the fields you filled. */}
+            <div className="mt-[12px] flex flex-wrap items-center gap-x-[12px] gap-y-[8px] pl-[calc(4ch+12px)]">
+              <OpenFileButton size="md" />
+              <span className="text-small text-muted">oder ins Fenster ziehen</span>
+            </div>
         </div>
+      </section>
 
+      {/* -- getting something in ------------------------------------------- */}
+      {picker.input}
+      {!searching ? (
+        <section id="v-2" className="scroll-mt-[96px]">
+          <h2 className="flex items-baseline gap-[12px] px-[4px] pb-[4px]">
+            <span className="clause w-[4ch] shrink-0 text-ink">2</span>
+            <span className="display-sm">Wie der Prüfgegenstand hereinkommt</span>
+          </h2>
+          <div className="grid sm:grid-cols-2">
+            <Entry
+              clause="2.1"
+              icon={<ToolIcon>{ICONS.images}</ToolIcon>}
+              label="Datei vom Gerät öffnen"
+              hint="Ton, Video, Bild. Wird nirgendwohin hochgeladen."
+              onClick={picker.open}
+            />
+            <Entry
+              clause="2.2"
+              icon={<ToolIcon>{ICONS.downloader}</ToolIcon>}
+              label="Von einer Adresse laden"
+              hint="YouTube und direkte Datei-Adressen. Dieser eine Schritt läuft über einen Dienst."
+              onClick={() => setPanel('downloader')}
+            />
+          </div>
+        </section>
+      ) : null}
+
+      {/* -- everything else, grouped --------------------------------------- */}
+      <div className="flex flex-col gap-[12px]">
+        {!searching ? (
+          <h2 id="v-3" className="flex scroll-mt-[96px] items-baseline gap-[12px] px-[4px]">
+            <span className="clause w-[4ch] shrink-0 text-ink">3</span>
+            <span className="display-sm">Verfügbare Verfahren</span>
+          </h2>
+        ) : null}
         <div className="relative">
           <svg
             viewBox="0 0 16 16"
@@ -200,40 +273,21 @@ export function Home() {
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Suchen — „mp3 aus video“, „tonart“, „bild kleiner“ …"
-            aria-label="Werkzeug suchen"
-            className="w-full rounded-pill border-0 bg-panel-soft py-[12px] pl-[40px] pr-[16px] text-body text-prose outline-none ring-1 ring-inset ring-line placeholder:text-muted focus:ring-ink"
+            placeholder="Verfahren suchen — „mp3 aus video“, „tonart“, „bild kleiner“ …"
+            aria-label="Verfahren suchen"
+            className="value w-full border-0 bg-raised py-[10px] pl-[40px] pr-[16px] text-small text-prose outline-none ring-1 ring-inset ring-line placeholder:font-sans placeholder:text-muted focus:ring-ink"
           />
         </div>
       </div>
 
-      {/* -- getting something in ------------------------------------------- */}
-      {picker.input}
-      {!searching ? (
-        <section className="grid gap-[12px] sm:grid-cols-2">
-          <Entry
-            icon={<ToolIcon>{ICONS.images}</ToolIcon>}
-            label="Datei vom Gerät öffnen"
-            hint="Ton, Video, Bild. Wird nirgendwohin hochgeladen."
-            onClick={picker.open}
-          />
-          <Entry
-            icon={<ToolIcon>{ICONS.downloader}</ToolIcon>}
-            label="Von einer Adresse laden"
-            hint="YouTube und direkte Datei-Adressen. Dieser eine Schritt läuft über einen Dienst."
-            onClick={() => setPanel('downloader')}
-          />
-        </section>
-      ) : null}
-
-      {/* -- everything else, grouped --------------------------------------- */}
       {grouped
         .filter(({ group }) => searching || group !== 'holen')
-        .map(({ group, actions }) => (
-          <Section key={group} title={GROUP_LABEL[group]}>
-            {actions.map((action) => (
+        .map(({ group, actions }, groupIndex) => (
+          <Section key={group} clause={`3.${groupIndex + 1}`} title={GROUP_LABEL[group]}>
+            {actions.map((action, index) => (
               <Tool
                 key={action.id}
+                clause={`3.${groupIndex + 1}.${index + 1}`}
                 icon={<ToolIcon>{ICONS[action.panel]}</ToolIcon>}
                 label={action.label}
                 hint={action.hint}
@@ -253,9 +307,9 @@ export function Home() {
         ))}
 
       {grouped.length === 0 ? (
-        <p className="rounded-card bg-raised p-[24px] text-center text-small text-muted ring-1 ring-inset ring-line">
-          Nichts gefunden für „{query}“. Versuchen Sie es mit einem Format („mp3“, „webp“, „gif“)
-          oder mit dem, was herauskommen soll.
+        <p className="border-t border-line px-[4px] py-[16px] text-small text-muted">
+          Nichts gefunden für <span className="value text-ink">{query}</span>. Versuchen Sie es mit
+          einem Format („mp3“, „webp“, „gif“) oder mit dem, was herauskommen soll.
         </p>
       ) : null}
     </div>

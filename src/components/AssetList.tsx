@@ -102,7 +102,7 @@ function WhatFits() {
 
   return (
     <div className="flex flex-col gap-[8px]">
-      <span className="text-micro font-semibold uppercase tracking-[0.08em] text-muted">
+      <span className="text-small font-semibold text-muted">
         Damit geht
       </span>
       <div className="flex flex-wrap gap-[4px]">
@@ -112,7 +112,7 @@ function WhatFits() {
             type="button"
             title={action.hint}
             onClick={() => setPanel(action.panel)}
-            className={`press rounded-pill px-[8px] py-[4px] text-small ${
+            className={`press px-[8px] py-[4px] text-small ${
               action.panel === panel
                 ? 'bg-ink text-on-ink'
                 : 'bg-panel-soft text-ink hover:bg-panel-mid'
@@ -173,7 +173,7 @@ export function AssetList() {
                   className="flex min-w-0 flex-1 flex-col items-start gap-[4px] text-left"
                 >
                   <span className="w-full truncate text-body text-ink">{asset.name}</span>
-                  <span className="numeric text-micro text-muted">
+                  <span className="value text-micro text-muted">
                     {formatBytes(asset.sizeBytes)}
                     {asset.durationSeconds ? ` · ${formatDuration(asset.durationSeconds)}` : ''}
                     {asset.audio ? ` · ${asset.audio.sampleRate / 1000} kHz` : ''}

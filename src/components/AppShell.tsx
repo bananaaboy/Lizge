@@ -12,6 +12,7 @@ import { useState } from 'react'
 import type { InstallState } from '../hooks/useInstallPrompt'
 import { useFilePicker } from '../hooks/useIngest'
 import type { ThemeChoice } from '../lib/theme'
+import { detectCapabilities, suggestedThreads } from '../lib/capabilities'
 import { useSession } from '../state/store'
 import { PaletteHint } from './CommandPalette'
 import { ThemeToggle } from './ThemeToggle'
@@ -41,7 +42,7 @@ export function Logo() {
   return (
     <span className="flex items-center gap-[8px] text-ink">
       <Mark />
-      <span className="font-display text-[25px] font-light tracking-[-0.01em]">Sondra</span>
+      <span className="font-wordmark text-[25px] font-light tracking-[-0.01em]">Sondra</span>
     </span>
   )
 }
@@ -99,9 +100,9 @@ function PrivacyChip() {
         type="button"
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
-        className="press flex items-center gap-[8px] rounded-pill bg-panel-soft px-[12px] py-[8px] text-small text-ink hover:bg-panel-mid"
+        className="press flex items-center gap-[8px] bg-panel-soft px-[12px] py-[8px] text-small text-ink hover:bg-panel-mid"
       >
-        <span className="h-[8px] w-[8px] rounded-pill bg-ink" aria-hidden />
+        <span className="h-[8px] w-[8px] bg-ink" aria-hidden />
         {/* A lone green dot says nothing. On a phone the claim shortens, it
             does not disappear — this is the one place the promise is made, and
             since there is now exactly one thing it does not cover, the badge
@@ -144,10 +145,33 @@ export function Header({
   install: InstallState
 }) {
   const hasAssets = useSession((state) => state.assets.length > 0)
+  const threads = suggestedThreads(detectCapabilities())
   return (
-    <header className="sticky top-0 z-30 border-b border-line bg-canvas/90 backdrop-blur-md">
-      <div className="shell flex items-center justify-between gap-[16px] py-[12px]">
-        <Logo />
+    <header className="sticky top-0 z-30 border-b-2 border-rule bg-canvas/95 backdrop-blur-md">
+      <div className="shell flex flex-wrap items-start justify-between gap-x-[24px] gap-y-[8px] py-[12px]">
+        <div className="flex min-w-0 flex-col gap-[8px]">
+          <Logo />
+          {/* The head of a certificate names the instrument and the method
+              before it states a single value. Here that is not decoration:
+              which browser and how many cores it will use decides what the
+              measurements below are worth. */}
+          <dl className="flex flex-wrap gap-x-[20px] gap-y-[2px] text-micro leading-[1.5]">
+            <div className="flex gap-[6px]">
+              <dt className="text-muted">Gerät</dt>
+              <dd className="value text-prose">dieser Browser</dd>
+            </div>
+            <div className="flex gap-[6px]">
+              <dt className="text-muted">Verfahren</dt>
+              <dd className="value text-prose">
+                lokal · WebAssembly · {threads} {threads === 1 ? 'Kern' : 'Kerne'}
+              </dd>
+            </div>
+            <div className="flex gap-[6px]">
+              <dt className="text-muted">Stand</dt>
+              <dd className="value text-prose">{new Date().toLocaleDateString('de-CH')}</dd>
+            </div>
+          </dl>
+        </div>
         <div className="flex items-center gap-[8px]">
           {install.available ? (
             <Button size="sm" variant="ghost" onClick={() => void install.install()} className="hidden md:inline-flex">
@@ -192,9 +216,9 @@ export function SessionBar() {
     <div className="shell pt-[16px]">
       <div className="rise flex flex-wrap items-center justify-between gap-[12px] rounded-card bg-panel-soft px-[16px] py-[8px] text-small">
         <p className="text-muted">
-          <span className="numeric text-ink">{assets.length}</span>{' '}
+          <span className="value text-ink">{assets.length}</span>{' '}
           {assets.length === 1 ? 'Datei' : 'Dateien'} im Arbeitsspeicher dieses Tabs ·{' '}
-          <span className="numeric">{(totalBytes / 1024 / 1024).toFixed(1)} MB</span> · nichts davon
+          <span className="value">{(totalBytes / 1024 / 1024).toFixed(1)} MB</span> · nichts davon
           wurde gesendet
         </p>
         <button
