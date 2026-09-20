@@ -83,7 +83,7 @@ export function BootGate({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center gap-[20px] bg-canvas px-[24px] py-[48px]">
       <div className="flex w-full max-w-[420px] flex-col items-center gap-[20px] text-center">
-        <Logo />
+        <Logo as="span" />
 
         {failed ? (
           <div className="w-full rounded-card bg-raised p-[20px] text-small leading-[1.55]">
