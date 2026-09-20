@@ -274,7 +274,7 @@ export function CropOverlay({
             role="presentation"
             onPointerDown={begin(handle.id)}
             style={{ cursor: handle.cursor }}
-            className={`absolute h-[14px] w-[14px] rounded-[3px] bg-stage-ink shadow-sm ring-1 ring-stage/40 ${handle.style}`}
+            className={`absolute h-[14px] w-[14px] bg-stage-ink ring-1 ring-stage/40 ${handle.style}`}
           />
         ))}
       </div>

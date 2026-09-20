@@ -471,7 +471,7 @@ export function VideoPanel() {
         stage={
           <div ref={stageRef} className="absolute inset-[16px] flex items-center justify-center">
             <div
-              className="relative shrink-0 overflow-hidden rounded-[2px] bg-stage shadow-[0_8px_30px_-10px_rgb(0_0_0/0.8)]"
+              className="relative shrink-0 overflow-hidden rounded-[2px] bg-stage elevate-lift"
               style={{ width: display.width || '60%', height: display.height || 240 }}
             >
               <video

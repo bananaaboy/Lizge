@@ -14,7 +14,7 @@
  * works until one of them has happened.
  */
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { useShallow } from 'zustand/shallow'
 
@@ -23,6 +23,7 @@ import { ACTIONS, GROUP_LABEL, searchActions, type ToolAction, type ToolGroup } 
 import { KIND_LABEL, useActiveAsset, useSession, type PanelId } from '../state/store'
 import { OpenFileButton } from './AppShell'
 import { PANELS, ToolIcon } from './panelMeta'
+import { Mark } from './ui/primitives'
 
 /* -------------------------------------------------------------------------- */
 
@@ -32,6 +33,22 @@ const ICONS: Record<PanelId, ReactNode> = Object.fromEntries(
 ) as Record<PanelId, ReactNode>
 
 const GROUP_ORDER: ToolGroup[] = ['holen', 'bild', 'video', 'ton', 'musik']
+
+/**
+ * The address of a group, fixed for good.
+ *
+ * Its own list, not the display order above, and for two reasons. A number
+ * taken from the order a *filtered* render produced would move every time
+ * somebody typed in the search box, and a number that moves with the session
+ * is not an address — which was the whole justification for numbering
+ * anything. And "Hereinholen" sits last here although it reads first
+ * elsewhere, because it is clause 1.2 on this sheet and only appears among
+ * the procedures when a search turns it up; numbering it first would open the
+ * index at 1.3.2 with no 1.3.1 in sight.
+ */
+const PROCEDURE_GROUPS: ToolGroup[] = ['bild', 'video', 'ton', 'musik', 'holen']
+
+const clauseOf = (group: ToolGroup) => `1.3.${PROCEDURE_GROUPS.indexOf(group) + 1}`
 
 /**
  * One procedure, as a numbered line of the index.
@@ -48,14 +65,14 @@ const GROUP_ORDER: ToolGroup[] = ['holen', 'bild', 'video', 'ton', 'musik']
  * is a headline.
  */
 function Tool({
-  clause,
+  anchor,
   icon,
   label,
   hint,
   onClick,
   dimmed = false,
 }: {
-  clause: string
+  anchor: string
   icon: ReactNode
   label: string
   hint: string
@@ -64,14 +81,11 @@ function Tool({
 }) {
   return (
     <button
-      id={`v-${clause}`}
+      id={`v-${anchor}`}
       type="button"
       onClick={onClick}
       className="press group flex scroll-mt-[96px] items-baseline gap-[12px] border-t border-line px-[4px] py-[10px] text-left hover:bg-panel-soft"
     >
-      <span className="clause w-[4ch] shrink-0 text-muted transition-colors group-hover:text-ink">
-        {clause}
-      </span>
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-[8px] text-small font-semibold leading-[1.3] text-ink">
           {/* When a procedure needs a kind of file the session does not hold,
@@ -120,7 +134,7 @@ function Entry({
     >
       <span className="clause w-[4ch] shrink-0 text-ink">{clause}</span>
       <span className="min-w-0 flex-1">
-        <span className="flex items-center gap-[8px] text-subheading font-semibold text-ink">
+        <span className="flex items-center gap-[8px] text-body font-semibold text-ink">
           {icon}
           {label}
         </span>
@@ -130,11 +144,33 @@ function Entry({
   )
 }
 
+/**
+ * A clause number you can actually cite.
+ *
+ * It renders as a link to its own anchor, so the number can be copied out of
+ * the address bar and pasted back. Without that it was a decoration wearing an
+ * address's clothes, and the craft floor bans section numbers that do not
+ * carry information the reader needs.
+ */
+function ClauseNumber({ clause, tone = 'ink' }: { clause: string; tone?: 'ink' | 'muted' }) {
+  return (
+    <a
+      href={`#v-${clause}`}
+      title={`Adresse dieser Klausel: ${clause}`}
+      className={`clause press w-[5ch] shrink-0 no-underline hover:underline ${
+        tone === 'ink' ? 'text-ink' : 'text-muted'
+      }`}
+    >
+      {clause}
+    </a>
+  )
+}
+
 function Section({ clause, title, children }: { clause: string; title: string; children: ReactNode }) {
   return (
     <section id={`v-${clause}`} className="flex scroll-mt-[96px] flex-col">
       <h3 className="flex items-baseline gap-[12px] border-t-2 border-rule px-[4px] pb-[4px] pt-[12px]">
-        <span className="clause w-[4ch] shrink-0 text-ink">{clause}</span>
+        <ClauseNumber clause={clause} />
         <span className="text-small font-semibold tracking-[-0.005em] text-ink">{title}</span>
       </h3>
       <div className="grid sm:grid-cols-2 lg:grid-cols-3">{children}</div>
@@ -179,43 +215,63 @@ export function Home() {
   const kinds = useSession(useShallow((state) => state.assets.map((asset) => asset.kind)))
   const have = useMemo(() => new Set(kinds), [kinds])
 
+  /**
+   * A pasted clause address actually goes there.
+   *
+   * The browser resolves a fragment against the document it has at paint time,
+   * and at that moment this list does not exist yet — so without this the
+   * anchors were real markup pointing at nothing, which is the same as having
+   * no addresses at all.
+   */
+  useEffect(() => {
+    const target = decodeURIComponent(window.location.hash.slice(1))
+    if (!target) return
+    const node = document.getElementById(target)
+    if (node) node.scrollIntoView({ block: 'start', behavior: 'auto' })
+  }, [])
+
   return (
     <div className="flex flex-col gap-[24px]">
       {/* -- clause 1: what is being examined ------------------------------- */}
-      <section id="v-1" className="flex scroll-mt-[96px] flex-col gap-[16px]">
+      <section id="v-1.1" className="flex scroll-mt-[96px] flex-col gap-[16px]">
         <div className="flex flex-col gap-[16px]">
           <div className="min-w-0">
             <h2 className="flex items-baseline gap-[12px]">
-              <span className="clause w-[4ch] shrink-0 text-ink">1</span>
+              <ClauseNumber clause="1.1" />
               <span className="display-md">Prüfgegenstand</span>
             </h2>
             {/* The object under test, stated as the form states it: the field
                 is either filled or visibly blank. */}
-            <dl className="mt-[12px] flex flex-col pl-[calc(4ch+12px)] text-small">
-              <div className="flex items-baseline gap-[12px] border-t border-line py-[6px]">
-                <dt className="w-[14ch] shrink-0 text-muted">Datei</dt>
-                <dd className="value min-w-0 flex-1 truncate text-ink">
-                  {active ? active.name : <span className="text-muted">— keine geöffnet</span>}
-                </dd>
-              </div>
-              <div className="flex items-baseline gap-[12px] border-t border-line py-[6px]">
-                <dt className="w-[14ch] shrink-0 text-muted">Art</dt>
-                <dd className="value min-w-0 flex-1 text-ink">
-                  {active ? KIND_LABEL[active.kind] : <span className="text-muted">—</span>}
-                </dd>
-              </div>
-              <div className="flex items-baseline gap-[12px] border-t border-line py-[6px]">
-                <dt className="w-[14ch] shrink-0 text-muted">In der Sitzung</dt>
-                <dd className="value min-w-0 flex-1 text-ink">
-                  {assets > 0 ? `${assets}` : <span className="text-muted">0</span>}
-                </dd>
-              </div>
+            <dl className="mt-[12px] flex flex-col text-small">
+              {(
+                [
+                  ['Datei', active?.name ?? null, null],
+                  ['Art', active ? KIND_LABEL[active.kind] : null, null],
+                  ['In der Sitzung', assets > 0 ? String(assets) : null, assets === 1 ? 'Datei' : 'Dateien'],
+                ] as const
+              ).map(([label, found, unit]) => (
+                <div key={label} className="flex items-baseline gap-[12px] border-t border-line py-[6px]">
+                  {/* The margin mark, which is the whole point of the form:
+                      whether a field has been filled is legible before a word
+                      of it is read. */}
+                  <span className="w-[5ch] shrink-0 text-center">
+                    <Mark state={found ? 'measured' : 'blank'} />
+                  </span>
+                  <dt className="min-w-0 flex-1 text-muted">{label}</dt>
+                  <dd className="flex shrink-0 items-baseline gap-[4px]">
+                    <span className="value max-w-[36ch] truncate text-right text-ink">
+                      {found ?? <span className="text-muted">—</span>}
+                    </span>
+                    <span className="w-[6ch] text-left text-muted">{found ? (unit ?? '') : ''}</span>
+                  </dd>
+                </div>
+              ))}
             </dl>
           </div>
             {/* The one thing this clause is asking for, at its foot and lined
                 up with the values above it — where a form puts the line you
                 sign after the fields you filled. */}
-            <div className="mt-[12px] flex flex-wrap items-center gap-x-[12px] gap-y-[8px] pl-[calc(4ch+12px)]">
+            <div className="mt-[12px] flex flex-wrap items-center gap-x-[12px] gap-y-[8px] pl-[calc(5ch+12px)]">
               <OpenFileButton size="md" />
               <span className="text-small text-muted">oder ins Fenster ziehen</span>
             </div>
@@ -225,21 +281,21 @@ export function Home() {
       {/* -- getting something in ------------------------------------------- */}
       {picker.input}
       {!searching ? (
-        <section id="v-2" className="scroll-mt-[96px]">
+        <section id="v-1.2" className="scroll-mt-[96px]">
           <h2 className="flex items-baseline gap-[12px] px-[4px] pb-[4px]">
-            <span className="clause w-[4ch] shrink-0 text-ink">2</span>
-            <span className="display-sm">Wie der Prüfgegenstand hereinkommt</span>
+            <ClauseNumber clause="1.2" />
+            <span className="display-md">Wie der Prüfgegenstand hereinkommt</span>
           </h2>
           <div className="grid sm:grid-cols-2">
             <Entry
-              clause="2.1"
+              clause="1.2.1"
               icon={<ToolIcon>{ICONS.images}</ToolIcon>}
               label="Datei vom Gerät öffnen"
               hint="Ton, Video, Bild. Wird nirgendwohin hochgeladen."
               onClick={picker.open}
             />
             <Entry
-              clause="2.2"
+              clause="1.2.2"
               icon={<ToolIcon>{ICONS.downloader}</ToolIcon>}
               label="Von einer Adresse laden"
               hint="YouTube und direkte Datei-Adressen. Dieser eine Schritt läuft über einen Dienst."
@@ -252,9 +308,9 @@ export function Home() {
       {/* -- everything else, grouped --------------------------------------- */}
       <div className="flex flex-col gap-[12px]">
         {!searching ? (
-          <h2 id="v-3" className="flex scroll-mt-[96px] items-baseline gap-[12px] px-[4px]">
-            <span className="clause w-[4ch] shrink-0 text-ink">3</span>
-            <span className="display-sm">Verfügbare Verfahren</span>
+          <h2 id="v-1.3" className="flex scroll-mt-[96px] items-baseline gap-[12px] px-[4px]">
+            <ClauseNumber clause="1.3" />
+            <span className="display-md">Verfügbare Verfahren</span>
           </h2>
         ) : null}
         <div className="relative">
@@ -282,12 +338,12 @@ export function Home() {
 
       {grouped
         .filter(({ group }) => searching || group !== 'holen')
-        .map(({ group, actions }, groupIndex) => (
-          <Section key={group} clause={`3.${groupIndex + 1}`} title={GROUP_LABEL[group]}>
-            {actions.map((action, index) => (
+        .map(({ group, actions }) => (
+          <Section key={group} clause={clauseOf(group)} title={GROUP_LABEL[group]}>
+            {actions.map((action) => (
               <Tool
                 key={action.id}
-                clause={`3.${groupIndex + 1}.${index + 1}`}
+                anchor={action.id}
                 icon={<ToolIcon>{ICONS[action.panel]}</ToolIcon>}
                 label={action.label}
                 hint={action.hint}

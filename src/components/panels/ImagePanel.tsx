@@ -449,7 +449,7 @@ export function ImagePanel() {
               >
                 <canvas
                   ref={canvasRef}
-                  className="block h-full w-full rounded-[2px] shadow-[0_8px_30px_-10px_rgb(0_0_0/0.8)]"
+                  className="block h-full w-full rounded-[2px] elevate-lift"
                 />
                 {cropping && bitmap ? (
                   <CropOverlay

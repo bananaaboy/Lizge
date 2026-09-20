@@ -38,12 +38,22 @@ export function Mark({ className = 'h-[26px] w-[26px]' }: { className?: string }
   )
 }
 
-export function Logo() {
+/**
+ * The document's title, and therefore its `h1`.
+ *
+ * A world built as a printed record shipped with no document heading at all:
+ * the clause hierarchy started at `h2` and the name of the thing was a span.
+ * `as` exists because the footer and the loading screen show the same mark
+ * where an `h1` would be a second one on the page.
+ */
+export function Logo({ as = 'h1' }: { as?: 'h1' | 'span' }) {
+  const Tag = as
   return (
-    <span className="flex items-center gap-[8px] text-ink">
+    <Tag className="m-0 flex items-center gap-[8px] text-ink">
       <Mark />
       <span className="font-wordmark text-[25px] font-light tracking-[-0.01em]">Sondra</span>
-    </span>
+      <span className="sr-only"> — Prüfprotokoll</span>
+    </Tag>
   )
 }
 
