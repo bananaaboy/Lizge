@@ -75,7 +75,7 @@ function Tool({
       id={`v-${anchor}`}
       type="button"
       onClick={onClick}
-      className="press group flex scroll-mt-[96px] flex-col items-start gap-[6px] bg-panel-mid p-[16px] text-left transition-colors duration-[var(--dur-fast)] hover:bg-panel-strong"
+      className="press group flex scroll-mt-[96px] flex-col items-start gap-[4px] bg-panel-mid p-[12px] text-left transition-colors duration-[var(--dur-fast)] hover:bg-panel-strong sm:gap-[6px] sm:p-[16px]"
     >
       {/* When a tool needs a kind of file the session does not hold, the icon
           says so quietly. Fading the whole tile was the first attempt and it
@@ -101,7 +101,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
       <h3 className="border-t border-line pt-[12px] text-body font-semibold tracking-[-0.01em] text-ink">
         {title}
       </h3>
-      <div className="grid gap-[8px] sm:grid-cols-2 lg:grid-cols-3">{children}</div>
+      <div className="grid grid-cols-2 gap-[8px] lg:grid-cols-3">{children}</div>
     </section>
   )
 }
@@ -144,7 +144,7 @@ export function Home() {
   const have = useMemo(() => new Set(kinds), [kinds])
 
   return (
-    <div className="flex flex-col gap-[32px]">
+    <div className="flex flex-col gap-[24px] sm:gap-[32px]">
       {picker.input}
 
       {/* -- the way in ----------------------------------------------------- */}

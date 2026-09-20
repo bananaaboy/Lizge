@@ -549,7 +549,10 @@ Es gibt **keine Karte**. `Card` ist der Name der Komponente, nicht ihrer Form:
 
 - **Reiterleiste** (`PanelTabs`): eine waagerechte Liste auf Feldweiss mit
   Haarlinien-Ring. Ausgewählt ist gefüllte Tinte. Die Reiter trugen einmal
-  Nummern von 1 bis 10; sie sind mit allen anderen Zierziffern gefallen.
+  Nummern von 1 bis 10; sie sind mit allen anderen Zierziffern gefallen. Auf
+  der Startseite erscheint sie erst ab `sm`: darunter ist sie eine
+  abgeschnittene Kopie des Kachelfelds, das direkt darunter steht. In einem
+  geöffneten Werkzeug steht sie immer — dort ist sie der Weg zurück.
   Pfeiltasten wechseln den Reiter, der gewählte bleibt der einzige mit
   `tabIndex 0`, und die Ränder blenden nur dort aus, wo wirklich noch etwas
   hinter ihnen liegt.
@@ -593,6 +596,10 @@ Klick, einmal.
 der Kachel ihre Kante — kein Rahmen auf vier Seiten, kein Schatten, keine
 Rundung. Passt ein Werkzeug nicht zur geöffneten Datei, sagt das allein die
 Symbolfarbe (`faint`), und auch das erst, wenn überhaupt etwas geöffnet ist.
+Das Feld ist ab der kleinsten Breite zweispaltig und wird ab `lg` dreispaltig;
+einspaltig gestapelt ergaben dreissig Kacheln auf dem Handy eine Seite von
+4110 px, zweispaltig sind es 2803 px und die ersten Kacheln liegen über der
+Falz.
 Der Hinweistext steht in `prose` statt `muted`: auf der Tönung der Kachel mass
 sich `muted` im dunklen Thema bei APCA Lc 59.3 gegen einen Boden von 60.
 
