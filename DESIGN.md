@@ -582,6 +582,19 @@ nicht benennen könnte — „Zielwerte", „Ergebnis", „Nächstbeste". Er *is
 Überschrift, keine Zeile darüber. Kein Kasten, keine Versalien; die Linie
 darüber trennt.
 
+**Die Umwandlungszeile (`Conversion`).** Zwei getönte Blöcke mit einem Pfeil
+dazwischen — links, was hereinkommt, rechts in Tinte, was herauskommt. Oben je
+das Format als grosses Wort in der Wertschrift, darunter der Dateiname, darunter
+die Messwerte. Der Pfeil dreht sich auf dem Handy um 90°, wo die Blöcke stapeln.
+Rechts steht erst eine Grösse, wenn wirklich eine Datei entstanden ist: eine
+geschätzte Zahl wäre hier die einzige im ganzen Produkt.
+
+Die Meta-Zeile steht in `prose`, nicht in `muted` — auf dieser Tönung mass sich
+`muted` im dunklen Thema bei APCA Lc 59.3 gegen einen Boden von 60, derselbe
+Fallstrick wie bei den Werkzeugkacheln. Die Trennung von der Zeile darüber
+leistet stattdessen die Schrift, und das ist hier die ehrlichere: eine Grösse
+und eine Dauer wurden gemessen, die Beschreibung eines Formats nicht.
+
 **Der Vermerk (`Notice`).** Eine Anmerkung zum Befund: Abschnittslinie oben,
 Randzeichen, Text. Kein farbiges Feld ringsum — die Seite annotiert, sie
 umrandet die Annotation nicht.

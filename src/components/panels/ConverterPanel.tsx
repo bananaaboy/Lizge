@@ -44,6 +44,108 @@ import {
   Toggle,
 } from '../ui/primitives'
 
+/** The extension a file already carries, for the badge on the left. */
+function extensionOf(name: string): string {
+  const dot = name.lastIndexOf('.')
+  return dot > 0 && dot < name.length - 1 ? name.slice(dot + 1).toUpperCase() : '—'
+}
+
+/**
+ * One side of the conversion, as a block you can read at a glance.
+ *
+ * The format is the big word, because that is the thing being changed and the
+ * thing someone is here to check. The file name sits under it, truncated from
+ * the front is wrong for names that differ at the end, so it truncates at the
+ * end with the full name in `title`.
+ */
+function FormatBlock({
+  badge,
+  name,
+  meta,
+  measured = false,
+  strong = false,
+}: {
+  badge: string
+  name: string
+  meta: string
+  /** The meta line holds figures the machine found, so it is set in Courier. */
+  measured?: boolean
+  strong?: boolean
+}) {
+  return (
+    <div
+      className={`flex min-w-0 flex-col gap-[4px] p-[16px] ${
+        strong ? 'bg-ink text-on-ink' : 'bg-panel-mid'
+      }`}
+    >
+      <span className={`value text-subheading leading-[1.1] ${strong ? 'text-on-ink' : 'text-ink'}`}>
+        {badge}
+      </span>
+      <span
+        title={name}
+        className={`truncate text-small ${strong ? 'text-on-ink/90' : 'text-prose'}`}
+      >
+        {name}
+      </span>
+      {/* `prose`, not `muted`: on this tint `muted` measured APCA Lc 59.3 in
+          the dark theme against a Lc 60 floor for secondary text — the same
+          trap the tool tiles fell into. The separation from the file name
+          above comes from the typeface instead, which is the honest one here:
+          a size and a duration were measured, a format's description was not. */}
+      <span
+        className={`text-small ${measured ? 'value' : ''} ${
+          strong ? 'text-on-ink/70' : 'text-prose'
+        }`}
+      >
+        {meta}
+      </span>
+    </div>
+  )
+}
+
+/**
+ * What goes in, and what comes out.
+ *
+ * Added because the panel changes shape with the source — audio gets audio
+ * targets, a video gets both groups, an image gets sent elsewhere — and a
+ * dropdown reading „MP3 — Überall abspielbar" never said which file it was
+ * about. Both ends are named, so the answer to „was wird hier woraus" is on
+ * the screen rather than inferred from the session list.
+ *
+ * The right-hand size is blank until something has actually been produced: a
+ * guess here would be the one number in this app that was estimated rather
+ * than measured.
+ */
+function Conversion({
+  fromName,
+  fromMeta,
+  toName,
+  toBadge,
+  toMeta,
+  toMeasured = false,
+}: {
+  fromName: string
+  fromMeta: string
+  toName: string
+  toBadge: string
+  toMeta: string
+  toMeasured?: boolean
+}) {
+  return (
+    <div className="grid items-stretch gap-[8px] sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
+      <FormatBlock badge={extensionOf(fromName)} name={fromName} meta={fromMeta} measured />
+      <div className="flex items-center justify-center text-muted sm:px-[4px]">
+        {/* Down on a phone, where the blocks stack; across on a wide screen. */}
+        <svg viewBox="0 0 16 16" aria-hidden className="h-4 w-4 rotate-90 sm:rotate-0" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M2.5 8h11M9.5 4l4 4-4 4" />
+        </svg>
+        <span className="sr-only">wird zu</span>
+      </div>
+      <FormatBlock badge={toBadge} name={toName} meta={toMeta} measured={toMeasured} strong />
+    </div>
+  )
+}
+
 interface Outcome {
   name: string
   bytes: Uint8Array
@@ -321,7 +423,29 @@ export function ConverterPanel() {
             </div>
           ) : (
             <>
-              <div className="mt-[28px] grid gap-[16px] sm:grid-cols-2">
+              <div className="mt-[28px]">
+                <Conversion
+                  fromName={asset.name}
+                  fromMeta={[
+                    formatBytes(asset.sizeBytes),
+                    asset.durationSeconds ? formatTimecode(asset.durationSeconds) : null,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
+                  toName={withExtension(asset.name, format.extension)}
+                  toBadge={format.label}
+                  toMeta={
+                    outcome
+                      ? `${formatBytes(outcome.bytes.byteLength)} · ${Math.round(
+                          (outcome.bytes.byteLength / outcome.sourceBytes) * 100,
+                        )} % der Quelle`
+                      : format.hint
+                  }
+                  toMeasured={outcome !== null}
+                />
+              </div>
+
+              <div className="mt-[20px] grid gap-[16px] sm:grid-cols-2">
                 <Field label="Zielformat">
                   <Select
                     value={settings.formatId}
