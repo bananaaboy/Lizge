@@ -21,8 +21,8 @@ import { ImagePanel } from './panels/ImagePanel'
 import { AudioEditorPanel } from './panels/AudioEditorPanel'
 import { FileDrop } from './FileDrop'
 import { Home } from './Home'
-import { PANELS, ToolIcon } from './panelMeta'
-import { Button, Card, Eyebrow } from './ui/primitives'
+import { PANELS } from './panelMeta'
+import { Button, Card, ClauseHead } from './ui/primitives'
 
 function PanelTabs() {
   const panel = useSession((state) => state.panel)
@@ -87,9 +87,9 @@ function PanelTabs() {
         role="tablist"
         aria-label="Werkzeuge"
         onKeyDown={onKeyDown}
-        className="elevate flex gap-[4px] overflow-x-auto rounded-card bg-raised p-[8px] ring-1 ring-inset ring-line [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="flex gap-[4px] overflow-x-auto bg-raised p-[4px] ring-1 ring-inset ring-line [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
-        {PANELS.map((entry) => {
+        {PANELS.map((entry, index) => {
           const active = entry.id === panel
           return (
             <button
@@ -104,7 +104,12 @@ function PanelTabs() {
               }`}
               title={entry.summary}
             >
-              <ToolIcon>{entry.icon}</ToolIcon>
+              {/* The number is the clause's address for the eye. A screen
+                  reader already gets the position from the tablist, so it
+                  stays out of the accessible name. */}
+              <span aria-hidden className={`clause ${active ? 'text-on-ink/70' : 'text-muted'}`}>
+                {index + 1}
+              </span>
               {entry.label}
             </button>
           )
@@ -191,14 +196,14 @@ function MachineRow() {
       type="button"
       onClick={() => setOpen((value) => (value === id ? null : id))}
       aria-expanded={open === id}
-      className={`press flex items-center gap-[8px] rounded-pill px-[12px] py-[8px] text-small ${
+      className={`press flex items-center gap-[8px] px-[12px] py-[8px] text-small ${
         open === id ? 'bg-ink text-on-ink' : 'text-muted hover:bg-panel-soft hover:text-ink'
       }`}
     >
       {label}
       {count ? (
         <span
-          className={`numeric rounded-pill px-[8px] text-micro ${
+          className={`value px-[8px] text-micro ${
             open === id ? 'bg-on-ink/20' : 'bg-panel-mid text-ink'
           }`}
         >
@@ -211,7 +216,7 @@ function MachineRow() {
   return (
     <div className="mt-[4px]">
       <div className="flex flex-wrap items-center gap-[8px] border-t border-line pt-[12px]">
-        <span className="mr-[4px] text-small text-muted">Unter der Haube</span>
+        <span className="mr-[4px] text-small text-muted">Prüfmittel und Protokoll</span>
         {tab('system', 'Dieses Gerät')}
         {tab('log', 'Protokoll', logs.length)}
         {!ffmpeg.loaded ? (
@@ -225,7 +230,7 @@ function MachineRow() {
         <dl className="rise mt-[12px] grid gap-[16px] rounded-card bg-raised p-[16px] ring-1 ring-inset ring-line sm:grid-cols-2 lg:grid-cols-3">
           {entries.map((entry) => (
             <div key={entry.label} className="flex flex-col gap-[2px]">
-              <dt className="text-micro font-semibold uppercase tracking-[0.08em] text-muted">
+              <dt className="text-small font-semibold text-muted">
                 {entry.label}
               </dt>
               <dd className="text-body text-ink">{entry.value}</dd>
@@ -256,7 +261,7 @@ function MachineRow() {
                   .reverse()
                   .map((line) => (
                     <li key={line.id} className="flex gap-[12px]">
-                      <span className="numeric shrink-0 text-muted">
+                      <span className="value shrink-0 text-muted">
                         {new Date(line.at).toLocaleTimeString('de-DE')}
                       </span>
                       <span className="shrink-0 text-ink">{line.scope}</span>
@@ -293,7 +298,7 @@ function NothingLoaded({ label, summary }: { label: string; summary: string }) {
     <Card tone="cream" className="rise">
       <div className="mx-auto flex max-w-[460px] flex-col items-center gap-[16px] text-center">
         <div>
-          <Eyebrow>{label}</Eyebrow>
+          <ClauseHead>{label}</ClauseHead>
           <p className="mt-[8px] text-subheading text-ink">{summary}</p>
           <p className="mt-[8px] text-body leading-[1.55] text-prose/85">
             Dafür braucht es erst eine Datei. Alles, was Sie hinzufügen, bleibt in diesem Tab.

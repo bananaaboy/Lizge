@@ -897,7 +897,7 @@ export function AdvancedDownloader() {
 
           {/* ---- path chips and the action share one row ------------------- */}
           <div className="flex flex-wrap items-center gap-[8px]">
-            <div role="radiogroup" aria-label="Weg" className="flex gap-[4px] rounded-pill bg-panel-soft p-[4px]">
+            <div role="radiogroup" aria-label="Weg" className="flex gap-[4px] bg-panel-soft p-[4px]">
               {PATHS.map((path) => {
                 const active = path.id === effectiveMode
                 return (
@@ -912,7 +912,7 @@ export function AdvancedDownloader() {
                       setModeOverride(path.id)
                       reset()
                     }}
-                    className={`rounded-pill px-[16px] py-[8px] text-small transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+                    className={`px-[16px] py-[8px] text-small transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
                       active ? 'bg-ink text-on-ink' : 'text-ink hover:bg-panel-mid'
                     }`}
                   >
@@ -1019,7 +1019,7 @@ export function AdvancedDownloader() {
             <div className="flex flex-wrap items-center gap-[12px] rounded-card bg-panel-soft px-[16px] py-[16px]">
               <div className="min-w-0 flex-1">
                 <p className="truncate text-body text-ink">{fetched.name}</p>
-                <p className="numeric text-small text-muted">{formatBytes(fetched.bytes.byteLength)} · in der Sitzung</p>
+                <p className="value text-small text-muted">{formatBytes(fetched.bytes.byteLength)} · in der Sitzung</p>
               </div>
               <Button size="sm" onClick={() => saveBytes(fetched.bytes, fetched.name, fetched.mime)}>
                 Speichern
@@ -1298,7 +1298,7 @@ export function AdvancedDownloader() {
                                 setServiceInfo(null)
                               }}
                               title={entry}
-                              className="max-w-[200px] truncate rounded-pill bg-panel-soft px-[12px] py-[4px] text-small text-ink hover:bg-panel-mid"
+                              className="max-w-[200px] truncate bg-panel-soft px-[12px] py-[4px] text-small text-ink hover:bg-panel-mid"
                             >
                               {entry.replace(/^https?:\/\//, '').replace(/\/$/, '')}
                             </button>
@@ -1340,7 +1340,7 @@ export function AdvancedDownloader() {
                           <div
                             role="radiogroup"
                             aria-label="Art der Installation"
-                            className="flex flex-wrap gap-[2px] rounded-pill bg-panel-soft p-[4px]"
+                            className="flex flex-wrap gap-[2px] bg-panel-soft p-[4px]"
                           >
                             {(
                               [
@@ -1355,7 +1355,7 @@ export function AdvancedDownloader() {
                                 role="radio"
                                 aria-checked={localWay === choice.id}
                                 onClick={() => setLocalWay(choice.id)}
-                                className={`rounded-pill px-[16px] py-[8px] text-small transition-colors ${
+                                className={`px-[16px] py-[8px] text-small transition-colors ${
                                   localWay === choice.id ? 'bg-ink text-on-ink' : 'text-ink hover:bg-panel-mid'
                                 }`}
                               >
@@ -1840,7 +1840,7 @@ export function AdvancedDownloader() {
                       ? LOCAL_SERVICE_DISCLAIMER
                       : SERVICE_DISCLAIMER
                   return (
-                    <div className="rounded-card bg-raised p-[20px] text-small leading-[1.5] ring-1 ring-inset ring-ink/30">
+                    <div className="rounded-card bg-raised p-[20px] text-small leading-[1.5] ring-1 ring-inset ring-rule">
                       <p className="mb-[8px] font-semibold text-ink">{terms.title}</p>
                       {terms.paragraphs.map((paragraph) => (
                         <p key={paragraph.slice(0, 24)} className="mb-[8px] text-prose/85">

@@ -187,7 +187,7 @@ export function AudioPreview({ sources, waveHeight = 56, className = '' }: Audio
           type="button"
           onClick={() => (playing ? pause() : play())}
           aria-label={playing ? 'Pause' : 'Abspielen'}
-          className="flex h-[32px] w-[32px] shrink-0 items-center justify-center rounded-pill bg-ink text-on-ink transition-colors hover:bg-ink-hover"
+          className="flex h-[32px] w-[32px] shrink-0 items-center justify-center bg-ink text-on-ink transition-colors hover:bg-ink-hover"
         >
           {playing ? (
             <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" aria-hidden>
@@ -201,12 +201,12 @@ export function AudioPreview({ sources, waveHeight = 56, className = '' }: Audio
           )}
         </button>
 
-        <span className="numeric shrink-0 text-small text-muted">
+        <span className="value shrink-0 text-small text-muted">
           {formatTimecode(position)} / {formatTimecode(duration)}
         </span>
 
         {sources.length > 1 ? (
-          <div role="radiogroup" aria-label="Vergleich" className="ml-auto flex gap-[4px] rounded-pill bg-raised p-[4px]">
+          <div role="radiogroup" aria-label="Vergleich" className="ml-auto flex gap-[4px] bg-raised p-[4px]">
             {sources.map((entry) => {
               const isActive = entry.id === active.id
               return (
@@ -216,7 +216,7 @@ export function AudioPreview({ sources, waveHeight = 56, className = '' }: Audio
                   role="radio"
                   aria-checked={isActive}
                   onClick={() => switchTo(entry.id)}
-                  className={`rounded-pill px-[12px] py-[4px] text-small transition-colors ${
+                  className={`px-[12px] py-[4px] text-small transition-colors ${
                     isActive ? 'bg-ink text-on-ink' : 'text-ink hover:bg-panel-mid'
                   }`}
                 >

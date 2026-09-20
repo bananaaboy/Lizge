@@ -170,7 +170,7 @@ export function CommandPalette() {
                     key={example}
                     type="button"
                     onClick={() => setQuery(example)}
-                    className="press rounded-pill bg-panel-soft px-[8px] py-[4px] text-small text-ink hover:bg-panel-mid"
+                    className="press bg-panel-soft px-[8px] py-[4px] text-small text-ink hover:bg-panel-mid"
                   >
                     {example}
                   </button>
@@ -184,7 +184,7 @@ export function CommandPalette() {
             const heading = row.heading ? (
               <p
                 key={`h-${row.heading}`}
-                className="px-[12px] pt-[12px] pb-[4px] text-micro font-semibold uppercase tracking-[0.08em] text-muted"
+                className="px-[12px] pt-[12px] pb-[4px] text-small font-semibold text-muted"
               >
                 {row.heading}
               </p>
@@ -207,7 +207,7 @@ export function CommandPalette() {
                     {KIND_LABEL[row.file.kind]}
                   </span>
                   <span className="min-w-0 flex-1 truncate text-small">{row.file.name}</span>
-                  <span className={`numeric shrink-0 text-micro ${selected ? 'opacity-70' : 'text-muted'}`}>
+                  <span className={`value shrink-0 text-micro ${selected ? 'opacity-70' : 'text-muted'}`}>
                     {formatBytes(row.file.sizeBytes)}
                   </span>
                   </button>
@@ -267,7 +267,7 @@ export function PaletteHint() {
       type="button"
       onClick={open}
       title="Werkzeug suchen"
-      className="press hidden items-center gap-[8px] rounded-pill bg-panel-soft px-[12px] py-[8px] text-small text-muted hover:bg-panel-mid hover:text-ink sm:flex"
+      className="press hidden items-center gap-[8px] bg-panel-soft px-[12px] py-[8px] text-small text-muted hover:bg-panel-mid hover:text-ink sm:flex"
     >
       <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" aria-hidden>
         <circle cx="7" cy="7" r="4.4" stroke="currentColor" strokeWidth="1.4" />

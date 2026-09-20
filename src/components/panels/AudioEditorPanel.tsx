@@ -41,7 +41,7 @@ import {
   ArrowRight,
   Button,
   Card,
-  Eyebrow,
+  ClauseHead,
   Field,
   Notice,
   Reveal,
@@ -263,7 +263,7 @@ export function AudioEditorPanel() {
       <div className="flex flex-col gap-[16px]">
         <Card tone="keylime">
           <div className="flex flex-wrap items-baseline justify-between gap-[12px]">
-            <span className="numeric text-small text-muted">
+            <span className="value text-small text-muted">
               {formatTimecode(duration)} · {current.channels.length === 1 ? 'Mono' : 'Stereo'} ·{' '}
               {(current.sampleRate / 1000).toFixed(1)} kHz · Spitze {peakDb(current).toFixed(1)} dBFS
             </span>
@@ -303,7 +303,7 @@ export function AudioEditorPanel() {
             <Button size="sm" variant="quiet" onClick={stop}>
               Stopp
             </Button>
-            <span className="numeric text-small text-muted">
+            <span className="value text-small text-muted">
               {hasSelection
                 ? `${formatTimecode(span.start)} – ${formatTimecode(span.end)} · ${(span.end - span.start).toFixed(2)} s`
                 : 'Über die Wellenform ziehen wählt einen Ausschnitt'}
@@ -493,7 +493,7 @@ export function AudioEditorPanel() {
               <option value={24}>24 bit</option>
               <option value={32}>32 bit Float</option>
             </Select>
-            {bytes ? <span className="numeric text-small text-muted">{formatBytes(bytes.byteLength)}</span> : null}
+            {bytes ? <span className="value text-small text-muted">{formatBytes(bytes.byteLength)}</span> : null}
             {busy ? <span className="text-small text-muted">{busy}…</span> : null}
           </div>
         </Card>
@@ -501,7 +501,7 @@ export function AudioEditorPanel() {
 
       <aside className="flex flex-col gap-[16px]">
         <Card tone="mint" size="compact">
-          <Eyebrow>Verlauf</Eyebrow>
+          <ClauseHead>Verlauf</ClauseHead>
           {history.length === 0 ? (
             <p className="mt-[8px] text-small leading-[1.5] text-prose/85">
               Noch unverändert. Jeder Schritt landet hier, und Strg/Cmd + Z nimmt ihn zurück — die
@@ -511,7 +511,7 @@ export function AudioEditorPanel() {
             <ol className="mt-[8px] flex flex-col gap-[4px] text-small">
               {history.map((step, index) => (
                 <li key={`${step.label}-${index}`} className="flex gap-[8px] text-muted">
-                  <span className="numeric shrink-0">{index + 1}.</span>
+                  <span className="value shrink-0">{index + 1}.</span>
                   <span className="text-prose/85">{step.label}</span>
                 </li>
               ))}
@@ -521,7 +521,7 @@ export function AudioEditorPanel() {
 
         {others.length > 1 ? (
           <Card tone="cream" size="compact">
-            <Eyebrow>Anhängen</Eyebrow>
+            <ClauseHead>Anhängen</ClauseHead>
             <p className="mt-[8px] text-small leading-[1.5] text-prose/85">
               Eine zweite Aufnahme hinten anfügen, mit kurzer Überblendung.
             </p>
@@ -548,7 +548,7 @@ export function AudioEditorPanel() {
         ) : null}
 
         <Card tone="slate" size="compact">
-          <Eyebrow>Jetzt</Eyebrow>
+          <ClauseHead>Jetzt</ClauseHead>
           <div className="mt-[12px] grid grid-cols-2 gap-[12px]">
             <Stat label="Länge" value={formatTimecode(duration)} emphasis />
             <Stat label="Spitze" value={`${peakDb(current).toFixed(1)} dB`} emphasis />

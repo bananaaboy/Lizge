@@ -1,25 +1,35 @@
 @import 'tailwindcss';
 
 /* ---------------------------------------------------------------------------
-   Sondra — a studio on warm paper, and the same studio after dark.
+   Sondra — a calibration certificate you can operate.
 
-   Colours are named for their role rather than their hue, because the hue is
-   exactly what changes between themes: "cream paper" would be a lie in dark
-   mode, "canvas" stays true. Tailwind emits every colour utility as
-   `var(--color-…)`, so redefining those variables under a theme selector
-   re-skins the whole app without touching a single component.
+   The world is a Swiss Prüfprotokoll: the document form whose only job is to
+   state measured values together with the instrument that measured them and
+   the method it used. That is not decoration here, it is the product's one
+   claim — every number in this app is measured rather than estimated, and it
+   was measured on the visitor's own machine.
 
-   The one relationship that carries the whole layout: `canvas` is the page and
-   `raised` is a card, and the two are never the same value. Cards then read as
-   objects lying on a surface without needing a border to say so. Green is the
-   accent — active tab, filled button, heading, focus ring — and never the
-   ground under a whole screen, so the eye lands on what can be clicked.
+   What follows from the form, and what every rule below exists to hold:
 
-   Faire Octave is a licensed face; Cormorant Garamond stands in for it. The
-   body face is Archivo — a grotesque in the same Swiss lineage the licensed
-   Suisse Int'l came from, with the square terminals and real tabular figures
-   a tool full of dB, LUFS, BPM and timecodes needs. Both are self-hosted
-   under /public/fonts.
+   · The ground is paper. Cards do not exist. Nothing lies *on* the sheet, so
+     nothing casts a shadow onto it; the two shadow levels are reserved for
+     the editor stage, which is a plate mounted over the page, and for the
+     crop overlay floating on that plate.
+   · Corners are square. A ruled form has no rounded corners, and the one
+     exception is the switch knob, which is a physical object.
+   · Structure is drawn, not implied. The hairline is the ruled line of a
+     table and it does the work a border or a box used to do.
+   · Sections carry numbers because the number is an address — it is how you
+     refer to a clause, and every heading here can be linked and jumped to.
+     A number that only decorated would be banned; this one is load-bearing.
+   · Two faces, split by meaning. Public Sans is the printed form. Courier
+     Prime is what was entered afterwards: measured values, file names,
+     timecodes. Never mono as a costume for "technical".
+
+   Colours are pinned by the brief and unchanged from the previous world.
+   Ink is spent only on rules, section numbers and the one action per
+   section; when it covers more than about a tenth of a screen it has stopped
+   being ink and started being paint.
    --------------------------------------------------------------------------- */
 @theme {
   /* Light palette — the values below double as the defaults. */
@@ -37,6 +47,13 @@
   /* Measured against both the canvas and a white card: the old #e3e2dc sat at
      APCA Lc 7.5, half of the Lc 15 a non-text separator wants. */
   --color-line: #d5d4c9;
+  /* Two weights of rule. `line` is a table's own hairline; `rule` is the
+     heavier one that opens a clause. Both are tokens rather than an alpha on
+     ink, because an alpha over a dark ground loses its contrast: measured, the
+     same ink at 25 % sat at APCA Lc 25 on paper and Lc 7 in the dark theme. */
+  --color-rule: #bbc6ba;
+  /* Present, but not applicable to what is open. Still has to be legible. */
+  --color-faint: #b0b6af;
 
   /* The editor stage. Deliberately dark in both themes and deliberately
      neutral: a picture judged against cream reads warm, against green reads
@@ -54,15 +71,26 @@
 
   /* Motion. Every duration in the app comes from one of these three. */
   --ease-out: cubic-bezier(0.22, 0.72, 0.28, 1);
-  --ease-spring: cubic-bezier(0.34, 1.32, 0.5, 1);
+  /* Exponential ease-out, not a spring. The curve this replaced ended at
+     1.32 and overshot its target, which reads as bounce — real objects
+     decelerate, they do not wobble into place. */
+  --ease-settle: cubic-bezier(0.16, 1, 0.3, 1);
   --dur-fast: 130ms;
   --dur-base: 240ms;
   --dur-slow: 420ms;
 
-  --font-display: 'Faire Octave', 'Cormorant Garamond', ui-serif, Georgia, serif;
-  --font-sans: 'Suisse Intl', 'Archivo', ui-sans-serif, system-ui, -apple-system, 'Segoe UI',
-    sans-serif;
-  --font-mono: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, monospace;
+  /* The printed form. */
+  --font-sans: 'Public Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* What the machine entered onto it: values, names, timecodes. */
+  --font-value: 'Courier Prime', ui-monospace, 'SF Mono', Menlo, monospace;
+  /* Headings are the form's own face, set larger. A certificate has no
+     display face, and the serif this replaced is on every list of faces a
+     model reaches for without looking. */
+  --font-display: 'Public Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'Courier Prime', ui-monospace, 'SF Mono', Menlo, monospace;
+  /* One word, one face. The wordmark is a brand commitment and did not change
+     with the world around it. */
+  --font-wordmark: 'Sondra Wordmark', ui-serif, Georgia, serif;
 
   /* Type: a major third (×1.25) from a 16px body, and nothing between the
      steps. The previous set — 10, 14, 18, 23, 40 — had three different ratios
@@ -90,8 +118,10 @@
   --text-heading--line-height: 1.15;
   --text-heading--letter-spacing: -0.5px;
 
-  --radius-card: 14px;
-  --radius-nav: 7px;
+  /* Square. The pill survives for the switch knob and the progress bar,
+     which are objects rather than parts of the form. */
+  --radius-card: 0px;
+  --radius-nav: 0px;
   --radius-pill: 999px;
 }
 
@@ -126,6 +156,10 @@
        0.0 — not "subtle", invisible. Since a hairline ring is how every
        container in this app is separated, dark mode had no card edges at all. */
     --color-line: #525f55;
+  --color-rule: #6b7a6e;
+  --color-faint: #7d8d81;
+    --color-rule: #6b7a6e;
+    --color-faint: #7d8d81;
     --color-stage: #0d1011;
     --color-stage-soft: #161a1c;
     --color-stage-line: #515a5d;
@@ -152,6 +186,8 @@
   --color-prose: #e0e8e2;
   --color-muted: #a7bbab;
   --color-line: #525f55;
+  --color-rule: #6b7a6e;
+  --color-faint: #7d8d81;
   --color-stage: #0d1011;
   --color-stage-soft: #161a1c;
   --color-stage-line: #515a5d;
@@ -206,47 +242,54 @@ body {
   padding-inline: 21px;
 }
 
-/* Display serif is only ever weight 300, with tracking that tightens as it grows. */
+/* Headings are the form's own face. A certificate sets its section heads in
+   the same grotesque as everything else, a little larger and a little
+   heavier, and lets the rule above them do the separating. */
 @utility display-lg {
   font-family: var(--font-display);
-  font-weight: 300;
-  font-size: clamp(31px, 4vw, 39px);
-  line-height: 1.2;
-  letter-spacing: -0.03em;
+  font-weight: 700;
+  font-size: clamp(27px, 3.2vw, 33px);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
   color: var(--color-ink);
 }
 
 @utility display-md {
   font-family: var(--font-display);
-  font-weight: 300;
-  font-size: clamp(25px, 3.4vw, 31px);
-  line-height: 1.3;
-  letter-spacing: -0.01em;
+  font-weight: 700;
+  font-size: clamp(21px, 2.6vw, 25px);
+  line-height: 1.2;
+  letter-spacing: -0.015em;
   color: var(--color-ink);
 }
 
 @utility display-sm {
   font-family: var(--font-display);
-  font-weight: 300;
-  font-size: 25px;
-  line-height: 1.25;
-  color: var(--color-ink);
-}
-
-/* The only uppercase treatment in the system. */
-@utility eyebrow {
-  font-family: var(--font-sans);
-  font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-size: 17px;
+  line-height: 1.3;
+  letter-spacing: -0.005em;
   color: var(--color-ink);
 }
 
-@utility numeric {
+/* A value the machine found, rather than a word the form was printed with.
+   Measured figures, file names, timecodes — and nothing else, because mono
+   worn as a costume for "technical" is exactly the habit this world avoids. */
+@utility value {
+  font-family: var(--font-value);
   font-variant-numeric: tabular-nums;
-  font-feature-settings: 'tnum' 1;
+  letter-spacing: -0.02em;
 }
+
+/* The address of a clause, set in the left margin outside the text column,
+   where the eye can run down it. */
+@utility clause {
+  font-family: var(--font-value);
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+  color: var(--color-ink);
+}
+
 
 /* Focus ring — ink, never a browser default blue. */
 :where(a, button, input, select, textarea, [tabindex]):focus-visible {
@@ -260,44 +303,43 @@ body {
   color: var(--color-ink);
 }
 
-/* Range inputs styled as thin rails rather than OS chrome. */
+/* Range inputs as a ruled scale with a square slug, not OS chrome. The track
+   is a printed line; the thing you drag is a tab on it. */
 input[type='range'] {
   -webkit-appearance: none;
   appearance: none;
   width: 100%;
   height: 18px;
   background: transparent;
-  cursor: pointer;
+  cursor: ew-resize;
 }
 
 input[type='range']::-webkit-slider-runnable-track {
-  height: 3px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--color-ink) 25%, transparent);
+  height: 1px;
+  background: color-mix(in srgb, var(--color-ink) 35%, transparent);
 }
 
 input[type='range']::-moz-range-track {
-  height: 3px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--color-ink) 25%, transparent);
+  height: 1px;
+  background: color-mix(in srgb, var(--color-ink) 35%, transparent);
 }
 
 input[type='range']::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 14px;
+  width: 3px;
   height: 14px;
-  margin-top: -5.5px;
-  border-radius: 999px;
+  margin-top: -6.5px;
   background: var(--color-ink);
   border: none;
+  border-radius: 0;
 }
 
 input[type='range']::-moz-range-thumb {
-  width: 14px;
+  width: 3px;
   height: 14px;
   border: none;
-  border-radius: 999px;
+  border-radius: 0;
   background: var(--color-ink);
 }
 
@@ -402,7 +444,7 @@ select option {
 }
 
 @utility pop {
-  animation: sondra-pop var(--dur-base) var(--ease-spring) both;
+  animation: sondra-pop var(--dur-base) var(--ease-settle) both;
   animation-delay: var(--delay, 0ms);
 }
 
@@ -455,45 +497,83 @@ select option {
   background-position: 0 0, 0 9px, 9px -9px, -9px 0;
 }
 
-/* A tile answers the pointer before it is clicked: it lifts, and a thin band
-   of ink wipes in along the bottom edge. Transform and opacity only. */
-@utility tile {
-  position: relative;
-  overflow: hidden;
-  transition:
-    transform var(--dur-base) var(--ease-spring),
-    box-shadow var(--dur-base) var(--ease-out),
-    background-color var(--dur-fast) var(--ease-out);
+
+/* --- browser surfaces ------------------------------------------------------
+   The parts nobody draws still belong to the design. A caret, a scrollbar and
+   a text selection all ship with a default that came from the operating
+   system, and leaving them is the clearest tell that a page was assembled
+   rather than built.
+   --------------------------------------------------------------------------- */
+:root {
+  accent-color: var(--color-ink);
+  caret-color: var(--color-ink);
+  scrollbar-color: color-mix(in srgb, var(--color-ink) 35%, transparent) transparent;
+  scrollbar-width: thin;
 }
 
-.tile::after {
-  content: '';
-  position: absolute;
-  inset-inline: 0;
-  bottom: 0;
-  height: 3px;
-  background: var(--color-ink);
-  transform: scaleX(0);
-  transform-origin: left;
-  transition: transform var(--dur-base) var(--ease-out);
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
 }
 
-@media (hover: hover) and (pointer: fine) {
-  .tile:hover {
-    transform: translateY(-3px);
-    box-shadow: var(--shadow-lift);
-  }
-  .tile:hover::after {
-    transform: scaleX(1);
-  }
+::-webkit-scrollbar-track {
+  background: transparent;
 }
 
-.tile:focus-visible::after {
-  transform: scaleX(1);
+::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--color-ink) 28%, transparent);
+  border: 3px solid transparent;
+  background-clip: content-box;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .tile:hover {
-    transform: none;
-  }
+::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--color-ink) 48%, transparent);
+  background-clip: content-box;
+}
+
+/* Underlines sit clear of the descenders rather than through them. */
+a,
+.underline {
+  text-underline-offset: 0.18em;
+  text-decoration-thickness: from-font;
+}
+
+/* Every figure in this app is a measurement, so figures line up by default
+   and a column of them can be read down. */
+table,
+[data-values] {
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- the sheet -------------------------------------------------------------
+   The document's own furniture: a ruled line, and the margin mark that says
+   whether a value has been found yet. The mark is a colour law rather than a
+   sentence — it is legible before anything is read.
+   --------------------------------------------------------------------------- */
+/* A sheet has a text column, and it does not get wider because the window
+   did. Measured after the redesign removed the cards that used to constrain
+   it: nine paragraphs ran past 90 characters, the worst at 190 — a line
+   nobody can track back to the start of.
+
+   The unit is `em`, not `ch`. A `ch` is the width of the digit zero, which is
+   wider than the average letter, so a 68ch cap measured out at 90 real
+   characters; 34em lands at about 72 whatever the size. Values, labels and
+   table cells are short enough that the cap never reaches them. */
+.shell p,
+.shell li,
+.shell dd {
+  max-width: 34em;
+}
+
+@utility rule {
+  border-top: 1px solid var(--color-line);
+}
+
+@utility mark {
+  display: inline-block;
+  width: 1ch;
+  font-family: var(--font-value);
+  font-size: 13px;
+  line-height: 1;
+  text-align: center;
 }

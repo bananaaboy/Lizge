@@ -482,7 +482,7 @@ export function ImagePanel() {
             <button
               type="button"
               onClick={() => setZoom('fit')}
-              className="numeric press rounded-pill px-[8px] py-[4px] text-small text-stage-ink hover:bg-stage-line"
+              className="value press px-[8px] py-[4px] text-small text-stage-ink hover:bg-stage-line"
               title="Einpassen"
             >
               {zoom === 'fit' ? 'Passend' : `${Math.round(display.factor * 100)} %`}
@@ -512,7 +512,7 @@ export function ImagePanel() {
               onKeyDown={(event) => event.key === ' ' && setCompare(true)}
               onKeyUp={() => setCompare(false)}
               disabled={cropping}
-              className="press rounded-pill px-[8px] py-[4px] text-small text-stage-ink hover:bg-stage-line disabled:opacity-35"
+              className="press px-[8px] py-[4px] text-small text-stage-ink hover:bg-stage-line disabled:opacity-35"
               title="Gedrückt halten für das Original"
             >
               {compare ? 'Original' : 'Vergleichen'}
@@ -547,7 +547,7 @@ export function ImagePanel() {
               {encoding ? 'wird gerechnet …' : result ? `${formatBytes(result.bytes.byteLength)} fertig` : '—'}
             </span>
             {result && asset.sizeBytes > 0 ? (
-              <span className="numeric">
+              <span className="value">
                 {Math.round((result.bytes.byteLength / asset.sizeBytes) * 100)} % der Quelle
               </span>
             ) : null}
@@ -618,7 +618,7 @@ function Inspector({
           onChange={chooseAspect}
           options={ASPECTS.map((entry) => ({ value: entry.id, label: entry.label }))}
         />
-        <div className="numeric rounded-nav bg-panel-soft px-[12px] py-[8px] text-small text-prose">
+        <div className="value rounded-nav bg-panel-soft px-[12px] py-[8px] text-small text-prose">
           {ops.crop
             ? `${Math.round(ops.crop.width * frame.width)} × ${Math.round(ops.crop.height * frame.height)} px`
             : `Ganzes Bild — ${frame.width} × ${frame.height} px`}
@@ -679,7 +679,7 @@ function Inspector({
           />
           <span className="text-small text-muted">px breit</span>
         </label>
-        <div className="numeric rounded-nav bg-panel-soft px-[12px] py-[8px] text-small text-prose">
+        <div className="value rounded-nav bg-panel-soft px-[12px] py-[8px] text-small text-prose">
           {target.width} × {target.height} px
           {source && target.width > frame.width ? (
             <span className="mt-[4px] block text-muted">
@@ -812,7 +812,7 @@ function Inspector({
       ) : (
         <p className="text-small text-muted">PNG ist verlustfrei — es gibt nichts einzustellen.</p>
       )}
-      <div className="numeric rounded-nav bg-panel-soft px-[12px] py-[8px] text-small text-prose">
+      <div className="value rounded-nav bg-panel-soft px-[12px] py-[8px] text-small text-prose">
         {encoding ? 'wird gerechnet …' : result ? formatBytes(result.bytes.byteLength) : '—'}
         <span className="mt-[4px] block text-muted">
           {result ? `${result.width} × ${result.height} px` : 'gemessen, nicht geschätzt'}

@@ -25,7 +25,7 @@ import {
   Badge,
   Button,
   Card,
-  Eyebrow,
+  ClauseHead,
   Field,
   Notice,
   Progress,
@@ -43,21 +43,21 @@ function LoudnessGauge({ report, target }: { report: LoudnessReport; target: num
 
   return (
     <div className="flex flex-col gap-[12px]">
-      <div className="relative h-[28px] rounded-pill bg-ink/10">
+      <div className="relative h-[28px] bg-ink/10">
         <div
-          className="absolute inset-y-0 left-0 rounded-pill bg-ink/70"
+          className="absolute inset-y-0 left-0 bg-ink/70"
           style={{ width: position(report.integratedLufs) }}
         />
         <div
-          className="absolute inset-y-[-6px] w-[2px] rounded-pill bg-ink"
+          className="absolute inset-y-[-6px] w-[2px] bg-ink"
           style={{ left: position(target) }}
           aria-hidden
         />
       </div>
       <div className="flex justify-between text-micro text-muted">
-        <span className="numeric">−40</span>
-        <span className="numeric">Ziel {target} LUFS</span>
-        <span className="numeric">0</span>
+        <span className="value">−40</span>
+        <span className="value">Ziel {target} LUFS</span>
+        <span className="value">0</span>
       </div>
     </div>
   )
@@ -346,7 +346,7 @@ export function NormalizePanel() {
         {before ? (
           <Card tone="slate">
             <div className="flex flex-wrap items-baseline justify-between gap-3">
-              <Eyebrow>{after ? 'Vorher' : 'Messung'}</Eyebrow>
+              <ClauseHead>{after ? 'Vorher' : 'Messung'}</ClauseHead>
               {after ? null : <Badge>{settings.targetLufs} LUFS angestrebt</Badge>}
             </div>
             <div className="mt-[16px]">
@@ -360,7 +360,7 @@ export function NormalizePanel() {
 
         {after && plan ? (
           <Card tone="sage">
-            <Eyebrow>Nachher</Eyebrow>
+            <ClauseHead>Nachher</ClauseHead>
             <div className="mt-[16px]">
               <ReportGrid report={after} />
             </div>
@@ -377,7 +377,7 @@ export function NormalizePanel() {
 
             {processed && audio ? (
               <div className="mt-[20px] rounded-card bg-raised p-[16px]">
-                <p className="mb-[12px] text-micro font-semibold uppercase tracking-[0.08em] text-ink">
+                <p className="mb-[12px] text-small font-semibold text-ink">
                   Anhören
                 </p>
                 {/* Umschalten hält die Abspielposition — anders lässt sich ein
@@ -427,12 +427,12 @@ export function NormalizePanel() {
       <aside className="flex flex-col gap-[20px]">
         <SessionCard />
         <Card tone="cream">
-          <Eyebrow>Zielwerte</Eyebrow>
+          <ClauseHead>Zielwerte</ClauseHead>
           <dl className="mt-[16px] flex flex-col gap-[12px] text-small">
             {LOUDNESS_PRESETS.map((preset) => (
               <div key={preset.id} className="flex items-baseline justify-between gap-3">
                 <dt className="text-prose/85">{preset.label}</dt>
-                <dd className="numeric shrink-0 text-ink">{preset.lufs} LUFS</dd>
+                <dd className="value shrink-0 text-ink">{preset.lufs} LUFS</dd>
               </div>
             ))}
           </dl>

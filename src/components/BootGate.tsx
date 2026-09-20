@@ -103,7 +103,7 @@ export function BootGate({ children }: { children: ReactNode }) {
 
             <div className="w-full">
               <p className="text-body text-ink">{boot.message}</p>
-              <p className="numeric mt-[4px] text-small text-muted">
+              <p className="value mt-[4px] text-small text-muted">
                 {boot.totalBytes
                   ? `${formatBytes(boot.receivedBytes)} von ${formatBytes(boot.totalBytes)}`
                   : formatBytes(boot.receivedBytes)}
@@ -116,10 +116,10 @@ export function BootGate({ children }: { children: ReactNode }) {
               aria-valuemin={0}
               aria-valuemax={100}
               {...(fraction !== null ? { 'aria-valuenow': Math.round(fraction * 100) } : {})}
-              className="h-[6px] w-full overflow-hidden rounded-pill bg-panel-mid"
+              className="h-[6px] w-full overflow-hidden bg-panel-mid"
             >
               <div
-                className={`h-full rounded-pill bg-ink ${fraction === null ? 'sondra-drift w-1/3' : 'transition-[width] duration-200'}`}
+                className={`h-full bg-ink ${fraction === null ? 'sondra-drift w-1/3' : 'transition-[width] duration-200'}`}
                 style={fraction === null ? undefined : { width: `${fraction * 100}%` }}
               />
             </div>
