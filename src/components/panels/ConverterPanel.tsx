@@ -64,6 +64,8 @@ function FormatBlock({
   meta,
   measured = false,
   strong = false,
+  selectable = false,
+  className = '',
 }: {
   badge: string
   name: string
@@ -71,15 +73,36 @@ function FormatBlock({
   /** The meta line holds figures the machine found, so it is set in Courier. */
   measured?: boolean
   strong?: boolean
+  /** Draws the chevron that says this block is the thing you change. */
+  selectable?: boolean
+  className?: string
 }) {
   return (
     <div
       className={`flex min-w-0 flex-col gap-[4px] p-[16px] ${
         strong ? 'bg-ink text-on-ink' : 'bg-panel-mid'
-      }`}
+      } ${className}`}
     >
-      <span className={`value text-subheading leading-[1.1] ${strong ? 'text-on-ink' : 'text-ink'}`}>
-        {badge}
+      <span
+        className={`flex items-center justify-between gap-[8px] value text-subheading leading-[1.1] ${
+          strong ? 'text-on-ink' : 'text-ink'
+        }`}
+      >
+        <span className="truncate">{badge}</span>
+        {selectable ? (
+          <svg
+            viewBox="0 0 16 16"
+            aria-hidden
+            className="h-4 w-4 shrink-0"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M4 6.5l4 4 4-4" />
+          </svg>
+        ) : null}
       </span>
       <span
         title={name}
@@ -123,6 +146,9 @@ function Conversion({
   toBadge,
   toMeta,
   toMeasured = false,
+  value,
+  groups,
+  onChange,
 }: {
   fromName: string
   fromMeta: string
@@ -130,6 +156,9 @@ function Conversion({
   toBadge: string
   toMeta: string
   toMeasured?: boolean
+  value: string
+  groups: { label: string; formats: { id: string; label: string; hint: string }[] }[]
+  onChange: (id: string) => void
 }) {
   return (
     <div className="grid items-stretch gap-[8px] sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
@@ -141,7 +170,44 @@ function Conversion({
         </svg>
         <span className="sr-only">wird zu</span>
       </div>
-      <FormatBlock badge={toBadge} name={toName} meta={toMeta} measured={toMeasured} strong />
+      {/* The target block *is* the picker.
+          A real `<select>` lies over it at zero opacity rather than a custom
+          popover: that keeps the native wheel on a phone, the keyboard, the
+          type-ahead and the screen reader announcement, none of which a hand
+          built listbox gets for free. The block underneath only draws. It has
+          to come after the select in the DOM for `peer-*` to reach it, since
+          that compiles to a sibling combinator.
+
+          The focus ring is `currentColor`, which on this block is `on-ink` —
+          the one colour guaranteed to carry against the fill in both themes
+          (Lc 101 light, 78.6 dark). `outline-ink` would be ink on ink. */}
+      <div className="relative min-w-0">
+        <select
+          aria-label="Zielformat"
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          className="peer absolute inset-0 z-10 h-full w-full cursor-pointer appearance-none opacity-0"
+        >
+          {groups.map((group) => (
+            <optgroup key={group.label} label={group.label}>
+              {group.formats.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.label} — {f.hint}
+                </option>
+              ))}
+            </optgroup>
+          ))}
+        </select>
+        <FormatBlock
+          badge={toBadge}
+          name={toName}
+          meta={toMeta}
+          measured={toMeasured}
+          strong
+          selectable
+          className="h-full transition-colors duration-[var(--dur-fast)] peer-hover:bg-ink-hover peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-current"
+        />
+      </div>
     </div>
   )
 }
@@ -442,27 +508,13 @@ export function ConverterPanel() {
                       : format.hint
                   }
                   toMeasured={outcome !== null}
+                  value={settings.formatId}
+                  groups={targetGroups}
+                  onChange={(id) => setConvert({ formatId: id })}
                 />
               </div>
 
               <div className="mt-[20px] grid gap-[16px] sm:grid-cols-2">
-                <Field label="Zielformat">
-                  <Select
-                    value={settings.formatId}
-                    onChange={(event) => setConvert({ formatId: event.target.value })}
-                  >
-                    {targetGroups.map((group) => (
-                      <optgroup key={group.label} label={group.label}>
-                        {group.formats.map((f) => (
-                          <option key={f.id} value={f.id}>
-                            {f.label} — {f.hint}
-                          </option>
-                        ))}
-                      </optgroup>
-                    ))}
-                  </Select>
-                </Field>
-
                 {targetHasAudio && isLossy && !showVbr ? (
                   <Field label="Audio-Bitrate">
                     <Select

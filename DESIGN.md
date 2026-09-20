@@ -583,7 +583,15 @@ nicht benennen könnte — „Zielwerte", „Ergebnis", „Nächstbeste". Er *is
 darüber trennt.
 
 **Die Umwandlungszeile (`Conversion`).** Zwei getönte Blöcke mit einem Pfeil
-dazwischen — links, was hereinkommt, rechts in Tinte, was herauskommt. Oben je
+dazwischen — links, was hereinkommt, rechts in Tinte, was herauskommt. **Der
+rechte Block ist das Bedienelement:** ein echtes `<select>` liegt mit
+Deckkraft 0 darüber, der Block darunter zeichnet nur. Das erhält den nativen
+Formatwähler des Handys, die Tastatur, die Tippsuche und die Ansage im
+Screenreader, die eine nachgebaute Liste alle einzeln braucht. Das `<select>`
+steht im Markup **vor** dem Block, weil `peer-*` zu einem
+Geschwister-Selektor kompiliert. Der Fokusring ist `currentColor` — auf dieser
+Fläche `on-ink`, die einzige Farbe, die sich in beiden Themen garantiert
+abhebt (Lc 101 hell, 78.6 dunkel); `outline-ink` wäre Tinte auf Tinte. Oben je
 das Format als grosses Wort in der Wertschrift, darunter der Dateiname, darunter
 die Messwerte. Der Pfeil dreht sich auf dem Handy um 90°, wo die Blöcke stapeln.
 Rechts steht erst eine Grösse, wenn wirklich eine Datei entstanden ist: eine
