@@ -530,11 +530,14 @@ select option {
   background-clip: content-box;
 }
 
-/* Underlines sit clear of the descenders rather than through them. */
-a,
-.underline {
-  text-underline-offset: 0.18em;
-  text-decoration-thickness: from-font;
+/* Underlines sit clear of the descenders rather than through them. Layered
+   for the same reason as the measure above: a default, not a law. */
+@layer base {
+  a,
+  .underline {
+    text-underline-offset: 0.18em;
+    text-decoration-thickness: from-font;
+  }
 }
 
 /* Every figure in this app is a measurement, so figures line up by default
@@ -556,12 +559,24 @@ table,
 
    The unit is `em`, not `ch`. A `ch` is the width of the digit zero, which is
    wider than the average letter, so a 68ch cap measured out at 90 real
-   characters; 34em lands at about 72 whatever the size. Values, labels and
-   table cells are short enough that the cap never reaches them. */
-.shell p,
-.shell li,
-.shell dd {
-  max-width: 34em;
+   characters; 34em lands at about 72 whatever the size.
+
+   Wrapped in `:where()`, which is the whole difference between a default and
+   a law. Written plainly the selector sits at specificity (0,1,1) and beats
+   every `max-w-*` utility inside the shell, because utilities live in a
+   layer — the footer's own `max-w-[60ch]` was dead the moment this rule
+   landed, silently, with nothing in the markup to explain it. At zero
+   specificity any element that states its own measure still wins, and
+   `max-w-none` opts a status line out of prose treatment entirely.
+
+   And it sits in `@layer base`, which is the part that actually matters: an
+   *unlayered* rule beats every layered one whatever its specificity, so
+   `:where()` alone changed nothing and the footer's `max-w-[60ch]` stayed
+   dead. Tailwind's utilities live in a later layer; from `base` they win. */
+@layer base {
+  :where(.shell) :where(p, li, dd) {
+    max-width: 34em;
+  }
 }
 
 @utility rule {

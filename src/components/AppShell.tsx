@@ -225,7 +225,7 @@ export function SessionBar() {
   return (
     <div className="shell pt-[16px]">
       <div className="rise flex flex-wrap items-center justify-between gap-[12px] rounded-card bg-panel-soft px-[16px] py-[8px] text-small">
-        <p className="text-muted">
+        <p className="max-w-none text-muted">
           <span className="value text-ink">{assets.length}</span>{' '}
           {assets.length === 1 ? 'Datei' : 'Dateien'} im Arbeitsspeicher dieses Tabs ·{' '}
           <span className="value">{(totalBytes / 1024 / 1024).toFixed(1)} MB</span> · nichts davon
