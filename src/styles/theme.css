@@ -232,11 +232,32 @@ body {
 }
 
 /* --- shared primitives ---------------------------------------------------- */
+/* The sheet grows with the desk, but only so far.
+
+   At 1280px flat, a 2560px monitor showed half its width as empty paper and a
+   3440px one showed 63 % — measured, not guessed. The column therefore widens
+   in steps, and stops: past about 1840px a tool stops being easier to use and
+   starts being a head-turn, and the eye loses the left edge on the way back.
+
+   Everything the app draws hangs off this one utility — header, session bar,
+   content, footer — so the whole page stays in one flush column at every
+   width. Running text is unaffected: the 34em rule below caps a paragraph
+   wherever it sits. */
 @utility shell {
   margin-inline: auto;
   width: 100%;
   max-width: 1280px;
   padding-inline: 21px;
+
+  @media (min-width: 1600px) {
+    max-width: 1440px;
+  }
+  @media (min-width: 1920px) {
+    max-width: 1680px;
+  }
+  @media (min-width: 2400px) {
+    max-width: 1840px;
+  }
 }
 
 /* Headings are the form's own face. A certificate sets its section heads in

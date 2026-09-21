@@ -43,6 +43,12 @@ Das Wenige, was hier stehen muss, weil es jeden Edit betrifft:
   kein Schatten. Zweispaltig ab der kleinsten Breite; die Reiterleiste ist auf
   der Startseite unterhalb `sm` ausgeblendet, weil sie dort dasselbe doppelt
   sagt und dabei abgeschnitten wird.
+- **Die Spalte wächst mit dem Schreibtisch, aber nicht endlos.** `shell` geht
+  in Stufen von 1280 auf 1840 px; das Kachelraster von 2 über 3 und 4 auf 5
+  Spalten. Mehr Fläche heisst mehr sichtbare Kacheln, nicht breitere — und ein
+  Formularfeld oder ein Suchfeld wächst gar nicht mit. Die Editorbühne wächst
+  stattdessen in die **Höhe** (`clamp(460px, 58vh, 760px)`), weil auf einem
+  hohen Monitor die Leere unter ihr das eigentliche Problem war.
 - **Nichts steht vor der Seite.** FFmpeg lädt im Hintergrund, nie hinter einem
   Ladebildschirm. Ein Werkzeug, das wartet, zeigt das Warten bei sich.
 - **Der Einstieg zeigt die nächste Handlung,** nicht den Zustand der leeren
