@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-21T08:32:31.711Z",
+  "generatedAt": "2026-09-21T08:33:08.595Z",
   "title": "Design System: Sondra",
   "extensions": {
     "colorMeta": {
@@ -413,6 +413,18 @@
       {
         "name": "shell-max",
         "value": "1280px"
+      },
+      {
+        "name": "shell-max-from-1600px",
+        "value": "1440px"
+      },
+      {
+        "name": "shell-max-from-1920px",
+        "value": "1680px"
+      },
+      {
+        "name": "shell-max-from-2400px",
+        "value": "1840px"
       }
     ]
   },
