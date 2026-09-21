@@ -101,7 +101,12 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
       <h3 className="border-t border-line pt-[12px] text-body font-semibold tracking-[-0.01em] text-ink">
         {title}
       </h3>
-      <div className="grid grid-cols-2 gap-[8px] lg:grid-cols-3">{children}</div>
+      {/* More desk means more doors visible at once, not wider doors: a tile
+          carries a label and a hint, and stretching it to 500px only adds
+          empty tile. */}
+      <div className="grid grid-cols-2 gap-[8px] lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+        {children}
+      </div>
     </section>
   )
 }
@@ -185,7 +190,8 @@ export function Home() {
       {/* -- everything else, grouped --------------------------------------- */}
       <div className="flex flex-col gap-[16px]">
         {!searching ? <h2 className="display-md">Werkzeuge</h2> : null}
-        <div className="relative">
+        {/* A one-line field has no business being 1840px wide. */}
+        <div className="relative max-w-[720px]">
           <svg
             viewBox="0 0 16 16"
             aria-hidden

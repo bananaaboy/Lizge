@@ -260,8 +260,16 @@ export function EditorShell({
               height comes from `min-height` resolves to auto — so on a phone
               the measurement came back as the height of nothing and the photo
               was drawn forty pixels wide. Inset children have a height because
-              this box has one. */}
-          <div className="stage-checks relative min-h-[360px] flex-1 overflow-hidden sm:min-h-[460px]">
+              this box has one.
+
+              The height grows with the window instead of standing at 460px
+              forever: on a 1440px-tall monitor that left the editor as a
+              band across the middle with six hundred pixels of empty page
+              under it. `clamp` keeps the old 460px as the floor, so nothing
+              regresses on a laptop, and stops at 760px, past which a picture
+              is no easier to work on and the tool rail and the inspector
+              beside it just stretch. */}
+          <div className="stage-checks relative min-h-[360px] flex-1 overflow-hidden sm:min-h-[clamp(460px,58vh,760px)]">
             {stage}
             {stageOverlay ? (
               <div className="pointer-events-none absolute inset-x-0 bottom-[12px] flex justify-center">

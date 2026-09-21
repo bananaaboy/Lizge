@@ -717,7 +717,11 @@ export function ConverterPanel() {
                 />
               </div>
 
-              <div className="mt-[20px] grid gap-[16px] sm:grid-cols-2">
+              {/* Capped: on a wide monitor these stretched to 550px each, so a
+                  menu reading „Wie Quelle" was half a metre across. The
+                  conversion blocks above may use the full width — they are the
+                  thing being looked at — but a form field has a natural size. */}
+              <div className="mt-[20px] grid max-w-[860px] gap-[16px] sm:grid-cols-2">
                 {targetHasAudio && isLossy && !showVbr ? (
                   <Field label="Audio-Bitrate">
                     <Select

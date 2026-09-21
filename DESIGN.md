@@ -565,6 +565,31 @@ Es gibt **keine Karte**. `Card` ist der Name der Komponente, nicht ihrer Form:
   Gerät und Kerne stehen bereits unter „Dieses Gerät", das Datum sagte nichts,
   und der Lokal-Chip daneben sagte den Rest schon.
 
+### Grosse Bildschirme
+
+Gemessen statt geschätzt: bei festen 1280 px lagen auf einem 2560er Monitor
+50 % der Breite brach, auf einem 3440er 63 %. Die Spalte (`shell`) wächst
+deshalb in Stufen — 1280 → 1440 (ab 1600 px) → 1680 (ab 1920) → 1840 (ab
+2400) — und hört dann auf: darüber wird ein Werkzeug nicht leichter zu
+bedienen, sondern zur Kopfdrehung, und das Auge findet die linke Kante nicht
+mehr zurück. Jetzt sind es 13 % bei 1920 und 28 % bei 2560.
+
+Alles hängt an dieser einen Utility — Kopf, Sitzungsleiste, Inhalt, Fuss —,
+deshalb bleibt die Seite auf jeder Breite eine bündige Spalte. Fliesstext ist
+davon unberührt, den deckelt die 34em-Regel unabhängig.
+
+**Mehr Fläche heisst mehr Kacheln, nicht breitere.** Das Raster geht von 2
+über 3 und 4 auf 5 Spalten; eine Kachel trägt eine Beschriftung und einen
+Hinweis, und auf 500 px gezogen enthält sie vor allem Leere. Felder, die von
+Natur aus eine Grösse haben, wachsen gar nicht mit: das Suchfeld ist bei
+720 px gedeckelt, die Einstellungen des Konverters bei 860 px — sonst stand
+dort ein Auswahlfeld mit dem Inhalt „Wie Quelle" in 550 px Breite.
+
+**Die Editorbühne wächst in die Höhe, nicht in die Breite:**
+`clamp(460px, 58vh, 760px)`. Auf einem 1440 px hohen Monitor war sie ein Band
+in der Mitte mit 600 px leerer Seite darunter. Der Boden von 460 px hält den
+Stand auf einem Laptop unverändert.
+
 ### Signature Components
 
 **Das Randzeichen (`Mark`).** Der Zustand eines Wertes als ein Zeichen in der
