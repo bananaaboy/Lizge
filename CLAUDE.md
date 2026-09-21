@@ -49,6 +49,12 @@ Das Wenige, was hier stehen muss, weil es jeden Edit betrifft:
   Formularfeld oder ein Suchfeld wächst gar nicht mit. Die Editorbühne wächst
   stattdessen in die **Höhe** (`clamp(460px, 58vh, 760px)`), weil auf einem
   hohen Monitor die Leere unter ihr das eigentliche Problem war.
+- **Rahmenwerk kostet auf dem Handy am meisten.** Kopfzeile, Sitzungsleiste
+  und Reiter zusammen standen einmal bei 320 px von 844 px, also 38 % des
+  Schirms, bevor ein Werkzeug ein Wort gesagt hatte; jetzt 211 px. Auf kleinen
+  Breiten kürzt sich der Text, nicht die Zusage: der Chip sagt „Lokal" statt
+  „Lokal · 1 Ausnahme", die Sitzungsleiste „1 Datei · 0.0 MB" statt des ganzen
+  Satzes. Ab `sm` steht wieder alles da.
 - **Nichts steht vor der Seite.** FFmpeg lädt im Hintergrund, nie hinter einem
   Ladebildschirm. Ein Werkzeug, das wartet, zeigt das Warten bei sich.
 - **Der Einstieg zeigt die nächste Handlung,** nicht den Zustand der leeren

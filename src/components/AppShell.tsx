@@ -117,7 +117,7 @@ function PrivacyChip() {
             since there is now exactly one thing it does not cover, the badge
             counts it rather than letting the popover carry it alone. */}
         <span className="hidden sm:inline">Lokal · 1 Ausnahme</span>
-        <span className="sm:hidden">Lokal · 1</span>
+        <span className="sm:hidden">Lokal</span>
       </button>
 
       {open ? (
@@ -156,11 +156,11 @@ export function Header({
   const hasAssets = useSession((state) => state.assets.length > 0)
   return (
     <header className="sticky top-0 z-30 border-b-2 border-rule bg-canvas/95 backdrop-blur-md">
-      <div className="shell flex flex-wrap items-start justify-between gap-x-[24px] gap-y-[8px] py-[12px]">
+      <div className="shell flex flex-wrap items-center justify-between gap-x-[12px] gap-y-[8px] py-[10px] sm:items-start sm:gap-x-[24px] sm:py-[12px]">
         <div className="flex min-w-0 flex-col gap-[8px]">
           <Logo />
         </div>
-        <div className="flex items-center gap-[8px]">
+        <div className="flex items-center gap-[4px] sm:gap-[8px]">
           {install.available ? (
             <Button size="sm" variant="ghost" onClick={() => void install.install()} className="hidden md:inline-flex">
               Installieren
@@ -201,20 +201,29 @@ export function SessionBar() {
 
   const totalBytes = assets.reduce((sum, asset) => sum + asset.sizeBytes, 0)
   return (
-    <div className="shell pt-[16px]">
-      <div className="rise flex flex-wrap items-center justify-between gap-[12px] rounded-card bg-panel-soft px-[16px] py-[8px] text-small">
-        <p className="max-w-none text-muted">
+    <div className="shell pt-[12px] sm:pt-[16px]">
+      {/* One line on a phone, the whole sentence from `sm` up.
+          The full wording wrapped to two lines and then pushed the button onto
+          a third, so a standing reminder cost 105px of an 844px screen before
+          the tool had said anything. What a phone drops is the part a phone
+          reader already knows — it is the same tab they are looking at — not
+          the claim itself, which stays in the chip above and in full here as
+          soon as there is room. */}
+      <div className="rise flex flex-nowrap items-center justify-between gap-[12px] rounded-card bg-panel-soft px-[12px] py-[6px] text-small sm:flex-wrap sm:px-[16px] sm:py-[8px]">
+        <p className="min-w-0 max-w-none truncate text-muted">
           <span className="value text-ink">{assets.length}</span>{' '}
-          {assets.length === 1 ? 'Datei' : 'Dateien'} im Arbeitsspeicher dieses Tabs ·{' '}
-          <span className="value">{(totalBytes / 1024 / 1024).toFixed(1)} MB</span> · nichts davon
-          wurde gesendet
+          {assets.length === 1 ? 'Datei' : 'Dateien'}
+          <span className="hidden sm:inline"> im Arbeitsspeicher dieses Tabs</span> ·{' '}
+          <span className="value">{(totalBytes / 1024 / 1024).toFixed(1)} MB</span>
+          <span className="hidden sm:inline"> · nichts davon wurde gesendet</span>
         </p>
         <button
           type="button"
           onClick={clearAssets}
-          className="press rounded-nav text-muted underline-offset-2 hover:text-ink hover:underline"
+          className="press shrink-0 rounded-nav text-muted underline-offset-2 hover:text-ink hover:underline"
         >
-          Speicher freigeben
+          <span className="hidden sm:inline">Speicher freigeben</span>
+          <span className="sm:hidden">Freigeben</span>
         </button>
       </div>
     </div>

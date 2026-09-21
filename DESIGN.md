@@ -565,6 +565,24 @@ Es gibt **keine Karte**. `Card` ist der Name der Komponente, nicht ihrer Form:
   Gerät und Kerne stehen bereits unter „Dieses Gerät", das Datum sagte nichts,
   und der Lokal-Chip daneben sagte den Rest schon.
 
+### Kleine Bildschirme
+
+Das Gegenstück zur Breite: auf dem Handy ist nicht die Fläche knapp, sondern
+die Höhe, und sie ging ans Rahmenwerk. Gemessen bei 390 × 844: Kopfzeile
+110 px, Sitzungsleiste 105 px, Reiter 44 px — zusammen 320 px, also 38 % des
+Schirms, bevor das Werkzeug seine Überschrift zeigte. Jetzt 211 px (25 %).
+
+Die Kopfzeile brach um, weil Wortmarke (101 px) und Bedienelemente (243 px)
+mit Abstand und Rand auf 410 px kamen. Enger gesetzte Abstände, ein knapperer
+Themenschalter und ein kürzerer Chip bringen sie auf eine Zeile.
+
+**Gekürzt wird der Text, nicht die Zusage.** Der Chip sagt auf dem Handy
+„Lokal" statt „Lokal · 1 Ausnahme" — die Zählung steht im Popover, das die
+Ausnahme ohnehin erklärt. Die Sitzungsleiste sagt „1 Datei · 0.0 MB" statt
+„… im Arbeitsspeicher dieses Tabs · nichts davon wurde gesendet": was dort
+wegfällt, weiss die Leserin bereits, denn sie sieht genau diesen Tab an. Ab
+`sm` steht wieder der volle Wortlaut.
+
 ### Grosse Bildschirme
 
 Gemessen statt geschätzt: bei festen 1280 px lagen auf einem 2560er Monitor
