@@ -163,13 +163,20 @@ function readStored(key: string, previous: string): string | null {
   }
 }
 
-export function AdvancedDownloader() {
+/**
+ * The options behind the one address field, not a second downloader.
+ *
+ * This used to carry an address field of its own, which meant the panel asked
+ * the same question twice: paste up there, or paste down here, and nothing on
+ * screen said which one was meant. The address now lives once, at the top, and
+ * is handed down — everything here acts on it.
+ */
+export function AdvancedDownloader({ url }: { url: string }) {
   const addAsset = useSession((state) => state.addAsset)
   const log = useSession((state) => state.log)
   const assetCount = useSession((state) => state.assets.length)
   const caps = detectCapabilities()
 
-  const [url, setUrl] = useState('')
   // Null means "whatever the address implies"; a value is a deliberate override.
   const [modeOverride, setModeOverride] = useState<Mode | null>(null)
   // Off by default: a download that lands in the session can be fed straight
@@ -877,25 +884,12 @@ export function AdvancedDownloader() {
     >
       <Card tone="keylime" size="compact">
         <div className="flex flex-wrap items-baseline justify-between gap-x-[16px] gap-y-[4px]">
-          <span className="text-small text-muted">Adresse einfügen — der Weg wird automatisch gewählt.</span>
+          <span className="text-small text-muted">
+            Gilt für die Adresse im Feld oben.
+          </span>
         </div>
 
         <div className="mt-[16px] flex flex-col gap-[16px]">
-          {/* ---- address ---------------------------------------------------- */}
-          <TextInput
-            type="url"
-            inputMode="url"
-            aria-label="Adresse"
-            placeholder="https://beispiel.org/aufnahme.mp3"
-            value={url}
-            onChange={(event) => {
-              setUrl(event.target.value)
-              // A new address re-decides the path on its own.
-              setModeOverride(null)
-              reset()
-            }}
-          />
-
           {/* ---- the chosen path and the action share one row --------------- */}
           <div className="flex flex-wrap items-center gap-[8px]">
             {/* The line above this card says the path is chosen automatically,

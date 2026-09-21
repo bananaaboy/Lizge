@@ -268,8 +268,8 @@ export function DownloaderPanel() {
 
       {/* The complete panel — instances, keys, cookies, playlists, full
           resolution — exactly as it was, just no longer the front door. */}
-      <Reveal label="Mehr Wege: eigener Dienst oder yt-dlp auf dem eigenen Gerät">
-        <AdvancedDownloader />
+      <Reveal label="Optionen: eigener Dienst, Stream-Wege, yt-dlp auf dem eigenen Gerät">
+        <AdvancedDownloader url={url} />
       </Reveal>
     </div>
   )
