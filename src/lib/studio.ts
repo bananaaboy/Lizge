@@ -34,6 +34,10 @@
  * instant.
  */
 
+import { fetchMedia } from './download'
+import { DEFAULT_SERVICE, resolveMedia, type ServiceItem } from './service'
+import { serviceConnection } from './serviceState'
+
 export interface StudioStream {
   id: string
   label: string
@@ -47,11 +51,19 @@ export interface StudioStream {
   bytes: number | null
   /** Signed, short-lived permission for the proxy to fetch this one address. */
   token: string
+  /**
+   * An address the browser may fetch itself, when one answered directly.
+   *
+   * A connected service hands back a tunnel of its own with the CORS header
+   * that allows it, so that one needs no proxy and no token. Exactly one of
+   * the two is ever set.
+   */
+  directUrl?: string | null
 }
 
 export interface StudioResult {
   /** Which of the three routes answered — the panel says so out loud. */
-  source?: 'provider' | 'youtube' | 'direct'
+  source?: 'provider' | 'youtube' | 'direct' | 'service'
   kind: 'youtube' | 'direct' | 'provider'
   title: string
   author: string | null
@@ -73,7 +85,73 @@ export class StudioError extends Error {
  *  enough that a chunk always finishes well inside the function's time limit. */
 const CHUNK = 4 * 1024 * 1024
 
+/** A service answer, in the shape the panel already knows how to show. */
+function fromServiceItems(items: ServiceItem[], fallbackTitle: string): StudioResult {
+  return {
+    kind: 'provider',
+    source: 'service',
+    title: items.length === 1 ? items[0].filename || fallbackTitle : fallbackTitle,
+    author: null,
+    durationSeconds: null,
+    thumbnail: null,
+    streams: items.map((item, index) => ({
+      id: `dienst-${index}`,
+      label: item.filename || `Datei ${index + 1}`,
+      hasVideo: item.kind === 'video' || item.kind === 'gif',
+      hasAudio: item.kind === 'video' || item.kind === 'audio',
+      width: null,
+      height: null,
+      ext: item.filename.includes('.')
+        ? (item.filename.split('.').pop() ?? 'bin').toLowerCase()
+        : 'bin',
+      mime: 'application/octet-stream',
+      bytes: null,
+      token: '',
+      directUrl: item.url,
+    })),
+  }
+}
+
+/**
+ * One address in, whatever can be had out.
+ *
+ * The two halves of this panel used to be strangers: the field at the top
+ * asked this site's own endpoint, and the visitor's own connected service was
+ * only reachable from the section underneath, with its own field and its own
+ * button. Someone who had wired up a service still had to know which of the
+ * two boxes to paste into.
+ *
+ * So the routes are tried here instead of being chosen by hand: the connected
+ * service first, because somebody who set one up meant it to be used and it
+ * reaches furthest, then this site's endpoint, which cascades on its own
+ * (provider, then YouTube, then a plain file address).
+ *
+ * An address that leads to several things — a post with four images, a video
+ * and its audio — comes back as several streams rather than a decision the
+ * panel has to make on the visitor's behalf. Showing them is what the panel
+ * already did for YouTube's formats, so it costs nothing here.
+ */
 export async function resolveViaService(url: string, signal?: AbortSignal): Promise<StudioResult> {
+  const connected = serviceConnection()
+  if (connected.endpoint) {
+    try {
+      const outcome = await resolveMedia(
+        url,
+        { ...DEFAULT_SERVICE, endpoint: connected.endpoint },
+        null,
+        signal,
+      )
+      if (outcome.kind === 'file') return fromServiceItems([outcome.item], url)
+      if (outcome.kind === 'picker') return fromServiceItems(outcome.items, 'Mehrere Dateien')
+      // Anything else the service offers — a job that still needs muxing —
+      // belongs to the section that knows how to finish it. Fall through.
+    } catch (cause) {
+      if (cause instanceof DOMException && cause.name === 'AbortError') throw cause
+      // A service that cannot answer is not the end of the road: this site's
+      // own endpoint may still know the address.
+    }
+  }
+
   let response: Response
   try {
     response = await fetch('/api/resolve', {
@@ -122,6 +200,21 @@ export async function downloadStream(
   options: { onProgress?: (progress: StreamProgress) => void; signal?: AbortSignal } = {},
 ): Promise<Uint8Array> {
   const { onProgress, signal } = options
+
+  // A service tunnel is fetched straight from the browser: it sent the header
+  // that permits it, and routing it through this site's proxy would add a hop
+  // that serves nobody.
+  if (stream.directUrl) {
+    const media = await fetchMedia(
+      stream.directUrl,
+      // The two halves of the app count progress with different words; this is
+      // the whole of the translation between them.
+      (p) => onProgress?.({ loaded: p.receivedBytes, total: p.totalBytes }),
+      signal,
+    )
+    return media.bytes
+  }
+
   const parts: Uint8Array[] = []
   let loaded = 0
   let total = stream.bytes
