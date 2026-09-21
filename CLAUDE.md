@@ -64,6 +64,15 @@ Das Wenige, was hier stehen muss, weil es jeden Edit betrifft:
   Courier Prime das, was die Maschine eingetragen hat — Messwerte,
   Dateinamen, Timecodes. Nie Mono als Kostüm für „technisch". Cormorant lebt
   für genau ein Wort weiter: die Wortmarke ist eine bindende Zusage.
+- **`panel-cool` ist für genau eine Aussage da:** hier läuft etwas nicht
+  lokal. Der Chip in der Kopfzeile trägt sie, sobald ein Extraktionsdienst
+  verbunden ist — dann zählt er zwei Ausnahmen statt einer und das Zeichen
+  wird hohl statt gefüllt. Die Palette hat kein Rot, und sie braucht keins:
+  gemessen Lc 85.8 hell und 75.3 dunkel.
+- **Was automatisch gewählt wird, wird gesagt, nicht gefragt.** Der
+  Downloader nannte den Weg automatisch und stellte daneben drei Knöpfe zur
+  Handauswahl. Jetzt steht der gewählte Weg als Satz da, die Handauswahl ist
+  ein Klick dahinter. Weggenommen wird dabei nichts.
 - **Zustand ist eine Marke am Rand,** kein Kasten: `Notice` annotiert mit
   `●` und `!`, statt den Hinweis einzurahmen.
 - **Jedes Werkzeug hat eine Adresse.** `#umwandeln`, `#tonart`,

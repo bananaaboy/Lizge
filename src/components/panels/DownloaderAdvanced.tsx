@@ -190,6 +190,7 @@ export function AdvancedDownloader() {
   // one is shown, and starting from scratch on the way back threw away a live
   // connection while the status strip went on reporting it — the two disagreed,
   // and the panel was the one that was wrong. Both now read the same state.
+  const [showPaths, setShowPaths] = useState(false)
   const [serviceEnabled, setServiceEnabled] = useState(() => serviceConnection().enabled)
   const [service, setService] = useState<ServiceSettings>(() => {
     const stored = readServiceSettings()
@@ -895,32 +896,54 @@ export function AdvancedDownloader() {
             }}
           />
 
-          {/* ---- path chips and the action share one row ------------------- */}
+          {/* ---- the chosen path and the action share one row --------------- */}
           <div className="flex flex-wrap items-center gap-[8px]">
-            <div role="radiogroup" aria-label="Weg" className="flex gap-[4px] bg-panel-soft p-[4px]">
-              {PATHS.map((path) => {
-                const active = path.id === effectiveMode
-                return (
-                  <button
-                    key={path.id}
-                    type="button"
-                    role="radio"
-                    aria-checked={active}
-                    disabled={path.disabled}
-                    title={path.hint}
-                    onClick={() => {
-                      setModeOverride(path.id)
-                      reset()
-                    }}
-                    className={`px-[16px] py-[8px] text-small transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
-                      active ? 'bg-ink text-on-ink' : 'text-ink hover:bg-panel-mid'
-                    }`}
-                  >
-                    {path.label}
-                  </button>
-                )
-              })}
-            </div>
+            {/* The line above this card says the path is chosen automatically,
+                and then three buttons stood here inviting a choice — the panel
+                contradicted itself, and the first thing anyone did was wonder
+                which one they were supposed to press. So the choice is stated,
+                not asked: the picked path is named, and the override is one
+                click away for the case the guess is wrong. Nothing is gone. */}
+            {showPaths ? (
+              <div role="radiogroup" aria-label="Weg" className="flex gap-[4px] bg-panel-soft p-[4px]">
+                {PATHS.map((path) => {
+                  const active = path.id === effectiveMode
+                  return (
+                    <button
+                      key={path.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={active}
+                      disabled={path.disabled}
+                      title={path.hint}
+                      onClick={() => {
+                        setModeOverride(path.id)
+                        reset()
+                      }}
+                      className={`px-[16px] py-[8px] text-small transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+                        active ? 'bg-ink text-on-ink' : 'text-ink hover:bg-panel-mid'
+                      }`}
+                    >
+                      {path.label}
+                    </button>
+                  )
+                })}
+              </div>
+            ) : (
+              <p className="text-small text-muted">
+                Weg:{' '}
+                <span className="text-ink">
+                  {PATHS.find((path) => path.id === effectiveMode)?.label ?? '—'}
+                </span>{' '}
+                <button
+                  type="button"
+                  onClick={() => setShowPaths(true)}
+                  className="press text-ink underline underline-offset-[3px] hover:no-underline"
+                >
+                  ändern
+                </button>
+              </p>
+            )}
 
             <div className="flex flex-wrap items-center gap-[8px] sm:ml-auto">
               {effectiveMode === 'service' ? (
