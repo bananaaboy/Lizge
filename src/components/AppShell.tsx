@@ -7,11 +7,12 @@
  * a file, and the claim that the file is not going anywhere.
  */
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import type { InstallState } from '../hooks/useInstallPrompt'
 import { useFilePicker } from '../hooks/useIngest'
 import type { ThemeChoice } from '../lib/theme'
+import { onServiceConnection, serviceConnection } from '../lib/serviceState'
 import { useSession } from '../state/store'
 import { PaletteHint } from './CommandPalette'
 import { ThemeToggle } from './ThemeToggle'
@@ -102,6 +103,18 @@ export function OpenFileButton({
 /** Explains the privacy claim on demand, without occupying the page for it. */
 function PrivacyChip() {
   const [open, setOpen] = useState(false)
+  /**
+   * Whether a service is currently connected.
+   *
+   * It changes what this badge is entitled to claim. With nothing connected
+   * the one exception is the built-in downloader, which is what „1 Ausnahme"
+   * counts. Once somebody has wired up an extraction service, addresses go to
+   * that as well — a second place, and one the badge has no business implying
+   * away by still looking like the all-clear.
+   */
+  const [service, setService] = useState(() => serviceConnection().endpoint)
+  useEffect(() => onServiceConnection((state) => setService(state.endpoint)), [])
+  const connected = Boolean(service)
 
   return (
     <div className="relative">
@@ -109,15 +122,27 @@ function PrivacyChip() {
         type="button"
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
-        className="press flex items-center gap-[8px] bg-panel-soft px-[12px] py-[8px] text-small text-ink hover:bg-panel-mid"
+        title={connected ? `Ein Dienst ist verbunden: ${service}` : undefined}
+        /* `panel-cool` is the tint this design set aside for exactly one job —
+           saying that something is not running locally. This is that one job,
+           and it is why no new colour was needed. Measured on it: APCA Lc 85.8
+           light, 75.3 dark. */
+        className={`press flex items-center gap-[8px] px-[12px] py-[8px] text-small text-ink ${
+          connected ? 'bg-panel-cool hover:bg-panel-mid' : 'bg-panel-soft hover:bg-panel-mid'
+        }`}
       >
-        <span className="h-[8px] w-[8px] bg-ink" aria-hidden />
-        {/* A lone green dot says nothing. On a phone the claim shortens, it
-            does not disappear — this is the one place the promise is made, and
-            since there is now exactly one thing it does not cover, the badge
-            counts it rather than letting the popover carry it alone. */}
-        <span className="hidden sm:inline">Lokal · 1 Ausnahme</span>
-        <span className="sm:hidden">Lokal</span>
+        {/* Filled while everything is local; hollow once something is not, so
+            the state is readable without reading. */}
+        <span
+          className={`h-[8px] w-[8px] ${connected ? 'ring-2 ring-inset ring-ink' : 'bg-ink'}`}
+          aria-hidden
+        />
+        {/* On a phone the claim shortens, it does not disappear — this is the
+            one place the promise is made. */}
+        <span className="hidden sm:inline">
+          {connected ? 'Dienst verbunden · 2 Ausnahmen' : 'Lokal · 1 Ausnahme'}
+        </span>
+        <span className="sm:hidden">{connected ? 'Dienst' : 'Lokal'}</span>
       </button>
 
       {open ? (
@@ -134,6 +159,13 @@ function PrivacyChip() {
             Adresse, die Sie eingeben, und reicht die Datei durch. Ihre eigenen Dateien sieht er nie,
             und gespeichert wird dort nichts.
           </p>
+          {connected ? (
+            <p className="mb-[12px] text-muted">
+              Dazu ist gerade ein Extraktionsdienst verbunden: <span className="value text-ink">{service}</span>.
+              Adressen, die Sie im Downloader eingeben, gehen auch dorthin. Ihre eigenen Dateien
+              nicht — die verlassen diesen Tab weiterhin nicht.
+            </p>
+          ) : null}
           <p className="text-muted">
             Wer auch das nicht möchte, startet yt-dlp auf dem eigenen Rechner. Der Downloader zeigt
             unter „Mehr Wege“, wie. Dann geht wirklich alles hier.
