@@ -101,6 +101,8 @@ verspricht, verspricht etwas Falsches:
 | YouTube an einen Server | nur die progressive Spur, in der Regel 360p; manche Videos gar nichts |
 | höhere Auflösungen | laufen über SABR und haben **keine** abrufbare Adresse — auch mit gültigem PoToken nicht |
 | yt-dlp aus einem Rechenzentrum | löst auf, scheitert aber beim Holen an „Sign in to confirm you're not a bot" |
+| dasselbe Video, zwei Orte | scheitert verschieden: aus dem Rechenzentrum an der Bot-Prüfung (`youtube.signin`), von einer Wohn-IP an SABR (`youtube.sabr`). Lokal hosten hebt die Grenze also nicht auf, es verschiebt sie |
+| andere Client-Kontexte | WEB, ANDROID, IOS, MWEB, TV_EMBEDDED, WEB_EMBEDDED durchgemessen am 21.9.2026: alle liefern dieselben 22 Formate, keines mit abrufbarer Adresse. Kein Ausweg |
 | voller Umfang | nur über einen hinterlegten Anbieter oder yt-dlp auf dem eigenen Gerät |
 | Freigabe-Link einer Cloud | geht, sofern die Adresse die Datei selbst liefert — der Name darf allein im `Content-Disposition` stehen |
 
