@@ -68,6 +68,22 @@ const light = declarations(block(css, '@theme {'))
 const dark = declarations(block(css, ":root[data-theme='dark'] {"))
 const shell = block(css, '@utility shell {')
 
+/**
+ * Every width the sheet is allowed to reach, in order.
+ *
+ * The base `max-width` first, then one rung per `@media (min-width: …)` inside
+ * the utility. Named by the width that switches them on, so the sidecar says
+ * what the stylesheet says rather than a comfortable subset of it.
+ */
+function shellLadder() {
+  const rungs = [{ name: 'shell-max', value: property(shell, 'max-width') }]
+  for (const [, at, body] of shell.matchAll(/@media\s*\(min-width:\s*([^)]+)\)\s*\{([^}]*)\}/g)) {
+    const width = body.match(/max-width\s*:\s*([^;]+);/)
+    if (width) rungs.push({ name: `shell-max-from-${at.trim()}`, value: width[1].trim() })
+  }
+  return rungs
+}
+
 function token(map, name, where) {
   const value = map.get(name)
   if (!value) throw new Error(`${THEME}: --${name} fehlt (${where}). DESIGN.md und dieser Sidecar sind auseinandergelaufen.`)
@@ -351,12 +367,15 @@ const design = {
       { name: 'dur-slow', value: token(light, 'dur-slow', 'Bewegung'), purpose: 'Die grosse Bewegung. Im gebauten Stand deklariert, aber von keiner Fläche verwendet.' },
     ],
     /* `sm` and `lg` are Tailwind's own defaults — the project does not
-       redeclare them, so there is no token to read. `shell-max` is the
-       project's, and is read. */
+       redeclare them, so there is no token to read. The shell's own ladder
+       is read, every rung of it: reading only the first `max-width` reported
+       a cap of 1280px after the column had already been taught to grow to
+       1840, which is exactly the kind of half-truth this generator exists to
+       prevent. */
     breakpoints: [
       { name: 'sm', value: '640px' },
       { name: 'lg', value: '1024px' },
-      { name: 'shell-max', value: property(shell, 'max-width') },
+      ...shellLadder(),
     ],
   },
   components,
