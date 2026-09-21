@@ -102,6 +102,7 @@ verspricht, verspricht etwas Falsches:
 | höhere Auflösungen | laufen über SABR und haben **keine** abrufbare Adresse — auch mit gültigem PoToken nicht |
 | yt-dlp aus einem Rechenzentrum | löst auf, scheitert aber beim Holen an „Sign in to confirm you're not a bot" |
 | voller Umfang | nur über einen hinterlegten Anbieter oder yt-dlp auf dem eigenen Gerät |
+| Freigabe-Link einer Cloud | geht, sofern die Adresse die Datei selbst liefert — der Name darf allein im `Content-Disposition` stehen |
 
 Deshalb steht im Downloader, **welcher Weg geantwortet hat**: das entscheidet
 über die Auflösung und darüber, wer die Adresse gesehen hat.
