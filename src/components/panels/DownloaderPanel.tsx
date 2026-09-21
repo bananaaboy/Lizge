@@ -213,9 +213,11 @@ export function DownloaderPanel() {
               {/* Which route answered. Not a detail: it decides the resolution
                   on offer, and it decides who saw the address. */}
               <p className="mt-[8px] text-small text-muted">
-                {result.source === 'provider'
-                  ? 'Über den hinterlegten Anbieter'
-                  : result.source === 'youtube'
+                {result.source === 'service'
+                  ? 'Über den Dienst, den Sie verbunden haben'
+                  : result.source === 'provider'
+                    ? 'Über den hinterlegten Anbieter'
+                    : result.source === 'youtube'
                     ? 'YouTube direkt · nur die Fassung mit Bild und Ton in einem'
                     : 'Direkte Datei-Adresse'}
               </p>
