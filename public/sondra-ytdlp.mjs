@@ -21,7 +21,7 @@ import http from 'node:http'
 import { spawn } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import path from 'node:path'
-import { randomUUID } from 'node:crypto'
+import { randomUUID, createDecipheriv } from 'node:crypto'
 
 const argv = process.argv.slice(2)
 const SITE = (argv.find((value) => value.startsWith('http')) ?? '').replace(/\/$/, '')
@@ -46,16 +46,26 @@ const cookieArgs = COOKIES ? ['--cookies-from-browser', COOKIES] : []
 /* -- yt-dlp finden --------------------------------------------------------- */
 
 /**
- * Erst der aktuelle Ordner, dann der Suchpfad.
- *
- * Wer die Einzeldatei heruntergeladen hat, hat sie fast immer genau hier
- * liegen — und soll sie nicht erst in den Suchpfad legen müssen.
+ * Erst der aktuelle Ordner, dann bekannte WinGet-/System-Pfade, dann der Suchpfad.
  */
 function findYtDlp() {
   const local = ['yt-dlp.exe', 'yt-dlp', 'yt-dlp_linux', 'yt-dlp_macos', 'yt-dlp_x86.exe']
     .map((name) => path.resolve(name))
     .find(existsSync)
-  return local ?? (process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp')
+  if (local) return local
+
+  if (process.platform === 'win32') {
+    const localAppData = process.env.LOCALAPPDATA || ''
+    const wingetLocations = [
+      path.join(localAppData, 'Microsoft', 'WinGet', 'Links', 'yt-dlp.exe'),
+      path.join(localAppData, 'Microsoft', 'WinGet', 'Packages', 'yt-dlp.yt-dlp_Microsoft.Winget.Source_8wekyb3d8bbwe', 'yt-dlp.exe'),
+      path.join(localAppData, 'Microsoft', 'WindowsApps', 'yt-dlp.exe'),
+    ]
+    const found = wingetLocations.find(existsSync)
+    if (found) return found
+    return 'yt-dlp.exe'
+  }
+  return 'yt-dlp'
 }
 
 const YTDLP = findYtDlp()
@@ -95,8 +105,24 @@ const isAudioOnly = (format) => format.acodec && format.acodec !== 'none' && (!f
 const isProgressive = (format) =>
   format.vcodec && format.vcodec !== 'none' && format.acodec && format.acodec !== 'none'
 
-/** Alles, was erst noch ausgehandelt werden muss, kann Sondra nicht lesen. */
-const isPlainFile = (format) => !format.protocol || format.protocol.startsWith('http')
+/**
+ * Direkte HTTP(S)-Datei oder HLS-Stream.
+ *
+ * Viele Embed-Hoster (Filemoon, VoE, Doodstream, Vidmol …) liefern ihre
+ * Streams als HLS (protocol = „m3u8" oder „m3u8_native"). Die frühere Prüfung
+ * lehnte diese stillschweigend ab. Sondra versteht HLS-Playlisten bereits
+ * selbst, daher werden sie hier ebenfalls durchgelassen — aber als solche
+ * markiert, damit der Auftragsblock das korrekte Flag setzen kann.
+ */
+const isPlainFile = (format) =>
+  !format.protocol ||
+  format.protocol.startsWith('http') ||
+  format.protocol === 'm3u8' ||
+  format.protocol === 'm3u8_native'
+
+/** Wahr, wenn das Format über HLS geliefert wird (statt als eine einzelne Datei). */
+const isHlsFormat = (format) =>
+  format.protocol === 'm3u8' || format.protocol === 'm3u8_native'
 
 /**
  * H.264 in MP4 zuerst.
@@ -199,16 +225,255 @@ const SERVICES = [
   'youtube', 'soundcloud', 'bandcamp', 'vimeo', 'twitch', 'twitter', 'tiktok', 'instagram',
   'facebook', 'reddit', 'dailymotion', 'bilibili', 'ok', 'rutube', 'streamable', 'tumblr',
   'bluesky', 'loom', 'pinterest', 'snapchat', 'mixcloud', 'ard', 'zdf', 'arte', 'srf',
+  // Embed-Hoster ohne eigenen yt-dlp-Extraktor — über den generischen Fallback
+  'filemoon', 'voe', 'doodstream', 'vidmol', 'streamwish', 'vidguard', 'upstream',
 ]
 
 let versionLabel = 'yt-dlp'
+
+/* -- Benutzerdefinierte Extraktoren (VOE, FileMoon, Vidmoly, DoodStream) ---- */
+
+async function extractVoe(url) {
+  try {
+    const res = await fetch(url, {
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      },
+    })
+    if (!res.ok) return null
+    const html = await res.text()
+
+    const m = html.match(/<script type="application\/json">\s*(\[[\s\S]*?\])\s*<\/script>/)
+    if (!m) return null
+
+    const arr = JSON.parse(m[1])
+    if (!Array.isArray(arr) || !arr[0]) return null
+    const str = arr[0]
+
+    const rot13 = (s) =>
+      s.replace(/[a-zA-Z]/g, (c) => {
+        const code = c.charCodeAt(0)
+        const base = code <= 90 ? 65 : 97
+        return String.fromCharCode(((code - base + 13) % 26) + base)
+      })
+
+    const replacePatterns = (s) => {
+      let t = s
+      for (const pat of ['@$', '^^', '~@', '%?', '*~', '!!', '#&']) {
+        t = t.replaceAll(pat, '')
+      }
+      return t
+    }
+
+    const shiftChars = (s, shift) => Array.from(s).map((c) => String.fromCharCode(c.charCodeAt(0) - shift)).join('')
+
+    const s1 = rot13(str)
+    const s2 = replacePatterns(s1)
+    const s3 = Buffer.from(s2, 'base64').toString('utf-8')
+    const s4 = shiftChars(s3, 3)
+    const s5 = s4.split('').reverse().join('')
+    const s6 = Buffer.from(s5, 'base64').toString('utf-8')
+
+    const data = JSON.parse(s6)
+    const streamUrl = data.source || data.direct_access_url
+    if (!streamUrl) return null
+
+    return {
+      title: data.title || 'VOE Video',
+      url: streamUrl,
+      referer: url,
+    }
+  } catch {
+    return null
+  }
+}
+
+async function extractFileMoon(url) {
+  try {
+    const parsed = new URL(url)
+    const parts = parsed.pathname.replace(/\/$/, '').split('/')
+    const code = parts[parts.length - 1]
+    if (!code || code === 'e' || code === 'd') return null
+
+    const apiUrl = `${parsed.protocol}//${parsed.host}/api/videos/${code}`
+    const res = await fetch(apiUrl, {
+      headers: {
+        Referer: url,
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      },
+    })
+    if (!res.ok) return null
+    const data = await res.json()
+    const playback = data?.playback
+    if (!playback?.key_parts || !playback?.iv || !playback?.payload) return null
+
+    const key = Buffer.concat(playback.key_parts.map((p) => Buffer.from(p, 'base64url')))
+    const iv = Buffer.from(playback.iv, 'base64url')
+    const payload = Buffer.from(playback.payload, 'base64url')
+
+    const tag = payload.subarray(payload.length - 16)
+    const ciphertext = payload.subarray(0, payload.length - 16)
+
+    const decipher = createDecipheriv('aes-256-gcm', key, iv)
+    decipher.setAuthTag(tag)
+    const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()])
+    const parsedPlayback = JSON.parse(decrypted.toString('utf-8'))
+
+    const hls = parsedPlayback.sources?.find((s) => s.mime_type?.includes('mpegurl')) || parsedPlayback.sources?.[0]
+    if (!hls?.url) return null
+
+    return {
+      title: data.title || 'FileMoon Video',
+      url: hls.url,
+      referer: url,
+    }
+  } catch {
+    return null
+  }
+}
+
+async function extractVidmoly(url) {
+  try {
+    const parsed = new URL(url)
+    const embedIdMatch =
+      parsed.pathname.match(/\/embed-([a-zA-Z0-9]+)\.html/) || parsed.pathname.match(/\/([a-zA-Z0-9]+)$/)
+    const embedId = embedIdMatch ? embedIdMatch[1] : ''
+
+    const headers = {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      Referer: url,
+      Cookie: embedId ? `cf_turnstile_demo_pass_${embedId}=1` : '',
+    }
+
+    const res = await fetch(url, { headers })
+    if (!res.ok) return null
+    const html = await res.text()
+
+    const match = html.match(/sources\s*:\s*\[\s*\{\s*file\s*:\s*['"]([^'"]+)/)
+    if (!match) return null
+    const streamUrl = new URL(match[1], url).href
+
+    const titleMatch = html.match(/<title>([^<]+)<\/title>/i)
+    const title = titleMatch ? titleMatch[1].replace(/ - Vidmoly.*$/i, '').trim() : 'Vidmoly Video'
+
+    return {
+      title,
+      url: streamUrl,
+      referer: url,
+    }
+  } catch {
+    return null
+  }
+}
+
+async function extractDoodStream(url) {
+  try {
+    const res = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        Referer: url,
+      },
+    })
+    if (!res.ok) return null
+    const html = await res.text()
+
+    const passMatch = html.match(/\/pass_md5\/[^'"<>\s]+/)
+    if (!passMatch) return null
+
+    const baseOrigin = new URL(url).origin
+    const passUrl = `${baseOrigin}${passMatch[0]}`
+
+    const passRes = await fetch(passUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        Referer: url,
+      },
+    })
+    if (!passRes.ok) return null
+    const baseStream = (await passRes.text()).trim()
+    if (!baseStream || baseStream.includes('RELOAD')) return null
+
+    const randomChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+    let token = ''
+    for (let i = 0; i < 10; i++) token += randomChars.charAt(Math.floor(Math.random() * randomChars.length))
+    const finalUrl = `${baseStream}${token}?token=${passMatch[0].split('/').pop()}&expiry=${Date.now()}`
+
+    const titleMatch = html.match(/<title>([^<]+)<\/title>/i)
+    const title = titleMatch ? titleMatch[1].replace(/ - Dood.*$/i, '').trim() : 'DoodStream Video'
+
+    return {
+      title,
+      url: finalUrl,
+      referer: url,
+    }
+  } catch {
+    return null
+  }
+}
+
+/** Erkennt den Hoster und extrahiert die direkte Stream-Adresse vor dem yt-dlp-Aufruf. */
+async function extractDirectStream(rawUrl) {
+  let host = ''
+  try {
+    host = (new URL(rawUrl).hostname || '').toLowerCase()
+  } catch {
+    return null
+  }
+
+  // 1. FileMoon
+  if (host.includes('filemoon')) {
+    const res = await extractFileMoon(rawUrl)
+    if (res) return res
+  }
+
+  // 2. Vidmoly
+  if (host.includes('vidmoly')) {
+    const res = await extractVidmoly(rawUrl)
+    if (res) return res
+  }
+
+  // 3. DoodStream
+  if (host.includes('dood') || host.includes('myvidplay') || host.includes('dsvplay') || host.includes('playmogo')) {
+    const res = await extractDoodStream(rawUrl)
+    if (res) return res
+  }
+
+  // 4. VOE (voe.sx, jamesbornmain.com, chaliceguzzlerlandlord.com usw.)
+  if (
+    host.includes('voe.') ||
+    host.includes('jamesbornmain') ||
+    host.includes('chaliceguzzler') ||
+    host.includes('tube.sx') ||
+    rawUrl.includes('/e/')
+  ) {
+    const res = await extractVoe(rawUrl)
+    if (res) return res
+  }
+
+  // Universeller Fallback auf VOE-Erkennung
+  return extractVoe(rawUrl)
+}
 
 async function resolve(body) {
   const target = String(body.url ?? '').trim()
   if (!target) return { status: 'error', error: { code: 'error.api.link.invalid' } }
 
-  const probe = await run(['-J', '--no-warnings', '--no-playlist', ...cookieArgs, '--', target])
+  // 1. Spezielle Hoster direkt auflösen (VOE, FileMoon, Vidmoly, DoodStream)
+  let directSource = null
+  try {
+    directSource = await extractDirectStream(target)
+  } catch {
+    /* Weiter mit normalem yt-dlp */
+  }
+
+  const queryUrl = directSource ? directSource.url : target
+  const refererArgs = directSource?.referer ? ['--referer', directSource.referer] : []
+
+  let probe = await run(['-J', '--no-warnings', '--no-playlist', ...refererArgs, ...cookieArgs, '--', queryUrl])
   if (probe.missing) return { status: 'error', error: { code: 'error.api.ytdlp.missing' } }
+
   if (probe.code !== 0) return { status: 'error', error: { code: errorCode(probe.stderr) } }
 
   let info
@@ -223,7 +488,9 @@ async function resolve(body) {
 
   const quality = String(body.videoQuality ?? 'max')
   const maxHeight = quality === 'max' ? 0 : Number(quality) || 0
-  const stem = String(info.title ?? 'download').replace(/[\\/:*?"<>|]/g, '-').slice(0, 120)
+  const titleCandidate =
+    directSource?.title && directSource.title !== 'master' ? directSource.title : info.title ?? 'download'
+  const stem = String(titleCandidate).replace(/[\\/:*?"<>|]/g, '-').slice(0, 120)
   const mode = String(body.downloadMode ?? 'auto')
 
   if (mode === 'audio') {
@@ -233,11 +500,11 @@ async function resolve(body) {
     return {
       status: 'local-processing',
       type: 'audio',
-      tunnel: [remember({ url: target, format: audio, mime: 'audio/mp4' })],
+      tunnel: [remember({ url: queryUrl, referer: directSource?.referer, format: audio, mime: 'audio/mp4' })],
       output: { filename: `${stem}.${wanted === 'best' ? 'm4a' : wanted}`, type: 'audio/mp4' },
       // Kopieren geht nur, wenn kein anderes Format verlangt wurde.
       audio: { format: wanted, copy: wanted === 'best' },
-      isHLS: false,
+      isHLS: isHlsFormat(audio),
     }
   }
 
@@ -247,9 +514,9 @@ async function resolve(body) {
     return {
       status: 'local-processing',
       type: 'mute',
-      tunnel: [remember({ url: target, format: video, mime: 'video/mp4' })],
+      tunnel: [remember({ url: queryUrl, referer: directSource?.referer, format: video, mime: 'video/mp4' })],
       output: { filename: `${stem} (${heightOf(video)}p, ohne Ton).mp4`, type: 'video/mp4' },
-      isHLS: false,
+      isHLS: isHlsFormat(video),
     }
   }
 
@@ -261,7 +528,7 @@ async function resolve(body) {
   if (progressive && (!video || !audio || heightOf(progressive) >= heightOf(video))) {
     return {
       status: 'tunnel',
-      url: remember({ url: target, format: progressive, mime: 'video/mp4' }),
+      url: remember({ url: queryUrl, referer: directSource?.referer, format: progressive, mime: 'video/mp4' }),
       filename: `${stem} (${heightOf(progressive)}p).${progressive.ext ?? 'mp4'}`,
     }
   }
@@ -272,11 +539,11 @@ async function resolve(body) {
     status: 'local-processing',
     type: 'merge',
     tunnel: [
-      remember({ url: target, format: video, mime: 'video/mp4' }),
-      remember({ url: target, format: audio, mime: 'audio/mp4' }),
+      remember({ url: queryUrl, referer: directSource?.referer, format: video, mime: 'video/mp4' }),
+      remember({ url: queryUrl, referer: directSource?.referer, format: audio, mime: 'audio/mp4' }),
     ],
     output: { filename: `${stem} (${heightOf(video)}p).mp4`, type: 'video/mp4' },
-    isHLS: false,
+    isHLS: isHlsFormat(video),
   }
 }
 
@@ -308,6 +575,7 @@ function tunnel(job, req, res) {
       '-f', String(job.format.format_id),
       '-o', '-',
       '--no-part', '--no-warnings', '--quiet', '--no-playlist',
+      ...(job.referer ? ['--referer', job.referer] : []),
       ...cookieArgs,
       '--', job.url,
     ],

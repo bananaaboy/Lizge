@@ -14,7 +14,9 @@
     "verify:tempo": "esbuild scripts/verify-tempo.mts --bundle --platform=node --format=esm --log-level=warning --outfile=node_modules/.verify-tempo.mjs && node node_modules/.verify-tempo.mjs",
     "verify": "npm run verify:loudness && npm run verify:tempo && npm run verify:harmony && npm run verify:resolve",
     "verify:harmony": "esbuild scripts/verify-harmony.mts --bundle --platform=node --format=esm --log-level=warning --outfile=node_modules/.verify-harmony.mjs && node node_modules/.verify-harmony.mjs",
-    "verify:resolve": "node scripts/verify-resolve.mjs"
+    "verify:resolve": "node scripts/verify-resolve.mjs",
+    "dl": "node scripts/dl.mjs",
+    "ytdlp": "node public/sondra-ytdlp.mjs"
   },
   "dependencies": {
     "@ffmpeg/ffmpeg": "^0.12.15",
