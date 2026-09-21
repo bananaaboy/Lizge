@@ -88,11 +88,28 @@ export class ServiceError extends Error {
   }
 }
 
-/** Turns the service's error codes into something a person can act on. */
+/**
+ * Turns the service's error codes into something a person can act on.
+ *
+ * Every line here reports somebody else's answer. The service is the visitor's
+ * own — a public instance they picked, or a bridge on their own machine — and
+ * Sondra neither filters what is sent to it nor second-guesses what comes
+ * back: `runService` forwards whatever stands in the field, and
+ * `resolveViaProvider` takes the reply as given.
+ *
+ * That has to be audible in the wording, and it was not. „Diese Adresse kennt
+ * der Dienst nicht" read as though this app had refused, which sent at least
+ * one person looking for a restriction here to remove. There is none. The
+ * sentence now names who said no.
+ */
 export function explain(code: string | null): string {
   if (!code) return 'Der Dienst hat die Anfrage abgelehnt.'
   if (code.includes('link.invalid') || code.includes('link.unsupported')) {
-    return 'Diese Adresse kennt der Dienst nicht oder unterstützt sie nicht.'
+    return (
+      'Der verbundene Dienst antwortet, dass er diese Seite nicht kennt — die Absage kommt von ' +
+      'ihm, nicht von Sondra. Ein anderer Dienst oder eine neuere Fassung kann sie unter ' +
+      'Umständen.'
+    )
   }
   if (code.includes('content.video.unavailable') || code.includes('content.video.private')) {
     return 'Das Video ist nicht öffentlich abrufbar.'
