@@ -34,8 +34,17 @@
  * instant.
  */
 
-import { fetchMedia } from './download'
-import { DEFAULT_SERVICE, resolveMedia, type ServiceItem } from './service'
+import { fetchHlsSegments, fetchMedia, fetchPlaylist } from './download'
+import { loadFfmpeg, runFfmpeg } from './ffmpegClient'
+import { sanitizeFilename, withExtension } from './format'
+import {
+  DEFAULT_SERVICE,
+  localJobArgs,
+  localJobExtension,
+  resolveMedia,
+  type LocalJob,
+  type ServiceItem,
+} from './service'
 import { serviceConnection } from './serviceState'
 
 export interface StudioStream {
@@ -59,6 +68,15 @@ export interface StudioStream {
    * the two is ever set.
    */
   directUrl?: string | null
+  /**
+   * Parts that still have to be put together here.
+   *
+   * A service that keeps picture and sound apart — which is everything above
+   * 360p on YouTube — hands over the pieces and expects the client to combine
+   * them. FFmpeg is already in this tab, so that happens here and the service
+   * never sees the finished file.
+   */
+  job?: LocalJob | null
 }
 
 export interface StudioResult {
@@ -84,6 +102,87 @@ export class StudioError extends Error {
 /** Four megabytes: big enough that the per-request overhead disappears, small
  *  enough that a chunk always finishes well inside the function's time limit. */
 const CHUNK = 4 * 1024 * 1024
+
+/**
+ * Puts a `local-processing` job together and hands back the finished bytes.
+ *
+ * Lifted out of the options section so the one address field can finish such a
+ * job too. Before this it could not, and that was the whole of the complaint:
+ * with a bridge connected, „Nachsehen" asked it, got parts back instead of a
+ * file, quietly fell through to this site's own endpoint and answered 360p —
+ * or nothing. The better answer was one button further down, and nothing on
+ * screen said so.
+ */
+export async function finishLocalJob(
+  job: LocalJob,
+  options: {
+    onProgress?: (progress: StreamProgress) => void
+    onNote?: (note: string) => void
+    signal?: AbortSignal
+  } = {},
+): Promise<{ bytes: Uint8Array; name: string; mime: string }> {
+  const { onProgress, onNote, signal } = options
+  const inputs: Record<string, Uint8Array> = {}
+  const names: string[] = []
+
+  for (const [index, tunnel] of job.tunnels.entries()) {
+    onNote?.(`Teil ${index + 1} von ${job.tunnels.length} wird geholt`)
+    let bytes: Uint8Array
+    if (job.isHls) {
+      // The tunnel is a playlist, not a file; pull its segments first.
+      const playlist = await fetchPlaylist(tunnel, signal)
+      bytes = await fetchHlsSegments(
+        playlist,
+        // Segment counts say nothing about bytes, and a byte total for an
+        // HLS stream is not known until the last one lands — so progress here
+        // counts up without a ceiling rather than inventing one.
+        (_segmentsDone, _segmentsTotal, received) => onProgress?.({ loaded: received, total: null }),
+        signal,
+      )
+    } else {
+      bytes = (
+        await fetchMedia(
+          tunnel,
+          (p) => onProgress?.({ loaded: p.receivedBytes, total: p.totalBytes }),
+          signal,
+        )
+      ).bytes
+    }
+    const name = `part${index}`
+    inputs[name] = bytes
+    names.push(name)
+  }
+
+  onNote?.('Wird lokal zusammengefügt')
+  await loadFfmpeg()
+
+  const extension = localJobExtension(job)
+  const outputName = `out.${extension}`
+  const { files } = await runFfmpeg({
+    input: inputs,
+    output: [outputName],
+    args: localJobArgs(job, names, outputName),
+    signal,
+  })
+  const bytes = files[outputName]
+
+  // FFmpeg writes a container header before it knows the streams are unusable,
+  // so a failed merge leaves a file of a few bytes behind. Offering that for
+  // saving is worse than saying plainly that nothing came through.
+  if (!bytes || bytes.byteLength < 1024) {
+    throw new StudioError(
+      'merge',
+      `Das Zusammenfügen ergab nur ${bytes?.byteLength ?? 0} Bytes — die Teile vom Dienst waren ` +
+        'unbrauchbar. Meist hilft eine andere Qualität oder ein erneuter Versuch in ein paar Minuten.',
+    )
+  }
+
+  return {
+    bytes,
+    name: sanitizeFilename(withExtension(job.filename, extension)),
+    mime: job.mimeType,
+  }
+}
 
 /** A service answer, in the shape the panel already knows how to show. */
 function fromServiceItems(items: ServiceItem[], fallbackTitle: string): StudioResult {
@@ -143,8 +242,33 @@ export async function resolveViaService(url: string, signal?: AbortSignal): Prom
       )
       if (outcome.kind === 'file') return fromServiceItems([outcome.item], url)
       if (outcome.kind === 'picker') return fromServiceItems(outcome.items, 'Mehrere Dateien')
-      // Anything else the service offers — a job that still needs muxing —
-      // belongs to the section that knows how to finish it. Fall through.
+      if (outcome.kind === 'local') {
+        const job = outcome.job
+        const ext = localJobExtension(job)
+        return {
+          kind: 'provider',
+          source: 'service',
+          title: job.filename,
+          author: null,
+          durationSeconds: null,
+          thumbnail: null,
+          streams: [
+            {
+              id: 'dienst-lokal',
+              label: 'Volle Auflösung — wird hier zusammengefügt',
+              hasVideo: job.type !== 'audio',
+              hasAudio: job.type !== 'mute',
+              width: null,
+              height: null,
+              ext,
+              mime: job.mimeType,
+              bytes: null,
+              token: '',
+              job,
+            },
+          ],
+        }
+      }
     } catch (cause) {
       if (cause instanceof DOMException && cause.name === 'AbortError') throw cause
       // A service that cannot answer is not the end of the road: this site's
@@ -204,6 +328,11 @@ export async function downloadStream(
   // A service tunnel is fetched straight from the browser: it sent the header
   // that permits it, and routing it through this site's proxy would add a hop
   // that serves nobody.
+  if (stream.job) {
+    const done = await finishLocalJob(stream.job, { onProgress, signal })
+    return done.bytes
+  }
+
   if (stream.directUrl) {
     const media = await fetchMedia(
       stream.directUrl,

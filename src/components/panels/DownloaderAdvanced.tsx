@@ -44,8 +44,6 @@ import {
   DEFAULT_SERVICE,
   findLocalInstance,
   isLoopback,
-  localJobArgs,
-  localJobExtension,
   probeService,
   resolveMedia,
   localNetworkPermission,
@@ -64,7 +62,7 @@ import {
   type VideoQuality,
 } from '../../lib/service'
 import { loadFfmpeg, runFfmpeg } from '../../lib/ffmpegClient'
-import { formatBytes, sanitizeFilename, withExtension } from '../../lib/format'
+import { formatBytes, sanitizeFilename } from '../../lib/format'
 import {
   BRIDGE_PORT,
   bridgeScript,
@@ -94,6 +92,7 @@ import {
 } from '../../lib/selfhost'
 import { detectPlatform } from '../../lib/platform'
 import { serviceConnection, setServiceConnection } from '../../lib/serviceState'
+import { finishLocalJob } from '../../lib/studio'
 import { holdScreenAwake } from '../../lib/wakeLock'
 import { kindFromMime, useSession } from '../../state/store'
 import { SessionAside } from '../AssetList'
@@ -447,65 +446,30 @@ export function AdvancedDownloader({ url }: { url: string }) {
    * instance never sees it.
    */
   const runLocalJob = async (job: LocalJob, signal: AbortSignal) => {
-    const inputs: Record<string, Uint8Array> = {}
-    const names: string[] = []
-
-    for (const [index, tunnel] of job.tunnels.entries()) {
-      setNote(`Teil ${index + 1} von ${job.tunnels.length} wird geholt`)
-      let bytes: Uint8Array
-      if (job.isHls) {
-        // The tunnel is a playlist, not a file; pull its segments first.
-        const playlist = await fetchPlaylist(tunnel, signal)
-        bytes = await fetchHlsSegments(
-          playlist,
-          (done, total, received) =>
-            setProgress({ receivedBytes: received, totalBytes: null, fraction: done / total, bytesPerSecond: 0 }),
-          signal,
-        )
-      } else {
-        bytes = (await fetchMedia(tunnel, setProgress, signal)).bytes
-      }
-      const name = `part${index}`
-      inputs[name] = bytes
-      names.push(name)
-    }
-
+    const { bytes, name, mime } = await finishLocalJob(job, {
+      onNote: setNote,
+      onProgress: (p) =>
+        setProgress({
+          receivedBytes: p.loaded,
+          totalBytes: p.total,
+          fraction: p.total ? p.loaded / p.total : null,
+          bytesPerSecond: 0,
+        }),
+      signal,
+    })
     setProgress(null)
-    setNote('Wird lokal zusammengefügt')
-    await loadFfmpeg()
-
-    const extension = localJobExtension(job)
-    const outputName = `out.${extension}`
-    const args = localJobArgs(job, names, outputName)
-    log('dienst', `ffmpeg ${args.join(' ')}`)
-
-    const { files } = await runFfmpeg({ input: inputs, output: [outputName], args, signal })
-    const bytes = files[outputName]
-
-    // FFmpeg writes a container header before it knows the streams are unusable,
-    // so a failed merge leaves a file of a few bytes behind. Offering that for
-    // saving is worse than saying plainly that nothing came through.
-    if (!bytes || bytes.byteLength < 1024) {
-      throw new Error(
-        `Das Zusammenfügen ergab nur ${bytes?.byteLength ?? 0} Bytes — die Teile vom Dienst ` +
-          'waren unbrauchbar. Meist hilft eine andere Qualität oder ein erneuter Versuch ' +
-          'in ein paar Minuten.',
-      )
-    }
-
-    const name = sanitizeFilename(withExtension(job.filename, extension))
 
     addAsset({
       name,
       bytes,
-      mime: job.mimeType,
+      mime,
       sizeBytes: bytes.byteLength,
-      kind: kindFromMime(job.mimeType, name),
+      kind: kindFromMime(mime, name),
       audio: null,
       durationSeconds: null,
       origin: 'download',
     })
-    setFetched({ name, bytes, mime: job.mimeType })
+    setFetched({ name, bytes, mime })
     log('dienst', `${name} lokal zusammengefügt (${formatBytes(bytes.byteLength)})`)
   }
 
