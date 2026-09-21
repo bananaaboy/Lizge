@@ -160,7 +160,17 @@ export function DownloaderPanel() {
         >
           <TextInput
             value={url}
-            onChange={(event) => setUrl(event.target.value)}
+            onChange={(event) => {
+              setUrl(event.target.value)
+              // A new address makes the last answer stale. Leaving it up was
+              // worse than showing nothing: somebody who had a failure here,
+              // then pasted a different link, kept reading the old refusal as
+              // a verdict on the new one — including „Es wurde keine Adresse
+              // übergeben" sitting under a field with an address in it.
+              setError(null)
+              setResult(null)
+              setProgress(null)
+            }}
             placeholder="https://www.youtube.com/watch?v=… oder eine Adresse, die direkt auf eine Datei zeigt"
             inputMode="url"
             aria-label="Adresse zum Herunterladen"
