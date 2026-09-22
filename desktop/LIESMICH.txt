@@ -20,3 +20,8 @@ Entfernen
 
 Aktualisieren
   Das neuere Setup einfach darüber installieren.
+
+Wenn etwas nicht geht
+  Sondra schreibt ein Protokoll nach %APPDATA%\Sondra\sondra.log (in die
+  Adresszeile des Explorers einfügen). Lädt die Oberfläche nicht, zeigt das
+  Fenster den Grund und einen Link „Erneut versuchen“.

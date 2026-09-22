@@ -33,6 +33,53 @@ if (!app.requestSingleInstanceLock()) app.quit()
 
 let window = null
 
+/**
+ * Sondra's own log, `sondra.log` in the app's data folder
+ * (%APPDATA%\Sondra on Windows). A desktop app has no console anyone reads,
+ * and a start that fails with one line in a dialog is otherwise a guess.
+ */
+function logFile() {
+  return path.join(app.getPath('userData'), 'sondra.log')
+}
+
+function log(message) {
+  try {
+    fs.appendFileSync(logFile(), `${new Date().toISOString()}  ${message}\n`)
+  } catch {
+    // Logging must never be the reason the app fails.
+  }
+}
+
+/** Keep the log to one session's worth once it grows past a megabyte. */
+function trimLog() {
+  try {
+    if (fs.statSync(logFile()).size > 1_000_000) fs.writeFileSync(logFile(), '')
+  } catch {
+    // No log yet.
+  }
+}
+
+const escapeHtml = (text) =>
+  String(text).replace(/[&<>"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[char])
+
+/**
+ * What the window shows when the page will not load: the reason, where the
+ * log is, and a way to try again — instead of a dialog and a vanished app.
+ */
+function failurePage(reason, retryUrl) {
+  const dark = nativeTheme.shouldUseDarkColors
+  const [ground, ink, prose] = dark ? ['#090d0b', '#c9e3cc', '#dfe6e0'] : ['#f4f3ee', '#0f3e1c', '#1b231d']
+  const html = `<!doctype html><html lang="de"><meta charset="utf-8"><title>Sondra</title>
+<body style="margin:0;background:${ground};color:${prose};font:16px/1.55 system-ui,sans-serif">
+<main style="max-width:560px;padding:64px 32px">
+<h1 style="color:${ink};font-size:24px;margin:0 0 12px">Sondra konnte die Oberfläche nicht laden</h1>
+<p style="margin:0 0 16px">${escapeHtml(reason)}</p>
+<p style="margin:0 0 24px">Einzelheiten stehen im Protokoll:<br><code>${escapeHtml(logFile())}</code></p>
+<p style="margin:0"><a href="${escapeHtml(retryUrl)}" style="color:${ink}">Erneut versuchen</a></p>
+</main></body></html>`
+  return `data:text/html;charset=utf-8,${encodeURIComponent(html)}`
+}
+
 app.on('second-instance', () => {
   if (!window) return
   if (window.isMinimized()) window.restore()
@@ -53,9 +100,22 @@ function keepInside(contents, origin) {
 }
 
 async function open() {
+  trimLog()
+  log(`Start ${app.getVersion()} · ${process.platform} ${process.arch} · Electron ${process.versions.electron}`)
+
+  // Earlier builds shipped the site's service worker, which then sat between
+  // this window and the local server. This build does not ship it; whatever a
+  // previous install registered — and the ~90 MB it cached — goes here.
+  try {
+    await session.defaultSession.clearStorageData({ storages: ['serviceworkers', 'cachestorage'] })
+  } catch (failure) {
+    log(`Service Worker nicht entfernt: ${failure?.message ?? failure}`)
+  }
+
   const root = path.join(app.getAppPath(), 'app')
-  const { url } = await startServer({ root, port: PORT })
+  const { url } = await startServer({ root, port: PORT, onError: (message) => log(`Server: ${message}`) })
   const origin = url.replace(/\/$/, '')
+  log(`Server auf ${url}`)
 
   // Permissions (microphone, clipboard, notifications) only for Sondra's own
   // page, never for anything it might end up framing.
@@ -95,11 +155,22 @@ async function open() {
   })
   keepInside(window.webContents, origin)
 
+  const contents = window.webContents
+  contents.on('did-fail-load', (_event, code, description, failedUrl, isMainFrame) => {
+    log(`Laden fehlgeschlagen: ${code} ${description} · ${failedUrl}${isMainFrame ? ' (Seite)' : ''}`)
+  })
+  contents.on('render-process-gone', (_event, details) => {
+    log(`Seitenprozess beendet: ${details.reason} (${details.exitCode})`)
+    if (details.reason !== 'clean-exit' && window) void load()
+  })
+  contents.on('console-message', (event) => {
+    if (event.level === 'error') log(`Seite: ${event.message}`)
+  })
+
   if (SMOKE) {
-    window.webContents.once('did-finish-load', async () => {
-      // Long enough for the service worker's one reload, if it takes one.
+    contents.once('did-finish-load', async () => {
       await new Promise((resolve) => setTimeout(resolve, 4000))
-      const seen = await window.webContents.executeJavaScript(
+      const seen = await contents.executeJavaScript(
         `({ isolated: crossOriginIsolated, heading: document.querySelector('h1,h2')?.textContent ?? null,
             tools: document.querySelectorAll('section button').length })`,
       )
@@ -108,15 +179,44 @@ async function open() {
     })
   }
 
-  await window.loadURL(url)
+  /**
+   * Load the page, a few times if need be. A first navigation can fail for
+   * reasons that are gone a moment later — a virus scanner holding a file,
+   * the loopback interface still settling after resume — and giving up on the
+   * first one made a passing hiccup look like a broken install.
+   */
+  async function load() {
+    let last = null
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      try {
+        await window.loadURL(url)
+        return
+      } catch (failure) {
+        last = failure
+        log(`Versuch ${attempt}: ${failure?.message ?? failure}`)
+        await new Promise((resolve) => setTimeout(resolve, 600 * attempt))
+      }
+    }
+    if (SMOKE) {
+      fs.writeFileSync(SMOKE, JSON.stringify({ error: String(last?.message ?? last) }))
+      app.exit(1)
+      return
+    }
+    await window.loadURL(failurePage(String(last?.message ?? last), url))
+    window.show()
+  }
+
+  await load()
 }
 
 app.setAppUserModelId('ch.lizge.sondra')
 
 app.whenReady().then(() =>
   open().catch((failure) => {
-    if (SMOKE) fs.writeFileSync(SMOKE, JSON.stringify({ error: String(failure?.message ?? failure) }))
-    else dialog.showErrorBox('Sondra konnte nicht starten', String(failure?.message ?? failure))
+    const message = String(failure?.message ?? failure)
+    log(`Start fehlgeschlagen: ${failure?.stack ?? failure}`)
+    if (SMOKE) fs.writeFileSync(SMOKE, JSON.stringify({ error: message }))
+    else dialog.showErrorBox('Sondra konnte nicht starten', `${message}\n\nProtokoll: ${logFile()}`)
     app.exit(1)
   }),
 )
