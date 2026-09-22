@@ -51,21 +51,31 @@ jobs:
           if (-not (Test-Path $app)) { throw "Nicht installiert: $app fehlt." }
           if (-not (Test-Path (Join-Path $env:LOCALAPPDATA 'Programs\Sondra\LIZENZ.txt'))) { throw 'LIZENZ.txt fehlt im Installationsordner.' }
 
+          # Twice: the second start runs against the profile the first one left
+          # behind, which is where a start that works once and then fails lives.
           $report = Join-Path $env:RUNNER_TEMP 'smoke.json'
           $env:SONDRA_SMOKE = $report
           # The installer may start the app when it finishes; the test wants its own start.
           Start-Sleep -Seconds 3
           Get-Process Sondra -ErrorAction SilentlyContinue | Stop-Process -Force
-          $process = Start-Process -FilePath $app -PassThru
-          if (-not $process.WaitForExit(90000)) { $process.Kill(); throw 'Sondra hat sich nicht wieder beendet.' }
-
-          if (-not (Test-Path $report)) { throw 'Sondra hat keinen Bericht geschrieben.' }
-          $seen = Get-Content $report -Raw | ConvertFrom-Json
-          $seen | Format-List
-          if ($seen.error) { throw "Start fehlgeschlagen: $($seen.error)" }
-          if (-not $seen.isolated) { throw 'Seite nicht isoliert: FFmpeg liefe nur einfädig.' }
-          if ($seen.tools -lt 10) { throw "Nur $($seen.tools) Werkzeuge sichtbar." }
+          foreach ($run in 1..2) {
+            Remove-Item $report -ErrorAction SilentlyContinue
+            $process = Start-Process -FilePath $app -PassThru
+            if (-not $process.WaitForExit(90000)) { $process.Kill(); throw "Start ${run}: Sondra hat sich nicht wieder beendet." }
+            if (-not (Test-Path $report)) { throw "Start ${run}: Sondra hat keinen Bericht geschrieben." }
+            $seen = Get-Content $report -Raw | ConvertFrom-Json
+            Write-Host "Start ${run}:"
+            $seen | Format-List
+            if ($seen.error) { throw "Start ${run} fehlgeschlagen: $($seen.error)" }
+            if (-not $seen.isolated) { throw "Start ${run}: Seite nicht isoliert, FFmpeg liefe nur einfädig." }
+            if ($seen.tools -lt 10) { throw "Start ${run}: nur $($seen.tools) Werkzeuge sichtbar." }
+          }
           Write-Host 'Installiert, gestartet, Sondra im eigenen Fenster geladen.'
+
+      - name: Show the app's log
+        if: always()
+        shell: pwsh
+        run: Get-Content (Join-Path $env:APPDATA 'Sondra\sondra.log') -ErrorAction SilentlyContinue
 
       - uses: actions/upload-artifact@v4
         with:

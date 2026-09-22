@@ -46,25 +46,33 @@ function adapt(request, response, url) {
   }
 }
 
-/** A path under root, or index.html for anything that is not a file there. */
+/**
+ * The file a path names under root, index.html for the page itself, or null.
+ *
+ * Only extensionless paths fall back to the page. The app routes by hash, so
+ * `/` is the only page address there is; a missing script or stylesheet
+ * answered with HTML would fail in the browser with a confusing MIME error
+ * instead of a plain 404.
+ */
 function fileFor(root, pathname) {
   let decoded
   try {
     decoded = decodeURIComponent(pathname)
   } catch {
-    decoded = '/'
+    return null
   }
   const candidate = path.resolve(root, '.' + path.posix.normalize(decoded))
   const inside = candidate === root || candidate.startsWith(root + path.sep)
-  if (inside && fs.existsSync(candidate) && fs.statSync(candidate).isFile()) return candidate
-  return path.join(root, 'index.html')
+  if (!inside) return null
+  if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) return candidate
+  return path.extname(decoded) ? null : path.join(root, 'index.html')
 }
 
 /**
  * Serve `root` on 127.0.0.1, preferring `port` and falling back to any free
  * one. Resolves to the base address once listening.
  */
-export async function startServer({ root, port }) {
+export async function startServer({ root, port, onError }) {
   if (!fs.existsSync(path.join(root, 'index.html'))) {
     throw new Error(`Die Oberfläche fehlt: ${path.join(root, 'index.html')} gibt es nicht.`)
   }
@@ -95,6 +103,7 @@ export async function startServer({ root, port }) {
         else if (url.pathname === '/api/stream') await streamFn(request, response)
         else response.status(404).json({ error: 'route' })
       } catch (failure) {
+        onError?.(`${url.pathname}: ${failure?.stack ?? failure}`)
         if (!response.headersSent) response.status(500).json({ error: 'crash', message: String(failure?.message ?? failure) })
         else response.end()
       }
@@ -102,24 +111,38 @@ export async function startServer({ root, port }) {
     }
 
     const file = fileFor(root, url.pathname)
+    if (!file) {
+      response.statusCode = 404
+      response.setHeader('content-type', 'text/plain; charset=utf-8')
+      response.end('Nicht gefunden.')
+      return
+    }
     response.setHeader('content-type', TYPES[path.extname(file)] ?? 'application/octet-stream')
     // Hashed assets never change under the same name; the page itself might.
     if (file.includes(`${path.sep}assets${path.sep}`)) response.setHeader('cache-control', 'public, max-age=31536000, immutable')
     else response.setHeader('cache-control', 'no-cache')
-    fs.createReadStream(file).pipe(response)
+    const stream = fs.createReadStream(file)
+    // A file that vanished or is locked (a virus scanner, mid-read) ends this
+    // one response, not the whole app.
+    stream.on('error', (failure) => {
+      onError?.(`Lesen fehlgeschlagen: ${file}: ${failure.message}`)
+      if (!response.headersSent) response.statusCode = 500
+      response.end()
+    })
+    stream.pipe(response)
   })
 
   const listen = (candidate) =>
     new Promise((resolve, reject) => {
-      const onError = (failure) => {
+      const onListenError = (failure) => {
         server.off('listening', onListening)
         reject(failure)
       }
       const onListening = () => {
-        server.off('error', onError)
+        server.off('error', onListenError)
         resolve()
       }
-      server.once('error', onError)
+      server.once('error', onListenError)
       server.once('listening', onListening)
       server.listen(candidate, HOST)
     })
@@ -127,9 +150,12 @@ export async function startServer({ root, port }) {
   try {
     await listen(port)
   } catch (failure) {
-    // Something else already has the usual port. Any free one works; it only
-    // costs the origin, and with it whatever the page kept in storage.
-    if (failure.code !== 'EADDRINUSE') throw failure
+    // Something else already has the usual port, or Windows has reserved it
+    // (Hyper-V and WSL claim whole ranges, and binding inside one is EACCES).
+    // Any free port works; it only costs the origin, and with it whatever the
+    // page kept in storage.
+    if (failure.code !== 'EADDRINUSE' && failure.code !== 'EACCES') throw failure
+    onError?.(`Port ${port} nicht verfügbar (${failure.code}), weiche aus.`)
     await listen(0)
   }
 

@@ -30,8 +30,15 @@ const STAGE = path.join(DESKTOP, '.stage')
 const RESOURCES = path.join(DESKTOP, '.build')
 const onlyDir = process.argv.includes('--dir')
 
-/** Not part of the app: deployment config, and the yt-dlp bridge. */
-const LEFT_OUT = new Set(['_headers', 'staticwebapp.config.json', 'sondra-ytdlp.mjs'])
+/**
+ * Not part of the app: deployment config, the yt-dlp bridge, and the service
+ * worker. The worker exists to add isolation headers a static host cannot set
+ * and to keep the site usable offline; the app's own server sets the headers
+ * and is on this machine anyway. Left in, it sits between the window and that
+ * server, and a fetch that fails inside it reaches the window as ERR_FAILED —
+ * the likeliest source of the one reported on start.
+ */
+const LEFT_OUT = new Set(['_headers', 'staticwebapp.config.json', 'sondra-ytdlp.mjs', 'coi-serviceworker.js'])
 
 function step(message) {
   console.log(`· ${message}`)
