@@ -54,7 +54,7 @@ function describeFetchFailure(error: unknown, url: string): TransferError {
   return new TransferError(
     'cors',
     `${host} erlaubt keinen direkten Zugriff aus dem Browser (fehlender CORS-Header) ` +
-      'oder ist nicht erreichbar. Sondra kann das nicht umgehen, ohne die Anfrage über ' +
+      'oder ist nicht erreichbar. Das lässt sich nicht umgehen, ohne die Anfrage über ' +
       'einen fremden Server zu leiten — und genau das tut diese App nicht.',
   )
 }

@@ -47,8 +47,10 @@ npm run typecheck        # TypeScript ohne Emit
 npm run verify            # Lautheit und Timing prüfen
 ```
 
-`dist/` ist ein Ordner mit statischen Dateien. Es gibt keine Laufzeit, keine
-Datenbank, keinen API-Endpunkt.
+`dist/` ist ein Ordner mit statischen Dateien. Es gibt keine Datenbank und
+keine dauerhafte Speicherung. Beim Vercel-Deployment ergänzt `api/resolve.js`
+einen kleinen, zustandslosen Endpunkt für den sichtbaren Download-Schritt;
+lokal kann er mit `npm run dev:service` gestartet werden.
 
 ## Warum das wirklich lokal ist
 
@@ -221,6 +223,18 @@ Abbrechen geht nur über `terminate()`: ein laufender Core lässt sich nicht
 unterbrechen. Der nächste Aufruf lädt ihn transparent neu.
 
 ## Der Downloader
+
+### Webseiten und Player-Links
+
+Ist eine eingefügte HTTPS-Adresse keine Datei, liest der zustandslose
+Resolver die HTML-Seite (höchstens 1 MB) und zeigt bis zu 80 eindeutige Links
+an. Gewöhnliche Navigationslinks bleiben auf derselben Website, relative
+Adressen werden aufgelöst und Sprungmarken entfernt. Player-Ziele dürfen auf
+einem externen Hoster liegen, wenn die Seite sie ausdrücklich über
+`data-link-target`, `data-player-url` oder `data-embed-url` bereitstellt. Sie
+werden in der Auswahl als **Player** markiert. „Öffnen“ übernimmt die Adresse
+und sucht auf der gewählten Seite weiter; es lädt oder umgeht keinen
+Kopierschutz.
 
 Ein Panel, drei Wege. Direkter Link, HLS-Playlist und Portal-Adresse sind aus
 Sicht des Nutzers dieselbe Aufgabe — Adresse einfügen, Datei bekommen —, also
