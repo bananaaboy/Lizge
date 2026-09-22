@@ -924,6 +924,27 @@ unverändert durch.
 Über das Manifest lässt sich Sondra installieren. Der Knopf erscheint nur, wenn
 der Browser ihn anbietet.
 
+## Als Windows-Programm
+
+`npm run build:desktop` baut `release/Sondra-Windows-x64.zip`: ein Ordner mit
+`Sondra.exe`, der Oberfläche unter `app/`, `LIZENZ.txt` und den Lizenztexten
+der Fremdbestandteile. Entpacken, doppelklicken — keine Installation, keine
+Administratorrechte. Die EXE ist eine Node-Einzeldatei (`node.exe` mit
+eingesetztem Blob aus `desktop/main.mjs`); sie serviert die Seite und die
+beiden Funktionen unter `api/` nur auf `127.0.0.1` und öffnet den Browser.
+
+Der Build lädt `node.exe` in genau der Node-Version, die ihn ausführt,
+vergleicht die Prüfsumme mit der Liste von nodejs.org und entfernt die
+Authenticode-Signatur vor dem Einsetzen, weil eine gebrochene Signatur
+misstrauischer behandelt wird als keine. SmartScreen warnt beim ersten Start
+trotzdem, bis die EXE mit einem eigenen Zertifikat signiert ist.
+
+Der Ordner enthält, was die Website ausliefert, ohne die Bereitstellungsdateien
+und ohne `sondra-ytdlp.mjs`; die Brücke startet die EXE nicht. Im Repository
+bleibt sie unverändert.
+
+`npm run desktop` startet denselben Server aus einem Checkout über `dist/`.
+
 ## Die Rechenverfahren
 
 **Lautheit.** Vollständiges BS.1770-4, gegen den Referenzpunkt der Norm geprüft

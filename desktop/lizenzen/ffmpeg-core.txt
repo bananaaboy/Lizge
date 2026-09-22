@@ -1,0 +1,15 @@
+FFmpeg (ffmpeg.wasm core)
+
+Files: app/assets/ffmpeg-core-*.js, app/assets/ffmpeg-core-*.wasm,
+       app/assets/ffmpeg-core.worker-*.js
+
+These files are FFmpeg compiled to WebAssembly by the ffmpeg.wasm project
+(@ffmpeg/core and @ffmpeg/core-mt, version 0.12). They are licensed under the
+GNU General Public License, version 2 or (at your option) any later version.
+The full text is in GPL-2.0.txt in this folder.
+
+Corresponding source code:
+  https://github.com/ffmpegwasm/ffmpeg.wasm  (build scripts, tag v0.12.x)
+  https://ffmpeg.org/download.html           (FFmpeg itself)
+
+The files are distributed unmodified, exactly as published on npm.
