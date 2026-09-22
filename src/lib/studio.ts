@@ -90,6 +90,7 @@ export interface StudioResult {
   streams: StudioStream[]
   /** Same-site navigation found when the pasted address is an HTML page. */
   links?: Array<{ url: string; label: string; player?: boolean }>
+  links?: Array<{ url: string; label: string }>
 }
 
 export class StudioError extends Error {
