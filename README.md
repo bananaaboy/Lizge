@@ -924,31 +924,33 @@ unverändert durch.
 Über das Manifest lässt sich Sondra installieren. Der Knopf erscheint nur, wenn
 der Browser ihn anbietet.
 
-## Als Windows-Programm
+## Als Windows-App
 
-`npm run build:desktop` baut `release/Sondra-Windows-x64.zip`: ein Ordner mit
-`Sondra.exe`, der Oberfläche unter `app/`, `LIZENZ.txt` und den Lizenztexten
-der Fremdbestandteile. Entpacken, doppelklicken — keine Installation, keine
-Administratorrechte. Die EXE ist eine Node-Einzeldatei (`node.exe` mit
-eingesetztem Blob aus `desktop/main.mjs`); sie serviert die Seite und die
-beiden Funktionen unter `api/` nur auf `127.0.0.1` und öffnet den Browser.
+Sondra gibt es auch als installierte Windows-App: eigenes Fenster statt
+Browser, Eintrag im Startmenü, Verknüpfung auf dem Desktop, Deinstallation
+über die Windows-Einstellungen. Das Setup installiert nur für das eigene
+Benutzerkonto und braucht deshalb keine Administratorrechte; vor der
+Installation zeigt es `LIZENZ.txt`.
 
-Der Build lädt `node.exe` in genau der Node-Version, die ihn ausführt,
-vergleicht die Prüfsumme mit der Liste von nodejs.org und entfernt die
-Authenticode-Signatur vor dem Einsetzen, weil eine gebrochene Signatur
-misstrauischer behandelt wird als keine. SmartScreen warnt beim ersten Start
-trotzdem, bis die EXE mit einem eigenen Zertifikat signiert ist.
+Gebaut wird es mit Electron: `desktop/electron.mjs` öffnet ein Fenster auf
+`desktop/server.mjs`, der die Seite und die beiden Funktionen unter `api/`
+nur auf `127.0.0.1` ausliefert — mit denselben Isolations-Headern wie die
+Website, damit FFmpeg mehrfädig rechnet. Electron steht in
+`desktop/package.json`, nicht im Wurzelpaket, damit die Installation auf
+Vercel keinen Browser herunterlädt, den sie nie startet.
 
-Der Ordner enthält, was die Website ausliefert, ohne die Bereitstellungsdateien
-und ohne `sondra-ytdlp.mjs`; die Brücke startet die EXE nicht. Im Repository
+- **Fertiges Setup:** GitHub → Actions → „Desktop“ → Artefakt
+  `Sondra-Setup`. Der Workflow baut auf Windows, installiert still, startet
+  die installierte App und prüft, dass die Seite isoliert geladen ist.
+- **Selbst bauen (Windows):** `npm ci --prefix desktop`, dann
+  `npm run build:desktop` → `release/Sondra-Setup-<Version>.exe`.
+- **Zum Ausprobieren auf jedem System:** `node scripts/build-desktop.mjs --dir`
+  nach `npm run build` baut den entpackten App-Ordner; `npm run desktop`
+  startet nur den Server und öffnet ihn im Browser.
+
+Die App liefert, was die Website ausliefert, ohne die Bereitstellungsdateien
+und ohne `sondra-ytdlp.mjs`; die Brücke startet sie nicht. Im Repository
 bleibt sie unverändert.
-
-`npm run desktop` startet denselben Server aus einem Checkout über `dist/`.
-
-Fertig gebaut liegt das Programm unter GitHub → Actions → „Desktop“ als
-Artefakt `Sondra-Windows-x64`. Der Workflow baut unter Linux und startet die
-EXE danach einmal auf einem Windows-Runner: Seite, FFmpeg-Core und API müssen
-antworten, sonst ist der Lauf rot.
 
 ## Die Rechenverfahren
 
