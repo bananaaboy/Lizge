@@ -1,0 +1,48 @@
+{
+  "name": "sondra-desktop",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Sondra als Windows-App: eigenes Fenster, Installer, läuft lokal.",
+  "author": "Sondra",
+  "devDependencies": {
+    "electron": "44.4.4",
+    "electron-builder": "26.15.3"
+  },
+  "build": {
+    "appId": "ch.lizge.sondra",
+    "productName": "Sondra",
+    "copyright": "Sondra",
+    "directories": {
+      "app": ".stage",
+      "buildResources": ".build",
+      "output": "../release"
+    },
+    "extraFiles": [
+      { "from": ".build/LIZENZ.txt", "to": "LIZENZ.txt" },
+      { "from": ".build/lizenzen", "to": "lizenzen" },
+      { "from": "LIESMICH.txt", "to": "LIESMICH.txt" }
+    ],
+    "win": {
+      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "icon": ".build/icon.png",
+      "artifactName": "Sondra-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowElevation": false,
+      "allowToChangeInstallationDirectory": true,
+      "license": ".build/LIZENZ.txt",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Sondra",
+      "uninstallDisplayName": "Sondra",
+      "installerLanguages": ["de_DE"],
+      "language": "1031",
+      "deleteAppDataOnUninstall": false
+    },
+    "linux": {
+      "target": "dir"
+    }
+  }
+}

@@ -101,8 +101,9 @@ Vor einer Gestaltungsänderung: `DESIGN.md` lesen. Das Skill dazu liegt unter
 - `npm run dev:service` serviert `dist/` zusammen mit den Funktionen unter
   `api/`, was `vite preview` nicht kann — nötig, um den Downloader lokal
   durchzuspielen.
-- `npm run build:desktop` baut `release/Sondra-Windows-x64.zip` (portable
-  `Sondra.exe` + `app/` + Lizenz); Quelle in `desktop/`. `release/` wird nicht
+- `npm run build:desktop` baut die Windows-App (Electron, NSIS-Setup nach
+  `release/`); vorher einmal `npm ci --prefix desktop`. Quelle in `desktop/`,
+  Electron steht bewusst nur in `desktop/package.json`. `release/` wird nicht
   eingecheckt.
 - Umgebungsvariablen der Bereitstellung:
   - `SONDRA_SECRET` — signiert die Adressen, die der Proxy weiterreicht.

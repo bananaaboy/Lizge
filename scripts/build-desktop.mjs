@@ -1,41 +1,36 @@
 /**
- * Builds the Windows desktop program: a portable folder with `Sondra.exe`,
- * the site under `app/`, and the licence — zipped, ready to unpack anywhere.
+ * Builds Sondra as an installed desktop app: Electron window, NSIS installer.
  *
- *   npm run build:desktop   →   release/Sondra-Windows-x64.zip
+ *   npm run build:desktop            →   release/Sondra-Setup-<version>.exe  (on Windows)
+ *   npm run build:desktop -- --dir   →   release/<platform>-unpacked/        (any OS, for testing)
  *
- * How: `desktop/main.mjs` and the two API functions are bundled into one
- * CommonJS script, turned into a Node single-executable blob, and injected
- * into an official `node.exe` of exactly the Node version running this build
- * (the blob format is tied to it). The runtime is downloaded once, checked
- * against the SHA-256 list nodejs.org publishes, and cached under
- * `release/.cache`.
+ * The installer installs per user (no admin rights), shows LIZENZ.txt before
+ * installing, and adds a start-menu entry and a desktop shortcut. An NSIS
+ * installer needs a Windows build machine (or wine); `.github/workflows/
+ * desktop.yml` builds it on windows-latest and test-starts the installed app.
  *
- * The folder carries what the website serves, minus the files that only make
+ * The app carries what the website serves, minus the files that only make
  * sense on a deployment (`_headers`, `staticwebapp.config.json`) and the
- * yt-dlp bridge script, which the desktop program does not ship or start.
+ * yt-dlp bridge script, which the desktop app does not ship or start.
  * Nothing is removed from the repository by this.
  *
- * Built on Linux, the result cannot be started here; the server inside it is
- * the same bundle `node release/.work/sondra.cjs` runs, so that is what gets
- * tested before packing.
+ * Electron lives in `desktop/package.json`, not in the root one, so the
+ * website's install on Vercel does not download a 100 MB browser it never
+ * runs.
  */
 
 import { execFileSync } from 'node:child_process'
-import crypto from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
 
 import { build } from 'esbuild'
 
-const VERSION = process.version // e.g. v22.22.2
-const RELEASE = path.resolve('release')
-const CACHE = path.join(RELEASE, '.cache')
-const WORK = path.join(RELEASE, '.work')
-const OUT = path.join(RELEASE, 'Sondra')
-const ZIP = path.join(RELEASE, 'Sondra-Windows-x64.zip')
+const DESKTOP = path.resolve('desktop')
+const STAGE = path.join(DESKTOP, '.stage')
+const RESOURCES = path.join(DESKTOP, '.build')
+const onlyDir = process.argv.includes('--dir')
 
-/** Not part of the desktop folder: deployment config, and the yt-dlp bridge. */
+/** Not part of the app: deployment config, and the yt-dlp bridge. */
 const LEFT_OUT = new Set(['_headers', 'staticwebapp.config.json', 'sondra-ytdlp.mjs'])
 
 function step(message) {
@@ -46,137 +41,67 @@ if (!fs.existsSync('dist/index.html')) {
   console.error('dist/ fehlt. Zuerst `npm run build` (oder gleich `npm run build:desktop`).')
   process.exit(1)
 }
+if (!fs.existsSync(path.join(DESKTOP, 'node_modules/electron-builder'))) {
+  console.error('Electron fehlt. Einmal `npm ci --prefix desktop` ausführen.')
+  process.exit(1)
+}
 
-fs.rmSync(WORK, { recursive: true, force: true })
-fs.rmSync(OUT, { recursive: true, force: true })
-fs.rmSync(ZIP, { force: true })
-fs.mkdirSync(CACHE, { recursive: true })
-fs.mkdirSync(WORK, { recursive: true })
-fs.mkdirSync(OUT, { recursive: true })
+fs.rmSync(STAGE, { recursive: true, force: true })
+fs.rmSync(RESOURCES, { recursive: true, force: true })
+fs.mkdirSync(STAGE, { recursive: true })
+fs.mkdirSync(RESOURCES, { recursive: true })
 
-/* -- 1. the server, as one CommonJS file ----------------------------------- */
+/* -- 1. the main process, as one CommonJS file ------------------------------ */
 
-step('Server bündeln')
-const bundle = path.join(WORK, 'sondra.cjs')
+step('Hauptprozess bündeln')
 await build({
-  entryPoints: ['desktop/main.mjs'],
+  entryPoints: ['desktop/electron.mjs'],
   bundle: true,
   platform: 'node',
   format: 'cjs',
   target: 'node22',
-  outfile: bundle,
+  external: ['electron'],
+  outfile: path.join(STAGE, 'main.cjs'),
   logLevel: 'warning',
 })
 
-/* -- 2. the Windows runtime, verified -------------------------------------- */
-
-const archive = `node-${VERSION}-win-x64.zip`
-const cached = path.join(CACHE, archive)
-
-async function download(url) {
-  const response = await fetch(url)
-  if (!response.ok) throw new Error(`${url}: ${response.status}`)
-  return Buffer.from(await response.arrayBuffer())
-}
-
-if (!fs.existsSync(cached)) {
-  step(`${archive} laden`)
-  fs.writeFileSync(cached, await download(`https://nodejs.org/dist/${VERSION}/${archive}`))
-}
-
-step('Prüfsumme vergleichen')
-const sums = (await download(`https://nodejs.org/dist/${VERSION}/SHASUMS256.txt`)).toString()
-const expected = sums.split('\n').find((line) => line.endsWith(`  ${archive}`))?.split(/\s+/)[0]
-const actual = crypto.createHash('sha256').update(fs.readFileSync(cached)).digest('hex')
-if (!expected || expected !== actual) {
-  fs.rmSync(cached, { force: true })
-  console.error(`Prüfsumme stimmt nicht für ${archive} (erwartet ${expected}, war ${actual}).`)
-  process.exit(1)
-}
-
-execFileSync('unzip', ['-q', '-o', '-j', cached, `node-${VERSION}-win-x64/node.exe`, '-d', WORK])
-
-/* -- 3. blob, injected into a copy of node.exe ----------------------------- */
-
-/**
- * node.exe without its Authenticode signature.
- *
- * Injecting the blob changes the file the signature covers, so it would be
- * left behind broken — and Windows treats a broken signature with more
- * suspicion than none at all. The certificate table is the Security entry in
- * the PE data directories and sits at the very end of the file, so dropping
- * it is zeroing that entry and cutting the file short.
- */
-function unsigned(image) {
-  const pe = image.readUInt32LE(0x3c)
-  if (image.toString('latin1', pe, pe + 4) !== 'PE\0\0') throw new Error('node.exe ist keine PE-Datei')
-  const optional = pe + 24
-  const magic = image.readUInt16LE(optional)
-  // Data directories start after the fixed fields: 96 bytes in PE32, 112 in PE32+.
-  const directories = optional + (magic === 0x20b ? 112 : 96)
-  const security = directories + 4 * 8
-  const offset = image.readUInt32LE(security)
-  const size = image.readUInt32LE(security + 4)
-  if (offset === 0 || size === 0) return image
-  if (offset + size !== image.length) throw new Error('Signatur liegt nicht am Dateiende')
-  const copy = Buffer.from(image.subarray(0, offset))
-  copy.writeUInt32LE(0, security)
-  copy.writeUInt32LE(0, security + 4)
-  return copy
-}
-
-step('Einzeldatei-Blob erzeugen')
-const blob = path.join(WORK, 'sondra.blob')
-const seaConfig = path.join(WORK, 'sea-config.json')
+const root = JSON.parse(fs.readFileSync('package.json', 'utf8'))
 fs.writeFileSync(
-  seaConfig,
-  JSON.stringify({
-    main: bundle,
-    output: blob,
-    disableExperimentalSEAWarning: true,
-    // A code cache is specific to the platform that produced it; this one
-    // is produced on the build machine, not on Windows.
-    useCodeCache: false,
-    useSnapshot: false,
-  }),
-)
-execFileSync(process.execPath, ['--experimental-sea-config', seaConfig], { stdio: 'inherit' })
-
-step('In Sondra.exe einsetzen')
-const exe = path.join(OUT, 'Sondra.exe')
-fs.writeFileSync(exe, unsigned(fs.readFileSync(path.join(WORK, 'node.exe'))))
-execFileSync(
-  'npx',
-  [
-    '--yes',
-    'postject@1.0.0-alpha.6',
-    exe,
-    'NODE_SEA_BLOB',
-    blob,
-    '--sentinel-fuse',
-    'NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2',
-  ],
-  { stdio: 'inherit' },
+  path.join(STAGE, 'package.json'),
+  JSON.stringify(
+    {
+      name: 'sondra',
+      productName: 'Sondra',
+      version: root.version,
+      description: 'Ton, Video und Bilder bearbeiten — lokal auf diesem Rechner.',
+      author: 'Sondra',
+      main: 'main.cjs',
+    },
+    null,
+    2,
+  ),
 )
 
-/* -- 4. the site, and the words that go with it ---------------------------- */
+/* -- 2. the site ------------------------------------------------------------ */
 
 step('Oberfläche kopieren')
-fs.cpSync('dist', path.join(OUT, 'app'), {
+fs.cpSync('dist', path.join(STAGE, 'app'), {
   recursive: true,
   filter: (source) => !LEFT_OUT.has(path.basename(source)),
 })
 
-fs.copyFileSync('desktop/LIZENZ.txt', path.join(OUT, 'LIZENZ.txt'))
-fs.copyFileSync('desktop/LIESMICH.txt', path.join(OUT, 'LIESMICH.txt'))
+/* -- 3. installer resources ------------------------------------------------- */
 
-// Third-party licences: the GPL notice for the FFmpeg core lives in
-// desktop/lizenzen (the npm package ships none); the rest come from the
-// runtime archive and from node_modules.
-const licences = path.join(OUT, 'lizenzen')
+// NSIS shows the licence as-is; a byte-order mark is what makes it read the
+// umlauts as UTF-8 rather than as the system code page.
+fs.writeFileSync(path.join(RESOURCES, 'LIZENZ.txt'), '\uFEFF' + fs.readFileSync('desktop/LIZENZ.txt', 'utf8'))
+fs.copyFileSync('public/icon-512.png', path.join(RESOURCES, 'icon.png'))
+
+// Third-party licences next to the installed app: the GPL notice for the
+// FFmpeg core lives in desktop/lizenzen (its npm package ships none), the
+// rest come from node_modules. Electron adds its own and Chromium's.
+const licences = path.join(RESOURCES, 'lizenzen')
 fs.cpSync('desktop/lizenzen', licences, { recursive: true })
-execFileSync('unzip', ['-q', '-o', '-j', cached, `node-${VERSION}-win-x64/LICENSE`, '-d', WORK])
-fs.copyFileSync(path.join(WORK, 'LICENSE'), path.join(licences, 'node.js.txt'))
 for (const [name, file] of [
   ['react.txt', 'node_modules/react/LICENSE'],
   ['tone.txt', 'node_modules/tone/LICENSE.md'],
@@ -186,10 +111,9 @@ for (const [name, file] of [
   fs.copyFileSync(file, path.join(licences, name))
 }
 
-/* -- 5. packed -------------------------------------------------------------- */
+/* -- 4. electron-builder ---------------------------------------------------- */
 
-step('Packen')
-execFileSync('zip', ['-q', '-r', '-9', ZIP, 'Sondra'], { cwd: RELEASE })
-
-const mb = (file) => (fs.statSync(file).size / 1e6).toFixed(1)
-console.log(`\nFertig: ${path.relative(process.cwd(), ZIP)} (${mb(ZIP)} MB, Sondra.exe ${mb(exe)} MB)`)
+step(onlyDir ? 'App-Ordner bauen' : 'Installer bauen')
+const builder = path.join(DESKTOP, 'node_modules/electron-builder/cli.js')
+const args = onlyDir ? ['--dir'] : ['--win', 'nsis', '--x64']
+execFileSync(process.execPath, [builder, ...args, '--publish', 'never'], { cwd: DESKTOP, stdio: 'inherit' })

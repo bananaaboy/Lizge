@@ -1,9 +1,9 @@
-# Builds the Windows desktop program and starts it once on real Windows.
+# Builds the Windows installer, installs it, and starts the installed app once.
 #
-# The build runs on Linux (it only downloads and patches node.exe); the smoke
-# test runs the resulting Sondra.exe on a Windows runner, because that is the
-# one thing a Linux build machine cannot check. The folder is kept as the
-# artifact "Sondra-Windows-x64" — download, unpack, double-click Sondra.exe.
+# Everything runs on windows-latest: an NSIS installer needs Windows to build,
+# and "the installed app opens and shows Sondra" is only worth something when
+# it was checked on Windows. The installer is kept as the artifact
+# "Sondra-Setup" — download, unpack, run Sondra-Setup-<version>.exe.
 
 name: Desktop
 
@@ -25,53 +25,50 @@ permissions:
   contents: read
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  windows:
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            desktop/package-lock.json
       - run: npm ci
+      - run: npm ci --prefix desktop
       - run: npm run build:desktop
+
+      - name: Install silently and start the installed app
+        shell: pwsh
+        run: |
+          $setup = Get-ChildItem release -Filter 'Sondra-Setup-*.exe' | Select-Object -First 1
+          if (-not $setup) { throw 'Kein Setup gebaut.' }
+          Start-Process -FilePath $setup.FullName -ArgumentList '/S' -Wait
+
+          $app = Join-Path $env:LOCALAPPDATA 'Programs\Sondra\Sondra.exe'
+          if (-not (Test-Path $app)) { throw "Nicht installiert: $app fehlt." }
+          if (-not (Test-Path (Join-Path $env:LOCALAPPDATA 'Programs\Sondra\LIZENZ.txt'))) { throw 'LIZENZ.txt fehlt im Installationsordner.' }
+
+          $report = Join-Path $env:RUNNER_TEMP 'smoke.json'
+          $env:SONDRA_SMOKE = $report
+          # The installer may start the app when it finishes; the test wants its own start.
+          Start-Sleep -Seconds 3
+          Get-Process Sondra -ErrorAction SilentlyContinue | Stop-Process -Force
+          $process = Start-Process -FilePath $app -PassThru
+          if (-not $process.WaitForExit(90000)) { $process.Kill(); throw 'Sondra hat sich nicht wieder beendet.' }
+
+          if (-not (Test-Path $report)) { throw 'Sondra hat keinen Bericht geschrieben.' }
+          $seen = Get-Content $report -Raw | ConvertFrom-Json
+          $seen | Format-List
+          if ($seen.error) { throw "Start fehlgeschlagen: $($seen.error)" }
+          if (-not $seen.isolated) { throw 'Seite nicht isoliert: FFmpeg liefe nur einfädig.' }
+          if ($seen.tools -lt 10) { throw "Nur $($seen.tools) Werkzeuge sichtbar." }
+          Write-Host 'Installiert, gestartet, Sondra im eigenen Fenster geladen.'
+
       - uses: actions/upload-artifact@v4
         with:
-          name: Sondra-Windows-x64
-          path: release/Sondra
+          name: Sondra-Setup
+          path: release/Sondra-Setup-*.exe
           retention-days: 30
-
-  smoke:
-    needs: build
-    runs-on: windows-latest
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: Sondra-Windows-x64
-          path: Sondra
-      - name: Start Sondra.exe and fetch the page
-        shell: pwsh
-        env:
-          SONDRA_NO_BROWSER: '1'
-        run: |
-          $process = Start-Process -FilePath .\Sondra\Sondra.exe -PassThru -NoNewWindow `
-            -RedirectStandardOutput out.txt -RedirectStandardError err.txt
-          $page = $null
-          foreach ($attempt in 1..30) {
-            Start-Sleep -Seconds 1
-            try { $page = Invoke-WebRequest -Uri http://127.0.0.1:4199/ -UseBasicParsing; break } catch {}
-          }
-          Get-Content out.txt, err.txt -ErrorAction SilentlyContinue
-          if (-not $page -or $page.StatusCode -ne 200) { throw 'Sondra.exe hat die Seite nicht ausgeliefert.' }
-          if ($page.Headers['Cross-Origin-Opener-Policy'] -ne 'same-origin') { throw 'Isolations-Header fehlt.' }
-          if ($page.Content -notmatch '<html lang="de">') { throw 'Unerwartete Antwort statt index.html.' }
-
-          $asset = (Get-ChildItem .\Sondra\app\assets -Filter 'ffmpeg-core-*.wasm' | Select-Object -First 1).Name
-          $wasm = Invoke-WebRequest -Uri "http://127.0.0.1:4199/assets/$asset" -Method Head -UseBasicParsing
-          if ($wasm.Headers['Content-Type'] -ne 'application/wasm') { throw "FFmpeg-Core falsch ausgeliefert: $($wasm.Headers['Content-Type'])" }
-
-          $api = Invoke-WebRequest -Uri http://127.0.0.1:4199/api/nichts -SkipHttpErrorCheck -UseBasicParsing
-          if ($api.StatusCode -ne 404) { throw "API-Weiche antwortet $($api.StatusCode)" }
-
-          Stop-Process -Id $process.Id
-          Write-Host 'Sondra.exe startet und liefert Seite, FFmpeg-Core und API.'
