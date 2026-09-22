@@ -945,6 +945,11 @@ bleibt sie unverändert.
 
 `npm run desktop` startet denselben Server aus einem Checkout über `dist/`.
 
+Fertig gebaut liegt das Programm unter GitHub → Actions → „Desktop“ als
+Artefakt `Sondra-Windows-x64`. Der Workflow baut unter Linux und startet die
+EXE danach einmal auf einem Windows-Runner: Seite, FFmpeg-Core und API müssen
+antworten, sonst ist der Lauf rot.
+
 ## Die Rechenverfahren
 
 **Lautheit.** Vollständiges BS.1770-4, gegen den Referenzpunkt der Norm geprüft

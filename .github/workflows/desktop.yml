@@ -1,0 +1,77 @@
+# Builds the Windows desktop program and starts it once on real Windows.
+#
+# The build runs on Linux (it only downloads and patches node.exe); the smoke
+# test runs the resulting Sondra.exe on a Windows runner, because that is the
+# one thing a Linux build machine cannot check. The folder is kept as the
+# artifact "Sondra-Windows-x64" — download, unpack, double-click Sondra.exe.
+
+name: Desktop
+
+on:
+  push:
+    paths:
+      - desktop/**
+      - scripts/build-desktop.mjs
+      - api/**
+      - src/**
+      - public/**
+      - index.html
+      - package.json
+      - package-lock.json
+      - .github/workflows/desktop.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build:desktop
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Sondra-Windows-x64
+          path: release/Sondra
+          retention-days: 30
+
+  smoke:
+    needs: build
+    runs-on: windows-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: Sondra-Windows-x64
+          path: Sondra
+      - name: Start Sondra.exe and fetch the page
+        shell: pwsh
+        env:
+          SONDRA_NO_BROWSER: '1'
+        run: |
+          $process = Start-Process -FilePath .\Sondra\Sondra.exe -PassThru -NoNewWindow `
+            -RedirectStandardOutput out.txt -RedirectStandardError err.txt
+          $page = $null
+          foreach ($attempt in 1..30) {
+            Start-Sleep -Seconds 1
+            try { $page = Invoke-WebRequest -Uri http://127.0.0.1:4199/ -UseBasicParsing; break } catch {}
+          }
+          Get-Content out.txt, err.txt -ErrorAction SilentlyContinue
+          if (-not $page -or $page.StatusCode -ne 200) { throw 'Sondra.exe hat die Seite nicht ausgeliefert.' }
+          if ($page.Headers['Cross-Origin-Opener-Policy'] -ne 'same-origin') { throw 'Isolations-Header fehlt.' }
+          if ($page.Content -notmatch '<html lang="de">') { throw 'Unerwartete Antwort statt index.html.' }
+
+          $asset = (Get-ChildItem .\Sondra\app\assets -Filter 'ffmpeg-core-*.wasm' | Select-Object -First 1).Name
+          $wasm = Invoke-WebRequest -Uri "http://127.0.0.1:4199/assets/$asset" -Method Head -UseBasicParsing
+          if ($wasm.Headers['Content-Type'] -ne 'application/wasm') { throw "FFmpeg-Core falsch ausgeliefert: $($wasm.Headers['Content-Type'])" }
+
+          $api = Invoke-WebRequest -Uri http://127.0.0.1:4199/api/nichts -SkipHttpErrorCheck -UseBasicParsing
+          if ($api.StatusCode -ne 404) { throw "API-Weiche antwortet $($api.StatusCode)" }
+
+          Stop-Process -Id $process.Id
+          Write-Host 'Sondra.exe startet und liefert Seite, FFmpeg-Core und API.'
