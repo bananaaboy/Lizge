@@ -1,12 +1,13 @@
-SONDRA — DESKTOP-PROGRAMM FÜR WINDOWS
+SONDRA — DESKTOP-APP FÜR WINDOWS
 Lizenz und Haftungsausschluss
 
 1. Lokaler Betrieb
 
-Dieses Programm läuft vollständig auf Ihrem eigenen Rechner. Sondra.exe
-startet einen kleinen Server, der ausschliesslich unter 127.0.0.1 (diesem
-Rechner) erreichbar ist, und öffnet die Oberfläche im Browser. Ihre Dateien
-werden nicht an Sondra oder an die Herausgeberschaft von Sondra übertragen.
+Diese App läuft vollständig auf Ihrem eigenen Rechner. Sie startet einen
+kleinen Server, der ausschliesslich unter 127.0.0.1 (diesem Rechner)
+erreichbar ist, und zeigt die Oberfläche in ihrem eigenen Fenster. Ihre
+Dateien werden nicht an Sondra oder an die Herausgeberschaft von Sondra
+übertragen.
 
 Verbindungen ins Internet entstehen nur dann, wenn Sie selbst eine Adresse
 eingeben, von der geladen werden soll, oder selbst einen Extraktionsdienst
@@ -15,13 +16,13 @@ Internetverbindung, und liegen in Ihrer Verantwortung.
 
 2. Nutzungsrecht
 
-Sie dürfen dieses Programm unentgeltlich verwenden, kopieren und
+Sie dürfen diese App unentgeltlich installieren, verwenden, kopieren und
 weitergeben, sofern diese Datei und der Ordner „lizenzen“ unverändert
 beiliegen.
 
 3. Keine Gewähr
 
-DAS PROGRAMM WIRD SO BEREITGESTELLT, WIE ES IST, OHNE JEDE AUSDRÜCKLICHE
+DIE APP WIRD SO BEREITGESTELLT, WIE ES IST, OHNE JEDE AUSDRÜCKLICHE
 ODER STILLSCHWEIGENDE GEWÄHR — INSBESONDERE OHNE GEWÄHR FÜR MARKTGÄNGIGKEIT,
 EIGNUNG FÜR EINEN BESTIMMTEN ZWECK, FEHLERFREIHEIT ODER UNUNTERBROCHENEN
 BETRIEB.
@@ -30,7 +31,7 @@ BETRIEB.
 
 Soweit gesetzlich zulässig, haften die Herausgeberschaft und die Mitwirkenden
 von Sondra nicht für Schäden jeglicher Art, die aus der Nutzung oder der
-Unmöglichkeit der Nutzung dieses Programms entstehen, einschliesslich
+Unmöglichkeit der Nutzung dieser App entstehen, einschliesslich
 Datenverlust, entgangenem Gewinn und Ansprüchen Dritter.
 
 Nicht ausgeschlossen werden kann nach zwingendem Recht die Haftung für
@@ -40,20 +41,20 @@ wie das auf Sie anwendbare Recht es erlaubt.
 
 5. Ihre Verantwortung
 
-Sie allein entscheiden, welche Inhalte Sie mit diesem Programm laden,
+Sie allein entscheiden, welche Inhalte Sie mit dieser App laden,
 umwandeln oder bearbeiten, und Sie allein sind dafür verantwortlich, dass
 Sie dazu berechtigt sind — gegenüber Urheberinnen und Urhebern, gegenüber
 den Nutzungsbedingungen der Seiten, von denen Sie laden, und gegenüber dem
-Recht Ihres Landes. Das Programm umgeht keinen Kopierschutz (DRM) und ist
+Recht Ihres Landes. Die App umgeht keinen Kopierschutz (DRM) und ist
 nicht dafür bestimmt.
 
 6. Bestandteile Dritter
 
-Das Programm enthält Software Dritter unter deren eigenen Lizenzen. Die
-Texte liegen im Ordner „lizenzen“:
+Die App enthält Software Dritter unter deren eigenen Lizenzen. Die Texte
+liegen im Ordner „lizenzen“ und im Installationsordner:
 
-- Node.js (Laufzeit in Sondra.exe) — MIT-Lizenz und weitere, siehe
-  lizenzen/node.js.txt
+- Electron und Chromium (das App-Fenster) — MIT und weitere, siehe
+  LICENSE.electron.txt und LICENSES.chromium.html
 - FFmpeg / ffmpeg.wasm-Kern (app/assets/ffmpeg-core-*) — GNU GPL,
   Version 2 oder später. Quelltext: https://github.com/ffmpegwasm/ffmpeg.wasm
   und https://ffmpeg.org

@@ -1,30 +1,27 @@
 SONDRA FÜR WINDOWS
 
+Installieren
+  Sondra-Setup-<Version>.exe doppelklicken, Lizenz bestätigen, Ordner
+  wählen, fertig. Keine Administratorrechte nötig: Sondra installiert sich
+  nur für Ihr Benutzerkonto. Danach steht Sondra im Startmenü und auf dem
+  Desktop.
+
 Starten
-  Doppelklick auf Sondra.exe. Ein Konsolenfenster öffnet sich, danach der
-  Browser mit Sondra. Solange das Fenster offen ist, läuft Sondra; es zu
+  Sondra öffnet sich in einem eigenen Fenster, ohne Browser. Fenster
   schliessen beendet Sondra.
 
-Keine Installation
-  Nichts wird installiert, keine Administratorrechte nötig. Der ganze Ordner
-  kann auf einem USB-Stick liegen. Zum Entfernen den Ordner löschen.
-
-Was im Ordner liegt
-  Sondra.exe   der lokale Server (eine Node.js-Laufzeit mit Sondra darin)
-  app\         die Oberfläche — muss neben Sondra.exe liegen
-  lizenzen\    Lizenztexte der enthaltenen Fremdsoftware
-  LIZENZ.txt   Lizenz, Haftungsausschluss, Hinweis zum lokalen Betrieb
-
 Windows-SmartScreen
-  Sondra.exe ist nicht signiert. Beim ersten Start kann Windows „Der Computer
+  Das Setup ist nicht signiert. Beim ersten Start kann Windows „Der Computer
   wurde durch Windows geschützt“ zeigen: „Weitere Informationen“ und dann
   „Trotzdem ausführen“.
 
-Anderer Port
-  Sondra nimmt Port 4199; ist der belegt, einen freien. Die Adresse steht im
-  Konsolenfenster.
+Entfernen
+  Einstellungen → Apps → Installierte Apps → Sondra → Deinstallieren.
 
-Eigener Extraktionsdienst (optional)
-  Wie auf der Website unter „Herunterladen“ → „Optionen“. Alternativ vor dem
-  Start die Umgebungsvariablen SONDRA_PROVIDER_URL und SONDRA_PROVIDER_KEY
-  setzen.
+Aktualisieren
+  Das neuere Setup einfach darüber installieren.
+
+Wenn etwas nicht geht
+  Sondra schreibt ein Protokoll nach %APPDATA%\Sondra\sondra.log (in die
+  Adresszeile des Explorers einfügen). Lädt die Oberfläche nicht, zeigt das
+  Fenster den Grund und einen Link „Erneut versuchen“.
