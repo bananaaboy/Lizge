@@ -147,6 +147,8 @@ export function linksFromHtml(html, page) {
   const seen = new Set()
   const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)
   const title = textFrom(titleMatch?.[1] ?? '') || page.hostname
+  const add = (href, label, player = false) => {
+    if (!href || href.startsWith('#')) return
   const anchor = /<a\b[^>]*\bhref\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))[^>]*>([\s\S]*?)<\/a\s*>/gi
   let match
   while ((match = anchor.exec(html)) && links.length < 80) {
@@ -156,6 +158,36 @@ export function linksFromHtml(html, page) {
     try {
       url = new URL(href, page)
     } catch {
+      return
+    }
+    // Normal navigation stays on the pasted site. Player controls are often
+    // deliberately hosted elsewhere, so their explicit data target is allowed
+    // through; it is the address the page itself presents as its player.
+    if (url.protocol !== 'https:' || (!player && url.hostname !== page.hostname)) return
+    url.hash = ''
+    const key = url.toString()
+    if (seen.has(key) || key === page.toString()) return
+    seen.add(key)
+    let fallback = url.hostname
+    try {
+      fallback = decodeURIComponent(url.pathname.split('/').filter(Boolean).pop() ?? '') || url.hostname
+    } catch {
+      // A malformed percent escape should not discard every other player.
+    }
+    links.push({ url: key, label: (textFrom(label) || fallback).slice(0, 160), player })
+  }
+  const anchor = /<a\b[^>]*\bhref\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))[^>]*>([\s\S]*?)<\/a\s*>/gi
+  let match
+  while ((match = anchor.exec(html)) && links.length < 80) {
+    const href = (match[1] ?? match[2] ?? match[3] ?? '').trim()
+    add(href, match[4])
+  }
+  // Streaming portals commonly keep the selected hoster URL in a data
+  // attribute on a button or list item, with no usable anchor href at all.
+  // Read those explicit player targets as well, including external hosters.
+  const playerTarget = /<([a-z][\w:-]*)\b[^>]*\bdata-(?:link-target|player-url|embed-url)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))[^>]*>([\s\S]*?)<\/\1\s*>/gi
+  while ((match = playerTarget.exec(html)) && links.length < 80) {
+    add((match[2] ?? match[3] ?? match[4] ?? '').trim(), match[5], true)
       continue
     }
     if (url.protocol !== 'https:' || url.hostname !== page.hostname) continue

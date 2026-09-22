@@ -121,6 +121,16 @@ const discovered = linksFromHtml(
    <a href="https://portal.example/anime/folge-2#player">Folge 2</a>
    <a href="https://other.example/weg">Fremde Seite</a>
    <a href="javascript:void(0)">Kein Link</a>
+   <a href="/anime/folge-1">Doppelt</a>
+   <li data-link-target="https://hoster.example/embed/123"><span>VOE</span></li>`,
+  new URL('https://portal.example/anime/serie/'),
+)
+check('Seitentitel wird gelesen', discovered.title, 'Staffel & Folgen')
+check('Seitennavigation und Player werden gefunden', discovered.links.length, 3)
+check('relative Links werden absolut', discovered.links[0]?.url, 'https://portal.example/anime/folge-1')
+check('Sprungmarken werden entfernt', discovered.links[1]?.url, 'https://portal.example/anime/folge-2')
+check('externer Player-Link wird erkannt', discovered.links[2]?.url, 'https://hoster.example/embed/123')
+check('Player-Link wird markiert', discovered.links[2]?.player, true)
    <a href="/anime/folge-1">Doppelt</a>`,
   new URL('https://portal.example/anime/serie/'),
 )

@@ -218,6 +218,11 @@ export function DownloaderPanel() {
                 className="flex flex-wrap items-center gap-x-[12px] gap-y-[8px] border-t border-line px-[4px] py-[12px]"
               >
                 <span className="min-w-0 flex-1 truncate text-small text-ink" title={link.url}>
+                  {link.player ? `Player · ${link.label}` : link.label}
+                </span>
+                <Button
+                  size="sm"
+                  type="button"
                   {link.label}
                 </span>
                 <Button
