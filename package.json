@@ -16,7 +16,9 @@
     "verify:harmony": "esbuild scripts/verify-harmony.mts --bundle --platform=node --format=esm --log-level=warning --outfile=node_modules/.verify-harmony.mjs && node node_modules/.verify-harmony.mjs",
     "verify:resolve": "node scripts/verify-resolve.mjs",
     "dl": "node scripts/dl.mjs",
-    "ytdlp": "node public/sondra-ytdlp.mjs"
+    "ytdlp": "node public/sondra-ytdlp.mjs",
+    "build:desktop": "npm run build && node scripts/build-desktop.mjs",
+    "desktop": "node desktop/main.mjs"
   },
   "dependencies": {
     "@ffmpeg/ffmpeg": "^0.12.15",
