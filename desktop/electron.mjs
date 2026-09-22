@@ -51,7 +51,7 @@ function logFile() {
 
 function log(message) {
   try {
-    fs.appendFileSync(logFile(), `${new Date().toISOString()}  ${message}\n`)
+    fs.appendFileSync(logFile(), `${new Date().toISOString()}  +${Math.round(performance.now())} ms  ${message}\n`)
   } catch {
     // Logging must never be the reason the app fails.
   }
@@ -170,8 +170,11 @@ async function open() {
     },
   })
 
+  log('Fenster offen')
+
   // The page title is written for a browser tab; the window is just "Sondra".
   window.on('page-title-updated', (event) => event.preventDefault())
+  window.webContents.on('did-finish-load', () => log(`Geladen: ${window?.webContents.getURL().slice(0, 60)}`))
   window.on('closed', () => {
     window = null
   })
@@ -186,11 +189,13 @@ async function open() {
       4000,
     )
     if (cleared === 'timeout') log('Service Worker entfernen dauert zu lange, weiter ohne.')
+    else log('Alte Service Worker entfernt')
   } catch (failure) {
     log(`Service Worker nicht entfernt: ${failure?.message ?? failure}`)
   }
 
-  const root = path.join(app.getAppPath(), 'app')
+  // Plain files next to the app archive (see scripts/build-desktop.mjs).
+  const root = process.env.SONDRA_APP_DIR ?? path.join(process.resourcesPath, 'site')
   const { url } = await startServer({ root, port: PORT, onError: (message) => log(`Server: ${message}`) })
   const origin = url.replace(/\/$/, '')
   log(`Server auf ${url}`)

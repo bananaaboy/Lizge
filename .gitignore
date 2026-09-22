@@ -27,3 +27,4 @@ release/
 desktop/node_modules/
 desktop/.stage/
 desktop/.build/
+desktop/.site/
