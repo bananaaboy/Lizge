@@ -28,6 +28,7 @@ import { build } from 'esbuild'
 const DESKTOP = path.resolve('desktop')
 const STAGE = path.join(DESKTOP, '.stage')
 const RESOURCES = path.join(DESKTOP, '.build')
+const SITE = path.join(DESKTOP, '.site')
 const onlyDir = process.argv.includes('--dir')
 
 /**
@@ -55,6 +56,7 @@ if (!fs.existsSync(path.join(DESKTOP, 'node_modules/electron-builder'))) {
 
 fs.rmSync(STAGE, { recursive: true, force: true })
 fs.rmSync(RESOURCES, { recursive: true, force: true })
+fs.rmSync(SITE, { recursive: true, force: true })
 fs.mkdirSync(STAGE, { recursive: true })
 fs.mkdirSync(RESOURCES, { recursive: true })
 
@@ -92,7 +94,12 @@ fs.writeFileSync(
 /* -- 2. the site ------------------------------------------------------------ */
 
 step('Oberfläche kopieren')
-fs.cpSync('dist', path.join(STAGE, 'app'), {
+// Beside the app archive, not inside it: electron-builder copies .site to
+// resources/site as plain files. Inside app.asar the site made one 93 MB file
+// that a virus scanner reads end to end whenever the app opens it — on every
+// start, before the first byte of the page. As plain files, only what the
+// page actually asks for is opened, and the archive holds one small script.
+fs.cpSync('dist', SITE, {
   recursive: true,
   filter: (source) => !LEFT_OUT.has(path.basename(source)),
 })

@@ -17,6 +17,9 @@
       "buildResources": ".build",
       "output": "../release"
     },
+    "extraResources": [
+      { "from": ".site", "to": "site" }
+    ],
     "extraFiles": [
       { "from": ".build/LIZENZ.txt", "to": "LIZENZ.txt" },
       { "from": ".build/lizenzen", "to": "lizenzen" },
