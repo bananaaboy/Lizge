@@ -27,9 +27,16 @@ import { startServer } from './server.mjs'
 const PORT = 47199
 const SMOKE = process.env.SONDRA_SMOKE
 
-// One Sondra at a time: a second start brings the first window forward
-// instead of fighting it for the port.
-if (!app.requestSingleInstanceLock()) app.quit()
+/**
+ * One Sondra at a time: a second start brings the first window forward
+ * instead of fighting it for the port.
+ *
+ * `exit`, not `quit`: `quit` only asks, and the rest of this file went on
+ * running in the second copy — it started its own server on a fallback port
+ * and began opening a window before the request to quit caught up with it.
+ */
+const primary = app.requestSingleInstanceLock()
+if (!primary) app.exit(0)
 
 let window = null
 
@@ -81,10 +88,41 @@ function failurePage(reason, retryUrl) {
 }
 
 app.on('second-instance', () => {
+  log('Zweiter Start: bringe das offene Fenster nach vorn.')
   if (!window) return
+  // `show` as well as `focus`: a window that is hidden does not come back
+  // from `focus` alone, and the second start then looked like nothing at all.
   if (window.isMinimized()) window.restore()
+  window.show()
   window.focus()
 })
+
+/**
+ * A GPU process that keeps dying leaves a window that paints nothing and then
+ * closes. When it happens, the next start runs without hardware acceleration;
+ * the page is 2D and the maths runs on the CPU either way.
+ */
+const NO_GPU = () => path.join(app.getPath('userData'), 'ohne-gpu')
+try {
+  if (fs.existsSync(NO_GPU())) app.disableHardwareAcceleration()
+} catch {
+  // No data folder yet: first start.
+}
+
+app.on('child-process-gone', (_event, details) => {
+  log(`Hilfsprozess beendet: ${details.type} · ${details.reason} (${details.exitCode})`)
+  if (details.type === 'GPU' && details.reason !== 'clean-exit') {
+    try {
+      fs.mkdirSync(app.getPath('userData'), { recursive: true })
+      fs.writeFileSync(NO_GPU(), 'Beim nächsten Start ohne Grafikbeschleunigung.\n')
+    } catch {
+      // Best effort; the log already says what happened.
+    }
+  }
+})
+
+process.on('uncaughtException', (failure) => log(`Unbehandelt: ${failure?.stack ?? failure}`))
+process.on('unhandledRejection', (failure) => log(`Unbehandelt (Promise): ${failure?.stack ?? failure}`))
 
 /** Links to anywhere but Sondra itself open in the default browser. */
 function keepInside(contents, origin) {
@@ -99,15 +137,55 @@ function keepInside(contents, origin) {
   })
 }
 
+/** Settle `promise`, or give up waiting after `ms` — whichever comes first. */
+function within(promise, ms) {
+  return Promise.race([promise, new Promise((resolve) => setTimeout(() => resolve('timeout'), ms))])
+}
+
 async function open() {
   trimLog()
   log(`Start ${app.getVersion()} · ${process.platform} ${process.arch} · Electron ${process.versions.electron}`)
 
+  // The default menu is English and mostly developer tools; the page carries
+  // its own navigation.
+  Menu.setApplicationMenu(null)
+
+  // The window comes first and is visible at once, in the theme's canvas
+  // colour. It used to wait, hidden, for the page to finish loading; a load
+  // that hung left an invisible Sondra running, and every later start handed
+  // over to it and ended — which looked like the app opening nothing.
+  window = new BrowserWindow({
+    title: 'Sondra',
+    width: 1280,
+    height: 860,
+    minWidth: 360,
+    minHeight: 480,
+    show: !SMOKE,
+    backgroundColor: nativeTheme.shouldUseDarkColors ? '#090d0b' : '#f4f3ee',
+    autoHideMenuBar: true,
+    webPreferences: {
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true,
+    },
+  })
+
+  // The page title is written for a browser tab; the window is just "Sondra".
+  window.on('page-title-updated', (event) => event.preventDefault())
+  window.on('closed', () => {
+    window = null
+  })
+
   // Earlier builds shipped the site's service worker, which then sat between
   // this window and the local server. This build does not ship it; whatever a
-  // previous install registered — and the ~90 MB it cached — goes here.
+  // previous install registered — and the ~90 MB it cached — goes here. Not
+  // worth a hang, though: after a few seconds the start goes on without it.
   try {
-    await session.defaultSession.clearStorageData({ storages: ['serviceworkers', 'cachestorage'] })
+    const cleared = await within(
+      session.defaultSession.clearStorageData({ storages: ['serviceworkers', 'cachestorage'] }),
+      4000,
+    )
+    if (cleared === 'timeout') log('Service Worker entfernen dauert zu lange, weiter ohne.')
   } catch (failure) {
     log(`Service Worker nicht entfernt: ${failure?.message ?? failure}`)
   }
@@ -123,36 +201,7 @@ async function open() {
     callback(Boolean(details.requestingUrl?.startsWith(origin)))
   })
 
-  // The default menu is English and mostly developer tools; the page carries
-  // its own navigation.
-  Menu.setApplicationMenu(null)
-
-  window = new BrowserWindow({
-    title: 'Sondra',
-    width: 1280,
-    height: 860,
-    minWidth: 360,
-    minHeight: 480,
-    show: false,
-    // The canvas colour of the matching theme, so there is no white flash
-    // before the first paint.
-    backgroundColor: nativeTheme.shouldUseDarkColors ? '#090d0b' : '#f4f3ee',
-    autoHideMenuBar: true,
-    webPreferences: {
-      contextIsolation: true,
-      nodeIntegration: false,
-      sandbox: true,
-    },
-  })
-
-  // The page title is written for a browser tab; the window is just "Sondra".
-  window.on('page-title-updated', (event) => event.preventDefault())
-  window.once('ready-to-show', () => {
-    if (!SMOKE) window.show()
-  })
-  window.on('closed', () => {
-    window = null
-  })
+  if (!window) return // closed while starting
   keepInside(window.webContents, origin)
 
   const contents = window.webContents
@@ -188,6 +237,7 @@ async function open() {
   async function load() {
     let last = null
     for (let attempt = 1; attempt <= 3; attempt += 1) {
+      if (!window) return
       try {
         await window.loadURL(url)
         return
@@ -202,6 +252,7 @@ async function open() {
       app.exit(1)
       return
     }
+    if (!window) return
     await window.loadURL(failurePage(String(last?.message ?? last), url))
     window.show()
   }
@@ -211,7 +262,7 @@ async function open() {
 
 app.setAppUserModelId('ch.lizge.sondra')
 
-app.whenReady().then(() =>
+if (primary) app.whenReady().then(() =>
   open().catch((failure) => {
     const message = String(failure?.message ?? failure)
     log(`Start fehlgeschlagen: ${failure?.stack ?? failure}`)
