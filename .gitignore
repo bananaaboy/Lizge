@@ -21,3 +21,6 @@ dist-ssr
 .impeccable/mocks/
 .impeccable/build/
 .impeccable/live/
+
+# Desktop build output (npm run build:desktop)
+release/
