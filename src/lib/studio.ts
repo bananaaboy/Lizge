@@ -81,16 +81,13 @@ export interface StudioStream {
 
 export interface StudioResult {
   /** Which of the three routes answered — the panel says so out loud. */
-  source?: 'provider' | 'youtube' | 'direct' | 'service' | 'page'
-  kind: 'youtube' | 'direct' | 'provider' | 'page'
+  source?: 'provider' | 'youtube' | 'direct' | 'service'
+  kind: 'youtube' | 'direct' | 'provider'
   title: string
   author: string | null
   durationSeconds: number | null
   thumbnail: string | null
   streams: StudioStream[]
-  /** Same-site navigation found when the pasted address is an HTML page. */
-  links?: Array<{ url: string; label: string; player?: boolean }>
-  links?: Array<{ url: string; label: string }>
 }
 
 export class StudioError extends Error {
