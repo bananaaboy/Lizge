@@ -223,6 +223,10 @@ export function DownloaderPanel() {
                 <Button
                   size="sm"
                   type="button"
+                  {link.label}
+                </span>
+                <Button
+                  size="sm"
                   disabled={looking}
                   onClick={() => {
                     setUrl(link.url)
