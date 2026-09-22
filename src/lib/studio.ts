@@ -89,6 +89,7 @@ export interface StudioResult {
   thumbnail: string | null
   streams: StudioStream[]
   /** Same-site navigation found when the pasted address is an HTML page. */
+  links?: Array<{ url: string; label: string; player?: boolean }>
   links?: Array<{ url: string; label: string }>
 }
 
