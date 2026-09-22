@@ -76,8 +76,8 @@ export function DownloaderPanel() {
 
   useEffect(() => () => abortRef.current?.abort(), [])
 
-  const look = async () => {
-    const target = url.trim()
+  const look = async (address = url) => {
+    const target = address.trim()
     if (!target) return
     abortRef.current?.abort()
     const controller = new AbortController()
@@ -203,7 +203,38 @@ export function DownloaderPanel() {
         </Notice>
       ) : null}
 
-      {result ? (
+      {result && result.kind === 'page' ? (
+        <Card tone="keylime" className="rise">
+          <p className="text-subheading text-ink">Links auf {result.author}</p>
+          <p className="mt-[4px] text-small text-muted">
+            {result.links?.length
+              ? 'Diese Seite ist keine Datei. Wählen Sie einen Link von derselben Website, um dort weiterzusuchen.'
+              : 'Diese Seite enthält keine weiteren auswählbaren Links.'}
+          </p>
+          <div className="mt-[16px] flex flex-col gap-[8px]">
+            {result.links?.map((link) => (
+              <div
+                key={link.url}
+                className="flex flex-wrap items-center gap-x-[12px] gap-y-[8px] border-t border-line px-[4px] py-[12px]"
+              >
+                <span className="min-w-0 flex-1 truncate text-small text-ink" title={link.url}>
+                  {link.label}
+                </span>
+                <Button
+                  size="sm"
+                  disabled={looking}
+                  onClick={() => {
+                    setUrl(link.url)
+                    void look(link.url)
+                  }}
+                >
+                  Öffnen
+                </Button>
+              </div>
+            ))}
+          </div>
+        </Card>
+      ) : result ? (
         <Card tone="keylime" className="rise">
           <div className="flex flex-col gap-[16px] sm:flex-row">
             {result.thumbnail ? (
