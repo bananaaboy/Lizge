@@ -149,6 +149,11 @@ export function linksFromHtml(html, page) {
   const title = textFrom(titleMatch?.[1] ?? '') || page.hostname
   const add = (href, label, player = false) => {
     if (!href || href.startsWith('#')) return
+  const anchor = /<a\b[^>]*\bhref\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))[^>]*>([\s\S]*?)<\/a\s*>/gi
+  let match
+  while ((match = anchor.exec(html)) && links.length < 80) {
+    const href = (match[1] ?? match[2] ?? match[3] ?? '').trim()
+    if (!href || href.startsWith('#')) continue
     let url
     try {
       url = new URL(href, page)
@@ -183,6 +188,15 @@ export function linksFromHtml(html, page) {
   const playerTarget = /<([a-z][\w:-]*)\b[^>]*\bdata-(?:link-target|player-url|embed-url)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))[^>]*>([\s\S]*?)<\/\1\s*>/gi
   while ((match = playerTarget.exec(html)) && links.length < 80) {
     add((match[2] ?? match[3] ?? match[4] ?? '').trim(), match[5], true)
+      continue
+    }
+    if (url.protocol !== 'https:' || url.hostname !== page.hostname) continue
+    url.hash = ''
+    const key = url.toString()
+    if (seen.has(key) || key === page.toString()) continue
+    seen.add(key)
+    const label = textFrom(match[4]) || decodeURIComponent(url.pathname.split('/').filter(Boolean).pop() ?? '') || url.hostname
+    links.push({ url: key, label: label.slice(0, 160) })
   }
   return { title: title.slice(0, 160), links }
 }
