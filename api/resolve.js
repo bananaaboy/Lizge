@@ -100,6 +100,105 @@ export function sizeFrom(headers) {
 }
 
 /**
+ * Read a reasonably small HTML document without making a serverless function
+ * buffer an arbitrary web page.  Link discovery is a convenience for pages,
+ * not a second general-purpose crawler.
+ */
+async function htmlFrom(response, limit = 1_000_000) {
+  if (!response.body) return ''
+  const reader = response.body.getReader()
+  const chunks = []
+  let length = 0
+  try {
+    while (length < limit) {
+      const next = await reader.read()
+      if (next.done) break
+      const chunk = next.value
+      chunks.push(chunk)
+      length += chunk.byteLength
+    }
+  } finally {
+    await reader.cancel().catch(() => undefined)
+  }
+  return new TextDecoder().decode(Buffer.concat(chunks))
+}
+
+/** Remove markup from the short labels shown in the link picker. */
+function textFrom(html) {
+  return html
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#(?:x([0-9a-f]+)|(\d+));/gi, (_all, hex, decimal) => String.fromCodePoint(Number.parseInt(hex ?? decimal, hex ? 16 : 10)))
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+/**
+ * Collect useful, same-site document links from HTML.
+ *
+ * Keeping this to the pasted host prevents one page from turning the endpoint
+ * into a cross-site link harvester.  Direct media URLs are deliberately not
+ * filtered out: selecting one simply sends it through the normal media probe.
+ */
+export function linksFromHtml(html, page) {
+  const links = []
+  const seen = new Set()
+  const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)
+  const title = textFrom(titleMatch?.[1] ?? '') || page.hostname
+  const add = (href, label, player = false) => {
+    if (!href || href.startsWith('#')) return
+    let url
+    try {
+      url = new URL(href, page)
+    } catch {
+      return
+    }
+    // Normal navigation stays on the pasted site. Player controls are often
+    // deliberately hosted elsewhere, so their explicit data target is allowed
+    // through; it is the address the page itself presents as its player.
+    if (url.protocol !== 'https:' || (!player && url.hostname !== page.hostname)) return
+    url.hash = ''
+    const key = url.toString()
+    if (seen.has(key) || key === page.toString()) return
+    seen.add(key)
+    let fallback = url.hostname
+    try {
+      fallback = decodeURIComponent(url.pathname.split('/').filter(Boolean).pop() ?? '') || url.hostname
+    } catch {
+      // A malformed percent escape should not discard every other player.
+    }
+    links.push({ url: key, label: (textFrom(label) || fallback).slice(0, 160), player })
+  }
+  const anchor = /<a\b[^>]*\bhref\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))[^>]*>([\s\S]*?)<\/a\s*>/gi
+  let match
+  while ((match = anchor.exec(html)) && links.length < 80) {
+    const href = (match[1] ?? match[2] ?? match[3] ?? '').trim()
+    add(href, match[4])
+  }
+  // Streaming portals commonly keep the selected hoster URL in a data
+  // attribute on a button or list item, with no usable anchor href at all.
+  // Read those explicit player targets as well, including external hosters.
+  const playerTarget = /<([a-z][\w:-]*)\b[^>]*\bdata-(?:link-target|player-url|embed-url)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))[^>]*>([\s\S]*?)<\/\1\s*>/gi
+  while ((match = playerTarget.exec(html)) && links.length < 80) {
+    add((match[2] ?? match[3] ?? match[4] ?? '').trim(), match[5], true)
+  }
+  return { title: title.slice(0, 160), links }
+}
+
+/** Fetch and parse an HTML page only after the direct-file probe ruled it out. */
+async function pageLinks(target) {
+  const answer = await fetch(target, { redirect: 'follow', headers: { Accept: 'text/html,application/xhtml+xml' } })
+  const type = answer.headers.get('content-type') ?? ''
+  if (!answer.ok || !/^text\/html\b|^application\/xhtml\+xml\b/i.test(type)) return null
+  const page = allowedTarget(answer.url || target.toString())
+  if (!page) return null
+  const found = linksFromHtml(await htmlFrom(answer), page)
+  return { kind: 'page', source: 'page', author: page.hostname, durationSeconds: null, thumbnail: null, streams: [], ...found }
+}
+
+/**
  * Ask what is at an address without pulling the file down.
  *
  * `HEAD` first, because it is the polite question. Plenty of storage backends
@@ -207,22 +306,27 @@ export default async function handler(request, response) {
    * the CORS header that would allow it, which is the entire reason this
    * endpoint exists. So the question "is there a file here" is asked from the
    * server, with a HEAD, and if the answer is yes the address is signed and
-   * handed back. There is no page scraping here and there will not be: that is
-   * what yt-dlp is for, and yt-dlp belongs on the visitor's own machine.
+   * handed back. If it is an HTML document, its same-site links are offered as
+   * a small picker. This is navigation only; media extraction remains the job
+   * of a configured provider or a local downloader.
    */
   try {
     const probed = await probe(target)
     const type = probed.headers.get('content-type') ?? ''
     const disposition = probed.headers.get('content-disposition') ?? ''
     if (!probed.ok || !looksLikeMedia(type, target, disposition)) {
+      const found = await pageLinks(target)
+      if (found) {
+        response.status(200).json(found)
+        return
+      }
       response.status(422).json({
         error: 'no-extractor',
         message:
-          'Unter dieser Adresse liegt keine Mediendatei, sondern eine Webseite. Ohne Anbieter kann ' +
-          'der eingebaute Dienst nur YouTube und direkte Datei-Adressen; für alles andere braucht ' +
-          'es einen Anbieter (SONDRA_PROVIDER_URL) oder yt-dlp auf dem eigenen Gerät. Bei einem ' +
-          'Freigabe-Link einer Cloud hilft oft die Adresse, die direkt die Datei liefert — meist ' +
-          'dieselbe mit „/download“ am Ende oder aus dem Herunterladen-Knopf der Cloud kopiert.',
+          'Unter dieser Adresse liegt keine Mediendatei, sondern eine Webseite, auf der keine ' +
+          'weiteren gleichartigen Links gefunden wurden. Ohne Anbieter kann der eingebaute Dienst ' +
+          'nur YouTube und direkte Datei-Adressen; für alles andere braucht es einen Anbieter ' +
+          '(SONDRA_PROVIDER_URL) oder yt-dlp auf dem eigenen Gerät.',
       })
       return
     }
