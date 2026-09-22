@@ -131,6 +131,13 @@ check('relative Links werden absolut', discovered.links[0]?.url, 'https://portal
 check('Sprungmarken werden entfernt', discovered.links[1]?.url, 'https://portal.example/anime/folge-2')
 check('externer Player-Link wird erkannt', discovered.links[2]?.url, 'https://hoster.example/embed/123')
 check('Player-Link wird markiert', discovered.links[2]?.player, true)
+   <a href="/anime/folge-1">Doppelt</a>`,
+  new URL('https://portal.example/anime/serie/'),
+)
+check('Seitentitel wird gelesen', discovered.title, 'Staffel & Folgen')
+check('nur Links derselben Website', discovered.links.length, 2)
+check('relative Links werden absolut', discovered.links[0]?.url, 'https://portal.example/anime/folge-1')
+check('Sprungmarken werden entfernt', discovered.links[1]?.url, 'https://portal.example/anime/folge-2')
 
 /* -- the size, from whichever header knows it ------------------------------ */
 
