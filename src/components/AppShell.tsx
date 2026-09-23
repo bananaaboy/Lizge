@@ -262,14 +262,41 @@ export function SessionBar() {
   )
 }
 
+/**
+ * The Windows installer, as the newest GitHub release carries it.
+ *
+ * `latest/download/<name>` always resolves to the newest release's asset of
+ * that name, so the link never needs touching when a version ships — the
+ * release workflow uploads the installer under this fixed name as well as
+ * under its versioned one.
+ */
+const WINDOWS_SETUP = 'https://github.com/bananaaboy/Lizge/releases/latest/download/Sondra-Setup.exe'
+
+/** True inside the desktop app, where offering the desktop app is circular. */
+const IN_DESKTOP_APP = typeof navigator !== 'undefined' && /\bElectron\//.test(navigator.userAgent)
+
+const footerLink = 'text-ink underline underline-offset-[3px] hover:no-underline'
+
 export function Footer() {
   return (
-    <footer className="shell mt-[36px] flex flex-wrap items-center justify-between gap-[16px] border-t border-line py-[24px] text-small text-muted">
-      <p className="max-w-[60ch] leading-[1.6]">
-        Statisch ausgeliefert, lokal gerechnet. Quelloffene Bausteine: FFmpeg (WebAssembly), ONNX
-        Runtime Web, Wavesurfer, Tone.js.
+    <footer className="shell mt-[36px] flex flex-col gap-[12px] border-t border-line py-[24px] text-small text-muted">
+      <div className="flex flex-wrap items-center justify-between gap-[16px]">
+        <p className="max-w-[60ch] leading-[1.6]">
+          Statisch ausgeliefert, lokal gerechnet. Quelloffene Bausteine: FFmpeg (WebAssembly), ONNX
+          Runtime Web, Wavesurfer, Tone.js.
+        </p>
+        <p>Keine Uploads · keine Cookies · kein Tracking</p>
+      </div>
+      <p className="flex flex-wrap gap-x-[16px] gap-y-[4px]">
+        {IN_DESKTOP_APP ? null : (
+          <a className={footerLink} href={WINDOWS_SETUP} rel="noopener">
+            Sondra für Windows herunterladen
+          </a>
+        )}
+        <a className={footerLink} href="./datenschutz.html">
+          Datenschutz
+        </a>
       </p>
-      <p>Keine Uploads · keine Cookies · kein Tracking</p>
     </footer>
   )
 }

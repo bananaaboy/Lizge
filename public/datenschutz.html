@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Datenschutz · Sondra</title>
+    <meta name="description" content="Welche Daten Sondra verarbeitet, wo und wie lange — für die Website und die Windows-App." />
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./fonts.css" />
+    <script>
+      /* The theme the app remembers, before the first paint. */
+      try {
+        var choice = localStorage.getItem('sondra:theme')
+        if (choice === 'light' || choice === 'dark') document.documentElement.setAttribute('data-theme', choice)
+      } catch (e) {}
+    </script>
+    <style>
+      /* The app's own tokens (src/styles/theme.css), for a page that stands
+         outside the app bundle so it has a fixed address. */
+      :root {
+        color-scheme: light;
+        --canvas: #f4f3ee;
+        --ink: #0f3e1c;
+        --prose: #1b231d;
+        --muted: #5d6c61;
+        --line: #d5d4c9;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme='light']) {
+          color-scheme: dark;
+          --canvas: #090d0b;
+          --ink: #9ce0ad;
+          --prose: #e0e8e2;
+          --muted: #a7bbab;
+          --line: #525f55;
+        }
+      }
+      :root[data-theme='dark'] {
+        color-scheme: dark;
+        --canvas: #090d0b;
+        --ink: #9ce0ad;
+        --prose: #e0e8e2;
+        --muted: #a7bbab;
+        --line: #525f55;
+      }
+
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--canvas);
+        color: var(--prose);
+        font: 400 16px/1.6 'Public Sans', system-ui, sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      main { max-width: 720px; margin: 0 auto; padding: 40px 16px 64px; }
+      @media (min-width: 640px) { main { padding: 64px 24px 96px; } }
+
+      a { color: var(--ink); text-underline-offset: 3px; }
+      a:hover { text-decoration: none; }
+      a:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+      .back { font-size: 14px; }
+      h1 { color: var(--ink); font-size: 32px; line-height: 1.15; letter-spacing: -0.02em; margin: 24px 0 8px; }
+      .stand { color: var(--muted); font-size: 14px; margin: 0 0 32px; }
+      .kurz { font-size: 18px; line-height: 1.55; margin: 0 0 8px; }
+
+      section { border-top: 1px solid var(--line); padding-top: 20px; margin-top: 32px; }
+      h2 { color: var(--ink); font-size: 20px; line-height: 1.3; letter-spacing: -0.01em; margin: 0 0 12px; }
+      h3 { font-size: 16px; margin: 20px 0 6px; }
+      p, ul { margin: 0 0 12px; }
+      ul { padding-left: 20px; }
+      li { margin-bottom: 6px; }
+      code, .value { font-family: 'Courier Prime', ui-monospace, monospace; font-size: 15px; }
+      .fill { border-bottom: 1px dashed var(--muted); }
+    </style>
+  </head>
+  <body>
+    <main>
+      <a class="back" href="./">Zurück zu Sondra</a>
+
+      <h1>Datenschutz</h1>
+      <p class="stand">Stand: 22. September 2026 · gilt für die Website und die Windows-App</p>
+
+      <p class="kurz">
+        Sondra bearbeitet Ihre Dateien auf Ihrem Gerät. Nichts davon wird zu uns hochgeladen. Es gibt keine
+        Konten, keine Cookies, kein Tracking und keine Werbung.
+      </p>
+      <p>
+        Daten verlassen Ihr Gerät nur in zwei Fällen: beim Aufruf der Website, wie bei jeder Website, und wenn
+        Sie Sondra selbst bitten, eine Datei von einer Adresse zu laden. Beides ist unten genau beschrieben.
+      </p>
+
+      <section>
+        <h2>Verantwortlich</h2>
+        <p>
+          <span class="fill">[Vor- und Nachname]</span><br />
+          <span class="fill">[Strasse und Nummer]</span><br />
+          <span class="fill">[PLZ und Ort]</span>, Schweiz<br />
+          E-Mail: <span class="fill">[E-Mail-Adresse]</span>
+        </p>
+        <p>Für Fragen zum Datenschutz und für die unten genannten Rechte schreiben Sie an diese Adresse.</p>
+      </section>
+
+      <section>
+        <h2>Was auf Ihrem Gerät bleibt</h2>
+        <p>
+          Alles, was Sie öffnen, umwandeln, schneiden, trennen oder messen, wird im Browser beziehungsweise in
+          der App auf Ihrem Gerät gerechnet. Die Dateien liegen nur im Arbeitsspeicher und sind weg, sobald Sie
+          den Tab oder die App schliessen.
+        </p>
+        <p>Im Speicher Ihres Browsers (localStorage) legt Sondra nur Einstellungen ab:</p>
+        <ul>
+          <li><code>sondra:theme</code>: ob Sie das helle oder dunkle Aussehen gewählt haben.</li>
+          <li>
+            <code>sondra:service</code>: die Adresse eines Extraktionsdienstes, den Sie selbst verbunden
+            haben, und Ihre Qualitätseinstellungen dafür. Ein API-Schlüssel wird nie gespeichert.
+          </li>
+          <li>
+            <code>sondra:instances</code>: bis zu sechs Adressen solcher Dienste, die schon einmal
+            geantwortet haben, damit Sie sie wieder auswählen können.
+          </li>
+        </ul>
+        <p>
+          Diese Einträge verlassen Ihr Gerät nicht. Sie löschen sie, indem Sie in Ihrem Browser die
+          Websitedaten für diese Seite löschen.
+        </p>
+      </section>
+
+      <section>
+        <h2>Beim Aufruf der Website</h2>
+        <p>
+          Die Website wird von Vercel Inc. (USA) ausgeliefert. Wie jeder Webserver erfasst Vercel bei jedem
+          Abruf technische Angaben: Ihre IP-Adresse, Zeitpunkt, die abgerufene Adresse und die Angaben Ihres
+          Browsers. Das ist nötig, um die Seite auszuliefern und vor Missbrauch zu schützen. Wir werten diese
+          Protokolle nicht aus. Vercel bewahrt sie für eine begrenzte Zeit auf und löscht sie danach nach
+          den eigenen Fristen.
+        </p>
+        <p>
+          Schriften und alle Bestandteile der Seite kommen vom selben Server. Es werden keine Inhalte von
+          Google Fonts, CDNs oder Analysediensten nachgeladen.
+        </p>
+      </section>
+
+      <section>
+        <h2>Wenn Sie etwas von einer Adresse laden</h2>
+        <p>
+          Geben Sie unter „Herunterladen“ eine Adresse ein, schickt Ihr Browser diese Adresse an eine Funktion
+          von Sondra auf dem Server (<code>/api/resolve</code>). Sie fragt die Quelle, was dort liegt. Die Datei
+          selbst läuft danach durch eine zweite Funktion (<code>/api/stream</code>) zu Ihnen. Die Quelle sieht
+          dabei die Anfrage vom Server, nicht Ihre IP-Adresse.
+        </p>
+        <ul>
+          <li>Sondra speichert weder die Adresse noch die Datei. Beides existiert nur für die Dauer der Anfrage.</li>
+          <li>
+            Die Protokolle des Hostings (siehe oben) können die abgerufene Adresse enthalten, weil sie Teil
+            der Anfrage ist.
+          </li>
+          <li>
+            Ist es eine YouTube-Adresse, fragt die Funktion YouTube (Google) nach den Angaben zum Video.
+          </li>
+          <li>
+            Ist für diese Website ein Extraktionsdienst eingerichtet, wird die Adresse zuerst an diesen
+            weitergegeben: <span class="fill">[Name des Dienstes oder „keiner“]</span>.
+          </li>
+        </ul>
+        <p>
+          Welche Inhalte Sie laden und ob Sie dazu berechtigt sind, liegt bei Ihnen.
+        </p>
+      </section>
+
+      <section>
+        <h2>Wenn Sie einen eigenen Dienst verbinden</h2>
+        <p>
+          Unter „Optionen“ können Sie einen eigenen Extraktionsdienst eintragen. Dann schickt Ihr Browser die
+          Adressen, die Sie laden möchten, direkt an diesen Dienst, ohne Umweg über Sondra. Für die
+          Verarbeitung dort ist, wer den Dienst betreibt, verantwortlich. Einen API-Schlüssel, den Sie
+          angeben, hält Sondra nur im Arbeitsspeicher. Solange ein Dienst verbunden ist, zeigt die Kopfzeile
+          das an.
+        </p>
+      </section>
+
+      <section>
+        <h2>Eigene Trennmodelle</h2>
+        <p>
+          Wenn Sie für „Spuren trennen“ ein eigenes Modell verwenden, lädt Ihr Browser es von Ihrem Gerät oder
+          direkt von der Adresse, die Sie angeben. Sondra sieht dabei nichts.
+        </p>
+      </section>
+
+      <section>
+        <h2>Die Windows-App</h2>
+        <p>
+          Die App enthält dieselbe Oberfläche und die beiden Funktionen und führt sie auf Ihrem Rechner aus.
+          Sie ist nur unter <code>127.0.0.1</code> erreichbar, also nur von Ihrem eigenen Rechner. Es werden
+          keine Nutzungsdaten, Absturzberichte oder Statistiken gesendet, und die App sucht nicht selbständig
+          nach Updates.
+        </p>
+        <ul>
+          <li>
+            Das Setup wird über GitHub (GitHub Inc., USA) ausgeliefert. Beim Herunterladen verarbeitet GitHub
+            Ihre IP-Adresse und Verbindungsdaten nach den eigenen Datenschutzregeln.
+          </li>
+          <li>
+            Laden Sie in der App etwas von einer Adresse, geht die Anfrage direkt von Ihrem Rechner an die
+            Quelle. Die Quelle sieht dabei Ihre IP-Adresse. Vercel ist nicht beteiligt.
+          </li>
+          <li>
+            Die App schreibt ein Protokoll nach <code>%APPDATA%\Sondra\sondra.log</code>: Startzeiten,
+            den lokalen Port und Fehlermeldungen. Es bleibt auf Ihrem Rechner und wird nur verschickt, wenn Sie
+            es selbst jemandem geben.
+          </li>
+          <li>
+            Einstellungen und Protokoll liegen in <code>%APPDATA%\Sondra</code>. Nach dem Deinstallieren
+            löschen Sie diesen Ordner, um alles zu entfernen.
+          </li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>Weitergabe</h2>
+        <p>
+          Wir verkaufen keine Daten und geben keine weiter, ausser an die oben genannten Stellen und soweit es
+          für die jeweilige Funktion nötig ist. Vercel und GitHub sitzen in den USA. Die Übermittlung dorthin
+          stützt sich auf die Garantien, die beide in ihren Auftragsverarbeitungsverträgen bieten
+          (Standardvertragsklauseln).
+        </p>
+      </section>
+
+      <section>
+        <h2>Ihre Rechte</h2>
+        <p>
+          Sie können Auskunft über Ihre Daten verlangen, ihre Berichtigung oder Löschung, und der Bearbeitung
+          widersprechen. Das gilt nach dem Schweizer Datenschutzgesetz (DSG) und, soweit anwendbar, nach der
+          Datenschutz-Grundverordnung der EU (DSGVO). Weil Sondra selbst nichts über Sie speichert, betrifft
+          eine solche Anfrage in der Regel nur die Protokolle des Hostings.
+        </p>
+        <p>
+          Beschwerden können Sie beim Eidgenössischen Datenschutz- und Öffentlichkeitsbeauftragten (EDÖB)
+          einreichen, in der EU bei der Aufsichtsbehörde Ihres Landes.
+        </p>
+        <p>
+          Soweit die DSGVO gilt, stützt sich die Bearbeitung auf unser berechtigtes Interesse an einem sicheren
+          Betrieb der Website (Art. 6 Abs. 1 lit. f) und darauf, dass Sie eine Funktion ausdrücklich anfordern
+          (Art. 6 Abs. 1 lit. b).
+        </p>
+      </section>
+
+      <section>
+        <h2>Änderungen</h2>
+        <p>
+          Ändert sich etwas daran, wie Sondra mit Daten umgeht, wird diese Seite angepasst und das Datum oben
+          neu gesetzt.
+        </p>
+      </section>
+    </main>
+  </body>
+</html>
