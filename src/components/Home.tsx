@@ -189,10 +189,12 @@ export function Home() {
 
         {/* The desktop app, one step down from the way in: its own line under
             a rule, a ruled button rather than a filled one — the filled one
-            stays the single thing to do here. Not on a phone, where a Windows
-            installer is no use, and not inside the app itself. */}
+            stays the single thing to do here. On a phone too: hidden there, it
+            was missed by the very people looking for it, who often find the
+            site on the phone and install on the computer later. Only inside
+            the app itself is it left out. */}
         {IN_DESKTOP_APP ? null : (
-          <div className="hidden flex-wrap items-center gap-x-[16px] gap-y-[8px] border-t border-line pt-[16px] sm:flex">
+          <div className="flex flex-wrap items-center gap-x-[16px] gap-y-[8px] border-t border-line pt-[16px]">
             <a
               href={WINDOWS_SETUP}
               rel="noopener"
