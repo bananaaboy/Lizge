@@ -255,7 +255,7 @@ export function Dashboard({ theme }: { theme: ResolvedTheme }) {
 
       {/* Keyed on the panel so every switch replays the entrance rather than
           swapping content in place, which reads as a jump. */}
-      <div key={panel} role="tabpanel" aria-label={current?.label} className="panel-root rise flex flex-col gap-[16px]">
+      <div key={panel} role="tabpanel" aria-label={current?.label} className="panel-root rise flex min-w-0 flex-col gap-[16px]">
         {!ready ? (
           <NothingLoaded label={current?.label ?? ''} summary={current?.summary ?? ''} />
         ) : (

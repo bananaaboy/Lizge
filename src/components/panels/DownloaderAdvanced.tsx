@@ -839,7 +839,7 @@ export function AdvancedDownloader({ url }: { url: string }) {
       : PATHS.find((path) => path.id === effectiveMode)?.hint
 
   return (
-    <div className="grid gap-[16px]">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-[16px]">
       <Card tone="keylime" size="compact">
         <div className="flex flex-wrap items-baseline justify-between gap-x-[16px] gap-y-[4px]">
           <span className="text-small text-muted">
@@ -1145,7 +1145,7 @@ export function AdvancedDownloader({ url }: { url: string }) {
                       Ausblenden
                     </button>
                   </div>
-                  <pre className="mt-[8px] overflow-x-auto font-mono text-micro leading-[1.6] whitespace-pre-wrap text-prose">
+                  <pre className="mt-[8px] whitespace-pre-wrap break-all font-mono text-micro leading-[1.6] text-prose">
                     {probe}
                   </pre>
                 </div>

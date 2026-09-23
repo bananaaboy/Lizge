@@ -654,7 +654,7 @@ export function ConverterPanel() {
   const showVbr = format.id === 'mp3' || format.id === 'vorbis'
 
   return (
-    <div className="grid max-w-[960px] gap-[20px]">
+    <div className="grid max-w-[960px] grid-cols-[minmax(0,1fr)] gap-[20px]">
       <div className="flex flex-col gap-[20px]">
         <Card tone="keylime">
           <h2 className="display-md mt-[8px] mb-[12px]">In ein anderes Format bringen</h2>
@@ -968,7 +968,7 @@ export function ConverterPanel() {
 
               {command ? (
                 <Reveal label="Welcher Befehl dabei läuft" className="mt-[20px]">
-                  <pre className="overflow-x-auto rounded-card bg-panel-soft p-[16px] font-mono text-small leading-[1.6] text-prose">
+                  <pre className="whitespace-pre-wrap break-all rounded-card bg-panel-soft p-[16px] font-mono text-small leading-[1.6] text-prose">
                     <code>{command}</code>
                   </pre>
                 </Reveal>

@@ -963,7 +963,7 @@ function VideoInspector({
         <summary className="press inline-flex cursor-pointer list-none items-center gap-[8px] rounded-nav text-small text-muted hover:text-ink">
           FFmpeg-Befehl
         </summary>
-        <pre className="mt-[8px] overflow-x-auto rounded-nav bg-panel-soft p-[8px] font-mono text-micro leading-[1.5] text-prose">
+        <pre className="mt-[8px] whitespace-pre-wrap break-all rounded-nav bg-panel-soft p-[8px] font-mono text-micro leading-[1.5] text-prose">
           ffmpeg {command}
         </pre>
       </details>
