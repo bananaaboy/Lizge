@@ -34,7 +34,6 @@ import { pitchShift, stretchAudio } from '../../lib/timestretch'
 import { encodeWav, type AudioData, type WavBitDepth } from '../../lib/wav'
 import { useDecodedAudio } from '../../hooks/useDecodedAudio'
 import { useActiveAssetOfKind, useAssetsOfKind, useSession } from '../../state/store'
-import { SessionCard } from '../AssetList'
 import { FileDrop } from '../FileDrop'
 import { Waveform } from '../Waveform'
 import {
@@ -47,7 +46,6 @@ import {
   Reveal,
   Select,
   Slider,
-  Stat,
 } from '../ui/primitives'
 
 interface Step {
@@ -326,14 +324,21 @@ export function AudioEditorPanel() {
 
           {/* -- cutting ------------------------------------------------------ */}
           <div className="mt-[16px] flex flex-wrap gap-[8px]">
-            <Button size="sm" disabled={!hasSelection || busy !== null}
-              onClick={() => void apply('Ausschnitt behalten', (a) => sliceAudio(a, span.start, span.end))}>
-              Nur den Ausschnitt behalten
-            </Button>
-            <Button size="sm" variant="quiet" disabled={!hasSelection || busy !== null}
-              onClick={() => void apply('Ausschnitt entfernt', (a) => cutRange(a, span.start, span.end))}>
-              Ausschnitt herausschneiden
-            </Button>
+            {/* The two cuts exist only once there is something to cut. Shown
+                greyed out beforehand they were two dead buttons on every visit,
+                and the line above already says how to make a selection. */}
+            {hasSelection ? (
+              <>
+                <Button size="sm" disabled={busy !== null}
+                  onClick={() => void apply('Ausschnitt behalten', (a) => sliceAudio(a, span.start, span.end))}>
+                  Nur den Ausschnitt behalten
+                </Button>
+                <Button size="sm" variant="quiet" disabled={busy !== null}
+                  onClick={() => void apply('Ausschnitt entfernt', (a) => cutRange(a, span.start, span.end))}>
+                  Ausschnitt herausschneiden
+                </Button>
+              </>
+            ) : null}
             <Button size="sm" variant="quiet" disabled={busy !== null}
               onClick={() => void apply('Umgekehrt', reverseAudio)}>
               Umkehren
@@ -346,7 +351,7 @@ export function AudioEditorPanel() {
           </div>
 
           {/* -- level and shape ---------------------------------------------- */}
-          <div className="mt-[16px] grid gap-[16px] rounded-card bg-panel-soft p-[16px] sm:grid-cols-2">
+          <div className="mt-[20px] grid gap-[16px] border-t border-line pt-[16px] sm:grid-cols-2">
             <div>
               <Slider
                 label={hasSelection ? 'Pegel im Ausschnitt' : 'Pegel'}
@@ -386,25 +391,31 @@ export function AudioEditorPanel() {
           </div>
 
           {/* -- silence ------------------------------------------------------- */}
-          <div className="mt-[16px] flex flex-wrap items-center gap-[8px] rounded-card bg-panel-soft p-[16px]">
-            <div className="min-w-0 flex-1">
-              <p className="text-small text-ink">
-                {silence.length === 0
-                  ? 'Keine nennenswerte Stille gefunden.'
-                  : `${silence.length} stille Stelle${silence.length === 1 ? '' : 'n'} gefunden — zusammen ${
-                      silence.reduce((sum, r) => sum + (r.endSeconds - r.startSeconds), 0).toFixed(1)
-                    } s.`}
-              </p>
-              <p className="mt-[4px] text-small leading-[1.45] text-muted">
-                Unter −50 dBFS und länger als 0,35 s. An den Rändern bleiben 50 ms stehen, sonst
-                klingt der Schnitt abgehackt.
-              </p>
+          {/* Nothing found is one quiet line; the explanation and the button
+              only appear when there is silence to remove. */}
+          {silence.length === 0 ? (
+            <p className="mt-[20px] border-t border-line pt-[12px] text-small text-muted">
+              Keine nennenswerte Stille gefunden.
+            </p>
+          ) : (
+            <div className="mt-[20px] flex flex-wrap items-center gap-[8px] border-t border-line pt-[16px]">
+              <div className="min-w-0 flex-1">
+                <p className="text-small text-ink">
+                  {`${silence.length} stille Stelle${silence.length === 1 ? '' : 'n'} gefunden — zusammen ${
+                    silence.reduce((sum, r) => sum + (r.endSeconds - r.startSeconds), 0).toFixed(1)
+                  } s.`}
+                </p>
+                <p className="mt-[4px] text-small leading-[1.45] text-muted">
+                  Unter −50 dBFS und länger als 0,35 s. An den Rändern bleiben 50 ms stehen, sonst
+                  klingt der Schnitt abgehackt.
+                </p>
+              </div>
+              <Button size="sm" variant="quiet" disabled={busy !== null}
+                onClick={() => void apply('Stille entfernt', (a) => removeSilence(a))}>
+                Stille entfernen
+              </Button>
             </div>
-            <Button size="sm" variant="quiet" disabled={busy !== null || silence.length === 0}
-              onClick={() => void apply('Stille entfernt', (a) => removeSilence(a))}>
-              Stille entfernen
-            </Button>
-          </div>
+          )}
 
           {/* -- the expert half ------------------------------------------------ */}
           <Reveal label="Tonhöhe, Tempo, Kanäle und Abtastrate" className="mt-[16px]">
@@ -500,12 +511,12 @@ export function AudioEditorPanel() {
       </div>
 
       <aside className="flex flex-col gap-[16px]">
-        <Card tone="mint" size="compact">
-          <SectionHead>Verlauf</SectionHead>
+        <Card tone="cream" size="compact">
+          <SectionHead rule={false}>Verlauf</SectionHead>
           {history.length === 0 ? (
-            <p className="mt-[8px] text-small leading-[1.5] text-prose/85">
-              Noch unverändert. Jeder Schritt landet hier, und Strg/Cmd + Z nimmt ihn zurück — die
-              Ausgangsdatei in der Sitzung bleibt in jedem Fall unangetastet.
+            <p className="mt-[8px] text-small leading-[1.5] text-muted">
+              Noch unverändert. Strg/Cmd + Z nimmt jeden Schritt zurück; die Ausgangsdatei bleibt
+              unangetastet.
             </p>
           ) : (
             <ol className="mt-[8px] flex flex-col gap-[4px] text-small">
@@ -547,17 +558,7 @@ export function AudioEditorPanel() {
           </Card>
         ) : null}
 
-        <Card tone="slate" size="compact">
-          <SectionHead>Jetzt</SectionHead>
-          <div className="mt-[12px] grid grid-cols-2 gap-[12px]">
-            <Stat label="Länge" value={formatTimecode(duration)} emphasis />
-            <Stat label="Spitze" value={`${peakDb(current).toFixed(1)} dB`} emphasis />
-            <Stat label="Kanäle" value={current.channels.length === 1 ? 'Mono' : 'Stereo'} />
-            <Stat label="Abtastrate" value={`${(current.sampleRate / 1000).toFixed(1)} kHz`} />
-          </div>
-        </Card>
 
-        <SessionCard />
       </aside>
     </div>
   )

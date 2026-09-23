@@ -16,7 +16,6 @@ import { measureLoudnessInWorker, normalizeInWorker } from '../../lib/workerClie
 import { withExtension } from '../../lib/format'
 import { useDecodedAudio } from '../../hooks/useDecodedAudio'
 import { useActiveAsset, useSession } from '../../state/store'
-import { SessionCard } from '../AssetList'
 import { AudioPreview } from '../AudioPreview'
 import { FileDrop } from '../FileDrop'
 import { Waveform } from '../Waveform'
@@ -425,7 +424,6 @@ export function NormalizePanel() {
       </div>
 
       <aside className="flex flex-col gap-[20px]">
-        <SessionCard />
         <Card tone="cream">
           <SectionHead>Zielwerte</SectionHead>
           <dl className="mt-[16px] flex flex-col gap-[12px] text-small">

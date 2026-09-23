@@ -601,3 +601,15 @@ table,
   line-height: 1;
   text-align: center;
 }
+
+/*
+ * A tool's first section opens right under the header, whose bottom rule
+ * already separates it. Its own opening rule there drew a second line 32px
+ * below the first — two rules for one boundary.
+ */
+.panel-root > :first-child > .border-t-2:first-child,
+.panel-root > :first-child > :first-child > .border-t-2:first-child,
+.panel-root > :first-child > aside > .border-t-2:first-child {
+  border-top-width: 0;
+  padding-top: 0;
+}

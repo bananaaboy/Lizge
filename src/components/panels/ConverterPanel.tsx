@@ -26,7 +26,6 @@ import { formatTimecode } from '../../lib/format'
 import { decodeWithBrowser } from '../../lib/audio'
 import { useDecodedAudio } from '../../hooks/useDecodedAudio'
 import { kindFromMime, useActiveAsset, useSession } from '../../state/store'
-import { SessionAside } from '../AssetList'
 import { AudioPreview } from '../AudioPreview'
 import { FileDrop } from '../FileDrop'
 import {
@@ -655,7 +654,7 @@ export function ConverterPanel() {
   const showVbr = format.id === 'mp3' || format.id === 'vorbis'
 
   return (
-    <div className="grid gap-[20px] lg:grid-cols-[minmax(0,1fr)_360px]">
+    <div className="grid max-w-[960px] gap-[20px]">
       <div className="flex flex-col gap-[20px]">
         <Card tone="keylime">
           <h2 className="display-md mt-[8px] mb-[12px]">In ein anderes Format bringen</h2>
@@ -975,6 +974,10 @@ export function ConverterPanel() {
                 </Reveal>
               ) : null}
 
+              {/* Only once there is more than one file: „Alle 1 Dateien" as a
+                  greyed-out switch was a control for a situation that did
+                  not exist. */}
+              {assets.length > 1 ? (
               <div className="mt-[20px]">
                 <Toggle
                   label={`Alle ${assets.length} Dateien der Sitzung umwandeln`}
@@ -985,9 +988,9 @@ export function ConverterPanel() {
                     setQueue(null)
                     setArchive(null)
                   }}
-                  disabled={assets.length < 2}
                 />
               </div>
+              ) : null}
 
               <div className="mt-[20px] flex flex-wrap items-center gap-[12px]">
                 <Button onClick={batch ? convertBatch : convert} disabled={running}>
@@ -1125,7 +1128,6 @@ export function ConverterPanel() {
         ) : null}
       </div>
 
-      <SessionAside />
     </div>
   )
 }

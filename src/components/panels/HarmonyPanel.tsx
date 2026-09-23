@@ -23,7 +23,6 @@ import { estimateTempo } from '../../lib/tempo'
 import { analyseHarmonyInWorker, type HarmonyOutcome } from '../../lib/workerClient'
 import { useDecodedAudio } from '../../hooks/useDecodedAudio'
 import { useActiveAsset, useSession } from '../../state/store'
-import { SessionCard } from '../AssetList'
 import { AudioPreview } from '../AudioPreview'
 import { FileDrop } from '../FileDrop'
 import {
@@ -459,7 +458,6 @@ export function HarmonyPanel() {
           </Card>
         ) : null}
 
-        <SessionCard />
       </aside>
     </div>
   )

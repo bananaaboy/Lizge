@@ -45,6 +45,14 @@ function Icon({ choice }: { choice: ThemeChoice }) {
   )
 }
 
+/**
+ * One button that steps through the three states.
+ *
+ * It was a segmented control of three filled squares — the heaviest object in
+ * the header after the file button, for a setting most people touch once. The
+ * three states are all still there; the button shows the current one and a
+ * press moves to the next, and its name says both.
+ */
 export function ThemeToggle({
   choice,
   onChange,
@@ -52,34 +60,18 @@ export function ThemeToggle({
   choice: ThemeChoice
   onChange: (choice: ThemeChoice) => void
 }) {
+  const index = OPTIONS.findIndex((option) => option.value === choice)
+  const current = OPTIONS[index] ?? OPTIONS[1]
+  const next = OPTIONS[(index + 1) % OPTIONS.length]
   return (
-    <div
-      role="radiogroup"
-      aria-label="Erscheinungsbild"
-      className="flex items-center gap-[2px] bg-panel-soft p-[4px]"
+    <button
+      type="button"
+      onClick={() => onChange(next.value)}
+      title={`${current.title} — wechseln zu: ${next.label}`}
+      aria-label={`Erscheinungsbild: ${current.label}. Wechseln zu ${next.label}`}
+      className="press flex h-[32px] w-[32px] items-center justify-center text-ink hover:bg-panel-soft"
     >
-      {OPTIONS.map((option) => {
-        const active = option.value === choice
-        return (
-          <button
-            key={option.value}
-            type="button"
-            role="radio"
-            aria-checked={active}
-            title={option.title}
-            onClick={() => onChange(option.value)}
-            className={`press flex items-center justify-center p-[6px] sm:p-[8px] ${
-              active ? 'bg-ink text-on-ink' : 'text-ink hover:bg-panel-mid'
-            }`}
-          >
-            <Icon choice={option.value} />
-            {/* Icon-only: three words of chrome next to the one button that
-                actually starts work is three words too many. The title and the
-                label below still name each state for a screen reader. */}
-            <span className="sr-only">{option.label}</span>
-          </button>
-        )
-      })}
-    </div>
+      <Icon choice={current.value} />
+    </button>
   )
 }

@@ -181,13 +181,19 @@ export function DownloaderPanel() {
           </Button>
         </form>
 
-        <p className="mt-[8px] text-small leading-[1.5] text-muted">
-          Der Dienst versucht drei Wege in dieser Reihenfolge: einen Anbieter, falls für diese
-          Installation einer hinterlegt ist; sonst YouTube direkt, was einem Server nur die Fassung
-          mit Bild und Ton in einem gibt, in der Regel 360p; sonst jede Adresse, die schon auf eine
-          Datei zeigt. Welcher Weg geantwortet hat, steht beim Ergebnis. Für volle Auflösung ohne
-          Anbieter führt der Weg über das eigene Gerät; das steht weiter unten.
-        </p>
+        {/* Seven lines under the field on every visit, for a question most
+            people only have once something did not work. The warning above
+            stays in full — that one is binding — and the result names the
+            path that answered, so the explanation can wait a click. */}
+        <Reveal label="Welche Wege probiert werden" className="mt-[12px]">
+          <p className="text-small leading-[1.5] text-muted">
+            Der Dienst versucht drei Wege in dieser Reihenfolge: einen Anbieter, falls für diese
+            Installation einer hinterlegt ist; sonst YouTube direkt, was einem Server nur die Fassung
+            mit Bild und Ton in einem gibt, in der Regel 360p; sonst jede Adresse, die schon auf eine
+            Datei zeigt. Welcher Weg geantwortet hat, steht beim Ergebnis. Für volle Auflösung ohne
+            Anbieter führt der Weg über das eigene Gerät; das steht weiter unten.
+          </p>
+        </Reveal>
       </Card>
 
       {error ? (

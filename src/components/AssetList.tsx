@@ -1,25 +1,30 @@
 /**
- * The session library: everything currently held in memory.
+ * The session, as one control in the header.
+ *
+ * It used to be three things on every screen: a tinted strip under the header
+ * („1 Datei im Arbeitsspeicher dieses Tabs …"), a right-hand column in each
+ * tool with a player, fifteen buttons under „Damit geht" and the file list,
+ * and a „Weitere Datei" button in the header. The fifteen buttons repeated the
+ * tab bar; the strip repeated the chip; the column took a third of the width
+ * from the tool. Together they were most of what made the page feel crowded.
+ *
+ * Now the header names the file that is being worked on, and everything about
+ * the session — switching, playing, saving, removing, adding, freeing the
+ * memory — is one click behind that name. Nothing that could be done before
+ * is gone; it is just not all standing on the page at once.
  */
 
-import { useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
-import { actionsFor } from '../lib/actions'
 import { saveBytes } from '../lib/download'
 import { formatBytes, formatDuration } from '../lib/format'
 import { useDecodedAudio } from '../hooks/useDecodedAudio'
-import { KIND_LABEL, useActiveAsset, useSession } from '../state/store'
+import { useFilePicker } from '../hooks/useIngest'
+import { useActiveAsset, useSession } from '../state/store'
 import { AudioPreview } from './AudioPreview'
-import { Badge, Card } from './ui/primitives'
+import { Badge } from './ui/primitives'
 
-/**
- * A player for whichever file is selected.
- *
- * This sits in the library, which every panel shows, so playback of the source
- * is available in every tab rather than only in the ones that happen to produce
- * a result. Decoding happens once and is cached on the asset, so opening a
- * second panel does not pay for it again.
- */
+/** Playback of the selected file, decoded only once the menu is open. */
 function SelectedPlayer() {
   const selected = useActiveAsset()
   // Decoding a PNG as audio is a guaranteed failure and a pointless wait.
@@ -31,190 +36,182 @@ function SelectedPlayer() {
   }, [asset, audio, status, decode])
 
   if (!asset) return null
-
   if (!audio) {
     return (
       <p className="text-small text-muted">
-        {status === 'decoding' ? 'Wird für die Wiedergabe dekodiert…' : null}
-        {status === 'error' ? 'Diese Datei lässt sich nicht abspielen.' : null}
+        {status === 'error' ? 'Diese Datei lässt sich nicht abspielen.' : 'Wird für die Wiedergabe vorbereitet…'}
       </p>
     )
   }
-
-  return <AudioPreview sources={[{ id: asset.id, label: asset.name, audio }]} waveHeight={40} />
+  return <AudioPreview sources={[{ id: asset.id, label: asset.name, audio }]} waveHeight={32} />
 }
 
-/**
- * The session column as every panel renders it.
- *
- * Both return nothing when the session is empty. A card reading "nothing
- * loaded" beside a tool that is itself explaining that it needs a file is the
- * same sentence twice, and on the opening screen it left a dead 320px column
- * next to the only thing there was to do.
- *
- * `SessionCard` is for panels that already have a sidebar of their own;
- * `SessionAside` is for the two where the session is the whole sidebar.
- */
-export function SessionCard() {
-  const count = useSession((state) => state.assets.length)
-  if (count === 0) return null
+function FileIcon() {
   return (
-    <Card tone="cream" size="compact">
-      <AssetList />
-    </Card>
+    <svg viewBox="0 0 16 16" className="h-3.5 w-3.5 shrink-0" fill="none" aria-hidden>
+      <path
+        d="M4 1.8h5.2L12.5 5v9.2H4z M9 1.8V5h3.5"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinejoin="round"
+      />
+    </svg>
   )
 }
 
-export function SessionAside() {
-  const count = useSession((state) => state.assets.length)
-  if (count === 0) return null
+function IconButton({ label, onClick, children }: { label: string; onClick: () => void; children: React.ReactNode }) {
   return (
-    <aside>
-      <SessionCard />
-    </aside>
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      onClick={onClick}
+      className="press flex h-[32px] w-[32px] shrink-0 items-center justify-center text-muted transition-colors hover:text-ink"
+    >
+      {children}
+    </button>
   )
 }
 
-/**
- * What can be done with the file that is selected.
- *
- * The principle this serves is the one the whole app is arranged around: a
- * file should not have to be carried to a tool. It says what it is, the tools
- * that fit it are listed right there, and one click is the whole journey —
- * which also means the capabilities are discovered by using the app rather
- * than by reading the tab bar and guessing.
- */
-function WhatFits() {
-  const asset = useActiveAsset()
-  const panel = useSession((state) => state.panel)
-  const setPanel = useSession((state) => state.setPanel)
-  if (!asset) return null
-
-  const fits = actionsFor(asset.kind)
-  if (fits.length === 0) {
-    return (
-      <p className="text-small leading-[1.5] text-muted">
-        Für {KIND_LABEL[asset.kind]}-Dateien gibt es hier noch kein Werkzeug. Speichern und
-        Verwalten geht trotzdem.
-      </p>
-    )
-  }
-
-  return (
-    <div className="flex flex-col gap-[8px]">
-      <span className="text-small font-semibold text-muted">
-        Damit geht
-      </span>
-      <div className="flex flex-wrap gap-[4px]">
-        {fits.map((action) => (
-          <button
-            key={action.id}
-            type="button"
-            title={action.hint}
-            onClick={() => setPanel(action.panel)}
-            className={`press px-[8px] py-[4px] text-small ${
-              action.panel === panel
-                ? 'bg-ink text-on-ink'
-                : 'bg-panel-soft text-ink hover:bg-panel-mid'
-            }`}
-          >
-            {action.label}
-          </button>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-export function AssetList() {
+export function SessionMenu() {
   const assets = useSession((state) => state.assets)
   const activeId = useSession((state) => state.activeAssetId)
   const setActive = useSession((state) => state.setActiveAsset)
   const removeAsset = useSession((state) => state.removeAsset)
   const clearAssets = useSession((state) => state.clearAssets)
+  const active = useActiveAsset()
+  const picker = useFilePicker('geöffnet')
+  const [open, setOpen] = useState(false)
+  const rootRef = useRef<HTMLDivElement>(null)
 
-  if (assets.length === 0) {
-    return (
-      <p className="text-small leading-[1.55] text-muted">
-        Noch nichts geladen. Alles, was Sie hinzufügen, bleibt in diesem Tab.
-      </p>
-    )
-  }
+  // Closes on a click anywhere else and on Escape, like every other popover.
+  useEffect(() => {
+    if (!open) return
+    const onPointer = (event: MouseEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false)
+    }
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false)
+    }
+    document.addEventListener('mousedown', onPointer)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onPointer)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [open])
+
+  // An emptied session has nothing to show.
+  useEffect(() => {
+    if (assets.length === 0) setOpen(false)
+  }, [assets.length])
+
+  if (assets.length === 0) return null
+
+  const totalBytes = assets.reduce((sum, asset) => sum + asset.sizeBytes, 0)
 
   return (
-    <div className="flex flex-col gap-[12px]">
-      <div className="flex items-baseline justify-between gap-3">
-        <span className="eyebrow">Sitzung · {assets.length}</span>
-        <button
-          type="button"
-          onClick={clearAssets}
-          className="rounded-nav text-small text-muted underline-offset-2 hover:text-ink hover:underline"
+    <div ref={rootRef} className="relative">
+      {picker.input}
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        aria-expanded={open}
+        aria-haspopup="dialog"
+        title="Dateien dieser Sitzung"
+        className="press flex max-w-[15rem] items-center gap-[8px] px-[8px] py-[8px] text-small text-ink hover:bg-panel-soft"
+      >
+        <FileIcon />
+        {/* The name is what is being worked on; on a phone the header has
+            room for the fact that there is one, not for what it is called. */}
+        <span className="hidden min-w-0 truncate sm:inline">{active?.name ?? 'Sitzung'}</span>
+        {assets.length > 1 ? (
+          <span className="value text-muted">
+            <span className="sm:hidden">{assets.length}</span>
+            <span className="hidden sm:inline">+{assets.length - 1}</span>
+          </span>
+        ) : (
+          <span className="value text-muted sm:hidden">1</span>
+        )}
+        <svg viewBox="0 0 16 16" className={`h-3 w-3 shrink-0 text-muted transition-transform ${open ? 'rotate-180' : ''}`} fill="none" aria-hidden>
+          <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+
+      {open ? (
+        <div
+          role="dialog"
+          aria-label="Dateien dieser Sitzung"
+          className="rise elevate-lift fixed inset-x-[16px] top-[64px] z-30 flex flex-col gap-[12px] bg-raised p-[16px] ring-1 ring-inset ring-line sm:absolute sm:inset-x-auto sm:right-0 sm:top-[calc(100%+8px)] sm:w-[380px]"
         >
-          Alles verwerfen
-        </button>
-      </div>
+          <SelectedPlayer />
 
-      <SelectedPlayer />
-      <WhatFits />
+          <ul className="flex flex-col">
+            {assets.map((asset) => {
+              const current = asset.id === activeId
+              return (
+                <li key={asset.id} className="flex items-center gap-[4px] border-t border-line first:border-t-0">
+                  <button
+                    type="button"
+                    onClick={() => setActive(asset.id)}
+                    aria-current={current ? 'true' : undefined}
+                    className="flex min-w-0 flex-1 items-center gap-[8px] py-[8px] text-left"
+                  >
+                    {/* The chosen file carries the ink mark, not a filled row. */}
+                    <span aria-hidden className={`h-[6px] w-[6px] shrink-0 ${current ? 'bg-ink' : 'bg-transparent'}`} />
+                    <span className="flex min-w-0 flex-col">
+                      <span className={`truncate text-small ${current ? 'font-semibold text-ink' : 'text-prose'}`}>
+                        {asset.name}
+                      </span>
+                      <span className="value text-micro text-muted">
+                        {formatBytes(asset.sizeBytes)}
+                        {asset.durationSeconds ? ` · ${formatDuration(asset.durationSeconds)}` : ''}
+                      </span>
+                    </span>
+                  </button>
+                  {asset.origin === 'derived' ? <Badge>abgeleitet</Badge> : null}
+                  <IconButton label={`${asset.name} speichern`} onClick={() => saveBytes(asset.bytes, asset.name, asset.mime)}>
+                    <svg viewBox="0 0 16 16" className="h-4 w-4" fill="none" aria-hidden>
+                      <path d="M8 2.5v7.5M5 7.5L8 10.5l3-3M3 12.5h10" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </IconButton>
+                  <IconButton label={`${asset.name} entfernen`} onClick={() => removeAsset(asset.id)}>
+                    <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" aria-hidden>
+                      <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                    </svg>
+                  </IconButton>
+                </li>
+              )
+            })}
+          </ul>
 
-      <ul className="flex flex-col gap-[8px]">
-        {assets.map((asset) => {
-          const active = asset.id === activeId
-          return (
-            <li key={asset.id}>
-              <div
-                className={`flex items-center gap-[12px] rounded-card px-[16px] py-[12px] transition-colors ${
-                  active ? 'bg-panel-mid' : 'bg-raised hover:bg-panel-soft'
-                }`}
-              >
-                <button
-                  type="button"
-                  onClick={() => setActive(asset.id)}
-                  className="flex min-w-0 flex-1 flex-col items-start gap-[4px] text-left"
-                >
-                  <span className="w-full truncate text-body text-ink">{asset.name}</span>
-                  <span className="value text-micro text-muted">
-                    {formatBytes(asset.sizeBytes)}
-                    {asset.durationSeconds ? ` · ${formatDuration(asset.durationSeconds)}` : ''}
-                    {asset.audio ? ` · ${asset.audio.sampleRate / 1000} kHz` : ''}
-                  </span>
-                </button>
-                {asset.origin === 'derived' ? <Badge>abgeleitet</Badge> : null}
-                {/* Anything in the session can be saved from anywhere, which is
-                    what makes the downloader a downloader rather than a way to
-                    get files into other tools. */}
-                <button
-                  type="button"
-                  aria-label={`${asset.name} speichern`}
-                  title="Auf die Festplatte speichern"
-                  onClick={() => saveBytes(asset.bytes, asset.name, asset.mime)}
-                  className="rounded-nav p-1 text-muted transition-colors hover:text-ink"
-                >
-                  <svg viewBox="0 0 16 16" className="h-4 w-4" fill="none" aria-hidden>
-                    <path
-                      d="M8 2.5v7.5M5 7.5L8 10.5l3-3M3 12.5h10"
-                      stroke="currentColor"
-                      strokeWidth="1.4"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </button>
-                <button
-                  type="button"
-                  aria-label={`${asset.name} entfernen`}
-                  onClick={() => removeAsset(asset.id)}
-                  className="rounded-nav p-1 text-muted transition-colors hover:text-ink"
-                >
-                  <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" aria-hidden>
-                    <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-                  </svg>
-                </button>
-              </div>
-            </li>
-          )
-        })}
-      </ul>
+          <button
+            type="button"
+            onClick={() => {
+              setOpen(false)
+              picker.open()
+            }}
+            disabled={picker.busy}
+            className="press self-start text-small text-ink underline underline-offset-[3px] hover:no-underline disabled:opacity-40"
+          >
+            {picker.busy ? 'Wird gelesen…' : 'Weitere Datei öffnen'}
+          </button>
+
+          <div className="flex flex-wrap items-baseline justify-between gap-x-[12px] gap-y-[4px] border-t border-line pt-[12px] text-small text-muted">
+            <span>
+              <span className="value">{(totalBytes / 1024 / 1024).toFixed(1)} MB</span> im Arbeitsspeicher
+              dieses Tabs, nichts davon gesendet
+            </span>
+            <button
+              type="button"
+              onClick={clearAssets}
+              className="press text-muted underline-offset-[3px] hover:text-ink hover:underline"
+            >
+              Alles verwerfen
+            </button>
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }

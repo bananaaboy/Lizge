@@ -3,7 +3,7 @@
  * away underneath it.
  */
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import { detectCapabilities, hasWebGpuAdapter, suggestedThreads } from '../lib/capabilities'
 import { onServiceConnection, serviceConnection, type ServiceConnection } from '../lib/serviceState'
@@ -23,99 +23,6 @@ import { FileDrop } from './FileDrop'
 import { Home } from './Home'
 import { PANELS } from './panelMeta'
 import { Button, Card } from './ui/primitives'
-
-function PanelTabs() {
-  const panel = useSession((state) => state.panel)
-  const setPanel = useSession((state) => state.setPanel)
-  const listRef = useRef<HTMLDivElement>(null)
-  // Which edges still have tabs behind them, so the fades only appear where
-  // there is something to scroll to.
-  const [edges, setEdges] = useState({ start: false, end: false })
-
-  useEffect(() => {
-    const node = listRef.current
-    if (!node) return
-    const measure = () => {
-      const slack = node.scrollWidth - node.clientWidth
-      setEdges({ start: node.scrollLeft > 4, end: slack > 4 && node.scrollLeft < slack - 4 })
-    }
-    measure()
-    node.addEventListener('scroll', measure, { passive: true })
-    const observer = new ResizeObserver(measure)
-    observer.observe(node)
-    return () => {
-      node.removeEventListener('scroll', measure)
-      observer.disconnect()
-    }
-  }, [])
-
-  // Keep the selected tab in view when it changes from the keyboard.
-  useEffect(() => {
-    listRef.current
-      ?.querySelector<HTMLElement>(`[data-panel="${panel}"]`)
-      ?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
-  }, [panel])
-
-  // Switching tools with the keyboard should not require tabbing through six
-  // buttons; the arrow keys are what a tablist is expected to answer to.
-  const onKeyDown = (event: React.KeyboardEvent) => {
-    const delta = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0
-    if (!delta) return
-    event.preventDefault()
-    const index = PANELS.findIndex((entry) => entry.id === panel)
-    const next = PANELS[(index + delta + PANELS.length) % PANELS.length]
-    setPanel(next.id)
-    listRef.current?.querySelector<HTMLElement>(`[data-panel="${next.id}"]`)?.focus()
-  }
-
-  return (
-    <div className="relative">
-      <div
-        aria-hidden
-        className={`pointer-events-none absolute inset-y-[6px] left-[6px] z-10 hidden w-[28px] rounded-l-card bg-gradient-to-r from-raised to-transparent sm:block transition-opacity duration-[var(--dur-fast)] ${
-          edges.start ? 'opacity-100' : 'opacity-0'
-        }`}
-      />
-      <div
-        aria-hidden
-        className={`pointer-events-none absolute inset-y-[6px] right-[6px] z-10 hidden w-[28px] rounded-r-card bg-gradient-to-l from-raised to-transparent sm:block transition-opacity duration-[var(--dur-fast)] ${
-          edges.end ? 'opacity-100' : 'opacity-0'
-        }`}
-      />
-      <div
-        ref={listRef}
-        role="tablist"
-        aria-label="Werkzeuge"
-        onKeyDown={onKeyDown}
-        /* On a phone the strip runs to the screen edges, unboxed: a frame
-           around a row that is cut off on the right read as a broken box,
-           while a row that runs off the edge reads as one you can swipe. The
-           frame returns from `sm`, where every tab fits. */
-        className="-mx-[16px] flex gap-[4px] overflow-x-auto px-[16px] py-[4px] [scrollbar-width:none] sm:mx-0 sm:bg-raised sm:p-[4px] sm:ring-1 sm:ring-inset sm:ring-line [&::-webkit-scrollbar]:hidden"
-      >
-        {PANELS.map((entry) => {
-          const active = entry.id === panel
-          return (
-            <button
-              key={entry.id}
-              data-panel={entry.id}
-              role="tab"
-              aria-selected={active}
-              tabIndex={active ? 0 : -1}
-              onClick={() => setPanel(entry.id)}
-              className={`press flex shrink-0 items-center gap-[8px] rounded-nav px-[12px] py-[8px] text-small ${
-                active ? 'bg-ink text-on-ink' : 'text-prose hover:bg-panel-soft'
-              }`}
-              title={entry.summary}
-            >
-              {entry.label}
-            </button>
-          )
-        })}
-      </div>
-    </div>
-  )
-}
 
 /* -------------------------------------------------------------------------- */
 /* Machine readout                                                             */
@@ -344,17 +251,11 @@ export function Dashboard({ theme }: { theme: ResolvedTheme }) {
     panel === 'audio'
 
   return (
-    <section id="studio" className="shell flex flex-col gap-[16px] py-[16px]">
-      {/* On the start screen the tiles below are the navigation, so the
-          strip is one cut-off copy of them on a phone. It stays from `sm` up,
-          where it fits, and inside every tool, where it is the way back. */}
-      <div className={panel === 'start' ? 'hidden sm:block' : undefined}>
-        <PanelTabs />
-      </div>
+    <section id="studio" className="shell flex flex-col gap-[16px] pb-[16px] pt-[24px] sm:pt-[32px]">
 
       {/* Keyed on the panel so every switch replays the entrance rather than
           swapping content in place, which reads as a jump. */}
-      <div key={panel} role="tabpanel" aria-label={current?.label} className="rise flex flex-col gap-[16px]">
+      <div key={panel} role="tabpanel" aria-label={current?.label} className="panel-root rise flex flex-col gap-[16px]">
         {!ready ? (
           <NothingLoaded label={current?.label ?? ''} summary={current?.summary ?? ''} />
         ) : (

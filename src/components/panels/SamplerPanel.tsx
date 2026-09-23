@@ -40,7 +40,6 @@ import { renderSliceInWorker } from '../../lib/workerClient'
 import { createZip } from '../../lib/zip'
 import { useDecodedAudio } from '../../hooks/useDecodedAudio'
 import { useActiveAsset, useSession } from '../../state/store'
-import { SessionCard } from '../AssetList'
 import { AudioPreview } from '../AudioPreview'
 import { FileDrop } from '../FileDrop'
 import {
@@ -947,7 +946,6 @@ export function SamplerPanel({ theme }: { theme: ResolvedTheme }) {
           </div>
         </Card>
 
-        <SessionCard />
       </aside>
     </div>
   )

@@ -262,19 +262,22 @@ export function PaletteHint() {
       new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true }),
     )
   }
+  // Untinted: the header holds one tinted thing, the locality chip, because
+  // that one is a promise. Search is a tool like any other control here.
   return (
     <button
       type="button"
       onClick={open}
-      title="Werkzeug suchen"
-      className="press hidden items-center gap-[8px] bg-panel-soft px-[12px] py-[8px] text-small text-muted hover:bg-panel-mid hover:text-ink sm:flex"
+      title="Werkzeug suchen (⌘K)"
+      aria-label="Werkzeug suchen"
+      className="press hidden items-center gap-[8px] px-[8px] py-[8px] text-small text-muted hover:text-ink sm:flex"
     >
       <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" aria-hidden>
         <circle cx="7" cy="7" r="4.4" stroke="currentColor" strokeWidth="1.4" />
         <path d="M10.4 10.4L14 14" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
       </svg>
-      Suchen
-      <kbd className="font-mono text-micro">⌘K</kbd>
+      <span className="hidden lg:inline">Suchen</span>
+      <kbd className="hidden font-mono text-micro lg:inline">⌘K</kbd>
     </button>
   )
 }

@@ -18,7 +18,6 @@ import { separateInWorker } from '../../lib/workerClient'
 import { createZip } from '../../lib/zip'
 import { useDecodedAudio } from '../../hooks/useDecodedAudio'
 import { useActiveAsset, useSession } from '../../state/store'
-import { SessionCard } from '../AssetList'
 import { AudioPreview } from '../AudioPreview'
 import { FileDrop } from '../FileDrop'
 import {
@@ -346,7 +345,6 @@ export function StemsPanel() {
       </div>
 
       <aside className="flex flex-col gap-[20px]">
-        <SessionCard />
 
         <Card tone="cream">
           <SectionHead>Neuronales Modell</SectionHead>

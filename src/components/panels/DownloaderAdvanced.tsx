@@ -95,7 +95,6 @@ import { serviceConnection, setServiceConnection } from '../../lib/serviceState'
 import { finishLocalJob } from '../../lib/studio'
 import { holdScreenAwake } from '../../lib/wakeLock'
 import { kindFromMime, useSession } from '../../state/store'
-import { SessionAside } from '../AssetList'
 import {
   ArrowRight,
   Badge,
@@ -173,7 +172,6 @@ function readStored(key: string, previous: string): string | null {
 export function AdvancedDownloader({ url }: { url: string }) {
   const addAsset = useSession((state) => state.addAsset)
   const log = useSession((state) => state.log)
-  const assetCount = useSession((state) => state.assets.length)
   const caps = detectCapabilities()
 
   // Null means "whatever the address implies"; a value is a deliberate override.
@@ -841,11 +839,7 @@ export function AdvancedDownloader({ url }: { url: string }) {
       : PATHS.find((path) => path.id === effectiveMode)?.hint
 
   return (
-    <div
-      className={`grid gap-[16px] ${
-        assetCount > 0 ? 'lg:grid-cols-[minmax(0,1fr)_320px]' : 'lg:grid-cols-1'
-      }`}
-    >
+    <div className="grid gap-[16px]">
       <Card tone="keylime" size="compact">
         <div className="flex flex-wrap items-baseline justify-between gap-x-[16px] gap-y-[4px]">
           <span className="text-small text-muted">
@@ -1839,7 +1833,6 @@ export function AdvancedDownloader({ url }: { url: string }) {
         </div>
       </Card>
 
-      <SessionAside />
     </div>
   )
 }

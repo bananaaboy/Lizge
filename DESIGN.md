@@ -547,23 +547,38 @@ Es gibt **keine Karte**. `Card` ist der Name der Komponente, nicht ihrer Form:
 
 ### Navigation
 
-- **Reiterleiste** (`PanelTabs`): eine waagerechte Liste auf Feldweiss mit
-  Haarlinien-Ring. Ausgewählt ist gefüllte Tinte. Die Reiter trugen einmal
-  Nummern von 1 bis 10; sie sind mit allen anderen Zierziffern gefallen. Auf
-  der Startseite erscheint sie erst ab `sm`: darunter ist sie eine
-  abgeschnittene Kopie des Kachelfelds, das direkt darunter steht. In einem
-  geöffneten Werkzeug steht sie immer — dort ist sie der Weg zurück.
+- **Reiterleiste** (`PanelTabs`): die zweite Zeile der Kopfzeile, Text auf
+  deren eigenem Grund. Der gewählte Reiter steht in Tinte, halbfett, mit einer
+  2-px-Linie darunter, die auf der Abschnittslinie der Kopfzeile aufliegt; die
+  übrigen in Prosa. Bis zum 23.9.2026 war sie ein weisser Kasten mit Ring und
+  gefüllter Auswahl unter einer getönten Sitzungsleiste — drei Bänder, bevor
+  ein Werkzeug etwas sagte, und das Hauptargument für „mega cluttered". Auf dem
+  Handy läuft sie randlos bis an den Rand und wird gewischt; auf der Startseite
+  des Handys fehlt sie, weil die Kacheln darunter dasselbe Menü sind.
   Pfeiltasten wechseln den Reiter, der gewählte bleibt der einzige mit
-  `tabIndex 0`, und die Ränder blenden nur dort aus, wo wirklich noch etwas
-  hinter ihnen liegt.
+  `tabIndex 0`.
 - **Werkzeugschiene** (`Rail`): senkrecht 84 px breit auf Feldweiss, Symbol
   über Beschriftung in Label-Grösse; ein Werkzeug mit geänderter Einstellung
   trägt ein 5-px-Quadrat oben rechts. Unter 1024 px waagerecht.
 - **Kopfzeile:** klebt oben, schwerere Linie nach unten, Grund `canvas/95` mit
-  Unschärfe. Links die Wortmarke, rechts die Schalter. Sie trug einmal drei
-  Schlüssel/Wert-Zeilen — Gerät, Verfahren, Stand —, und die sind gefallen:
-  Gerät und Kerne stehen bereits unter „Dieses Gerät", das Datum sagte nichts,
-  und der Lokal-Chip daneben sagte den Rest schon.
+  Unschärfe. Links die Wortmarke, rechts vier ruhige Bedienelemente: Suchen
+  (ungetönt), das Dateimenü, der Lokal-Chip — als einziges getönt, weil er eine
+  Zusage trägt — und ein einzelner Themenknopf, der durch System, Hell und
+  Dunkel schaltet. „Installieren" ist auf Wunsch entfallen; der Browser bietet
+  es in seinem eigenen Menü an.
+- **Dateimenü** (`SessionMenu` in `AssetList.tsx`): nennt die Datei, an der
+  gearbeitet wird, und hält die ganze Sitzung einen Klick dahinter — Wiedergabe,
+  Wechseln, Speichern, Entfernen, weitere Datei, Arbeitsspeicher, Alles
+  verwerfen. Es ersetzt drei Dinge, die vorher auf jeder Seite standen: die
+  Sitzungsleiste, die rechte Sitzungsspalte jedes Werkzeugs mit fünfzehn
+  „Damit geht"-Knöpfen (eine zweite Kopie der Reiter) und den Knopf „Weitere
+  Datei". Die Werkzeuge sind dadurch einspaltig oder behalten nur ihre eigene
+  Seitenspalte. Das Menü trägt die eine Schattenstufe; auf dem Handy liegt es
+  fest unter der Kopfzeile über die volle Breite.
+- **Keine toten Bedienelemente.** Was ohne Voraussetzung nichts tut, steht
+  nicht ausgegraut da, sondern erscheint mit der Voraussetzung: die Schnitte
+  mit einer Auswahl, „Alle Dateien umwandeln" ab der zweiten Datei, „Stille
+  entfernen" wenn Stille gefunden wurde.
 
 ### Kleine Bildschirme
 

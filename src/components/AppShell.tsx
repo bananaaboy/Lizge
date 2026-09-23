@@ -9,13 +9,14 @@
 
 import { useEffect, useState } from 'react'
 
-import type { InstallState } from '../hooks/useInstallPrompt'
 import { useFilePicker } from '../hooks/useIngest'
 import { IN_DESKTOP_APP, WINDOWS_SETUP } from '../lib/desktop'
 import type { ThemeChoice } from '../lib/theme'
 import { onServiceConnection, serviceConnection } from '../lib/serviceState'
 import { useSession } from '../state/store'
+import { SessionMenu } from './AssetList'
 import { PaletteHint } from './CommandPalette'
+import { PanelTabs } from './PanelTabs'
 import { ThemeToggle } from './ThemeToggle'
 import { Button } from './ui/primitives'
 
@@ -177,40 +178,47 @@ function PrivacyChip() {
   )
 }
 
+/**
+ * The one band of chrome above a tool.
+ *
+ * It was three: this header with five controls, a tinted session strip under
+ * it, and a boxed tab bar under that — measured on a laptop, 176px of frame
+ * before a tool said anything, most of it saying the same things twice. Now
+ * the controls are one quiet row, the file being worked on is named in it (the
+ * session lives behind that name), and the tabs are its second line, resting
+ * on its bottom rule. On the start screen of a phone the tabs stay away: the
+ * tiles right below are the same menu, and there it would be a cut-off copy.
+ *
+ * „Installieren" is gone from here on request. The browser still offers
+ * installation in its own menu; the page no longer advertises it.
+ */
 export function Header({
   themeChoice,
   onThemeChange,
-  install,
 }: {
   themeChoice: ThemeChoice
   onThemeChange: (choice: ThemeChoice) => void
-  install: InstallState
 }) {
-  const hasAssets = useSession((state) => state.assets.length > 0)
+  const panel = useSession((state) => state.panel)
   return (
     <header className="sticky top-0 z-30 border-b-2 border-rule bg-canvas/95 backdrop-blur-md">
-      <div className="shell flex flex-wrap items-center justify-between gap-x-[12px] gap-y-[8px] py-[10px] sm:items-start sm:gap-x-[24px] sm:py-[12px]">
-        <div className="flex min-w-0 flex-col gap-[8px]">
-          <Logo />
-        </div>
-        <div className="flex items-center gap-[4px] sm:gap-[8px]">
-          {/* The wrapper does the hiding. On the button itself `hidden` lost
-              to the button's own `inline-flex` — two display utilities, and
-              whichever the stylesheet emits last wins — so on every phone
-              that offered installation the header broke onto two rows. */}
-          {install.available ? (
-            <span className="hidden md:contents">
-              <Button size="sm" variant="ghost" onClick={() => void install.install()}>
-                Installieren
-              </Button>
-            </span>
-          ) : null}
+      <div className="shell flex items-center justify-between gap-[12px] pt-[10px] sm:gap-[24px] sm:pt-[12px]">
+        <Logo />
+        <div className="flex min-w-0 items-center gap-[4px] sm:gap-[8px]">
           <PaletteHint />
+          <SessionMenu />
           <PrivacyChip />
           <ThemeToggle choice={themeChoice} onChange={onThemeChange} />
-          {hasAssets ? <OpenFileButton label="Weitere Datei" collapse /> : null}
         </div>
       </div>
+      <nav
+        aria-label="Werkzeuge"
+        className={`shell mt-[8px] sm:mt-[12px] ${panel === 'start' ? 'hidden sm:block' : ''}`}
+      >
+        <PanelTabs />
+      </nav>
+      {/* Without the tabs the row still needs its bottom air on a phone. */}
+      <div className={panel === 'start' ? 'h-[10px] sm:hidden' : 'hidden'} aria-hidden />
     </header>
   )
 }
@@ -233,41 +241,6 @@ export function DropOverlay({ visible }: { visible: boolean }) {
 }
 
 /** Live reminder of what is currently held in memory, with a way to drop it. */
-export function SessionBar() {
-  const assets = useSession((state) => state.assets)
-  const clearAssets = useSession((state) => state.clearAssets)
-  if (assets.length === 0) return null
-
-  const totalBytes = assets.reduce((sum, asset) => sum + asset.sizeBytes, 0)
-  return (
-    <div className="shell pt-[12px] sm:pt-[16px]">
-      {/* One line on a phone, the whole sentence from `sm` up.
-          The full wording wrapped to two lines and then pushed the button onto
-          a third, so a standing reminder cost 105px of an 844px screen before
-          the tool had said anything. What a phone drops is the part a phone
-          reader already knows — it is the same tab they are looking at — not
-          the claim itself, which stays in the chip above and in full here as
-          soon as there is room. */}
-      <div className="rise flex flex-nowrap items-center justify-between gap-[12px] rounded-card bg-panel-soft px-[12px] py-[6px] text-small sm:flex-wrap sm:px-[16px] sm:py-[8px]">
-        <p className="min-w-0 max-w-none truncate text-muted">
-          <span className="value text-ink">{assets.length}</span>{' '}
-          {assets.length === 1 ? 'Datei' : 'Dateien'}
-          <span className="hidden sm:inline"> im Arbeitsspeicher dieses Tabs</span> ·{' '}
-          <span className="value">{(totalBytes / 1024 / 1024).toFixed(1)} MB</span>
-          <span className="hidden sm:inline"> · nichts davon wurde gesendet</span>
-        </p>
-        <button
-          type="button"
-          onClick={clearAssets}
-          className="press shrink-0 rounded-nav text-muted underline-offset-2 hover:text-ink hover:underline"
-        >
-          <span className="hidden sm:inline">Speicher freigeben</span>
-          <span className="sm:hidden">Freigeben</span>
-        </button>
-      </div>
-    </div>
-  )
-}
 
 const footerLink = 'text-ink underline underline-offset-[3px] hover:no-underline'
 
