@@ -5,6 +5,7 @@
   "description": "Sondra als Windows-App: eigenes Fenster, Installer, läuft lokal.",
   "author": "Sondra",
   "devDependencies": {
+    "@vercel/blob": "2.8.0",
     "electron": "44.4.4",
     "electron-builder": "26.15.3"
   },
@@ -18,15 +19,34 @@
       "output": "../release"
     },
     "extraResources": [
-      { "from": ".site", "to": "site" }
+      {
+        "from": ".site",
+        "to": "site"
+      }
     ],
     "extraFiles": [
-      { "from": ".build/LIZENZ.txt", "to": "LIZENZ.txt" },
-      { "from": ".build/lizenzen", "to": "lizenzen" },
-      { "from": "LIESMICH.txt", "to": "LIESMICH.txt" }
+      {
+        "from": ".build/LIZENZ.txt",
+        "to": "LIZENZ.txt"
+      },
+      {
+        "from": ".build/lizenzen",
+        "to": "lizenzen"
+      },
+      {
+        "from": "LIESMICH.txt",
+        "to": "LIESMICH.txt"
+      }
     ],
     "win": {
-      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
       "icon": ".build/icon.png",
       "artifactName": "Sondra-Setup-${version}.${ext}"
     },
@@ -40,7 +60,9 @@
       "createStartMenuShortcut": true,
       "shortcutName": "Sondra",
       "uninstallDisplayName": "Sondra",
-      "installerLanguages": ["de_DE"],
+      "installerLanguages": [
+        "de_DE"
+      ],
       "language": "1031",
       "deleteAppDataOnUninstall": false
     },
