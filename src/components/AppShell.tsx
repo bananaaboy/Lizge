@@ -11,6 +11,7 @@ import { useEffect, useState } from 'react'
 
 import type { InstallState } from '../hooks/useInstallPrompt'
 import { useFilePicker } from '../hooks/useIngest'
+import { IN_DESKTOP_APP, WINDOWS_SETUP } from '../lib/desktop'
 import type { ThemeChoice } from '../lib/theme'
 import { onServiceConnection, serviceConnection } from '../lib/serviceState'
 import { useSession } from '../state/store'
@@ -261,19 +262,6 @@ export function SessionBar() {
     </div>
   )
 }
-
-/**
- * The Windows installer, as the newest GitHub release carries it.
- *
- * `latest/download/<name>` always resolves to the newest release's asset of
- * that name, so the link never needs touching when a version ships — the
- * release workflow uploads the installer under this fixed name as well as
- * under its versioned one.
- */
-const WINDOWS_SETUP = 'https://github.com/bananaaboy/Lizge/releases/latest/download/Sondra-Setup.exe'
-
-/** True inside the desktop app, where offering the desktop app is circular. */
-const IN_DESKTOP_APP = typeof navigator !== 'undefined' && /\bElectron\//.test(navigator.userAgent)
 
 const footerLink = 'text-ink underline underline-offset-[3px] hover:no-underline'
 

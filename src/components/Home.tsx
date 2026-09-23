@@ -28,6 +28,7 @@ import { useShallow } from 'zustand/shallow'
 
 import { useFilePicker } from '../hooks/useIngest'
 import { ACTIONS, GROUP_LABEL, searchActions, type ToolAction, type ToolGroup } from '../lib/actions'
+import { IN_DESKTOP_APP, WINDOWS_SETUP } from '../lib/desktop'
 import { KIND_LABEL, useActiveAsset, useSession, type PanelId } from '../state/store'
 import { OpenFileButton } from './AppShell'
 import { PANELS, ToolIcon } from './panelMeta'
@@ -185,6 +186,34 @@ export function Home() {
             Von einer Adresse laden
           </button>
         </div>
+
+        {/* The desktop app, one step down from the way in: its own line under
+            a rule, a ruled button rather than a filled one — the filled one
+            stays the single thing to do here. Not on a phone, where a Windows
+            installer is no use, and not inside the app itself. */}
+        {IN_DESKTOP_APP ? null : (
+          <div className="hidden flex-wrap items-center gap-x-[16px] gap-y-[8px] border-t border-line pt-[16px] sm:flex">
+            <a
+              href={WINDOWS_SETUP}
+              rel="noopener"
+              className="press inline-flex items-center gap-[8px] bg-raised px-[12px] py-[8px] text-small font-medium text-ink ring-1 ring-inset ring-rule hover:bg-panel-soft"
+            >
+              <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" aria-hidden>
+                <path
+                  d="M8 2.5v7.5M4.8 6.8 8 10l3.2-3.2M3 13h10"
+                  stroke="currentColor"
+                  strokeWidth="1.4"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              Sondra für Windows herunterladen
+            </a>
+            <span className="text-small text-muted">
+              Eigenes Fenster, läuft ohne Browser · ohne Administratorrechte
+            </span>
+          </div>
+        )}
       </section>
 
       {/* -- everything else, grouped --------------------------------------- */}
