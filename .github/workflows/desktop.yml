@@ -1,6 +1,6 @@
 # Builds the Windows installer, installs it, and starts the installed app once.
 #
-# A tag `v<version>` additionally publishes the tested installer as a GitHub
+# A tag `v<version>`, or a manual run with "release" ticked, additionally publishes the tested installer as a GitHub
 # release — under its versioned name and as `Sondra-Setup.exe`, which the
 # website links through `releases/latest/download/Sondra-Setup.exe`. Path
 # filters are not evaluated for tag pushes, so a tag always builds.
@@ -27,6 +27,11 @@ on:
       - package-lock.json
       - .github/workflows/desktop.yml
   workflow_dispatch:
+    inputs:
+      release:
+        description: 'Setup als GitHub Release v<Version aus package.json> veröffentlichen'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -94,13 +99,14 @@ jobs:
           retention-days: 30
 
       - name: Publish the release
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: startsWith(github.ref, 'refs/tags/v') || inputs.release
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
-          if ("v$version" -ne $env:GITHUB_REF_NAME) {
+          $tag = "v$version"
+          if ($env:GITHUB_REF_TYPE -eq 'tag' -and $env:GITHUB_REF_NAME -ne $tag) {
             throw "Tag $env:GITHUB_REF_NAME passt nicht zur Version $version in package.json."
           }
           $setup = Get-ChildItem release -Filter 'Sondra-Setup-*.exe' | Select-Object -First 1
@@ -117,5 +123,7 @@ jobs:
 
           Datenschutz: https://lizge.ch/datenschutz.html
           "@
-          gh release create $env:GITHUB_REF_NAME $setup.FullName release\Sondra-Setup.exe `
-            --title "Sondra $version" --notes $notes
+          # On a manual run the tag does not exist yet; --target creates it on
+          # exactly the commit that was just built and tested.
+          gh release create $tag $setup.FullName release\Sondra-Setup.exe `
+            --target $env:GITHUB_SHA --title "Sondra $version" --notes $notes
