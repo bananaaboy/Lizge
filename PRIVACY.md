@@ -11,5 +11,6 @@ Einstellungen liegen dort), nannte den Abruf eingegebener Adressen über die
 eigenen Funktionen unter `api/` nicht und kannte die Windows-App nicht.
 
 Vor der Veröffentlichung sind in der HTML-Datei die mit `[…]` markierten
-Angaben einzutragen: Name, Anschrift, E-Mail des Verantwortlichen, und ob für
+Angaben einzutragen: Name und E-Mail des Verantwortlichen (eine Postadresse verlangt das DSG dafür
+nicht), und ob für
 die Website ein Extraktionsdienst (`SONDRA_PROVIDER_URL`) eingerichtet ist.
