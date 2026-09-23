@@ -11,6 +11,7 @@ import { useEffect, useState } from 'react'
 
 import type { InstallState } from '../hooks/useInstallPrompt'
 import { useFilePicker } from '../hooks/useIngest'
+import { IN_DESKTOP_APP, WINDOWS_SETUP } from '../lib/desktop'
 import type { ThemeChoice } from '../lib/theme'
 import { onServiceConnection, serviceConnection } from '../lib/serviceState'
 import { useSession } from '../state/store'
@@ -193,10 +194,16 @@ export function Header({
           <Logo />
         </div>
         <div className="flex items-center gap-[4px] sm:gap-[8px]">
+          {/* The wrapper does the hiding. On the button itself `hidden` lost
+              to the button's own `inline-flex` — two display utilities, and
+              whichever the stylesheet emits last wins — so on every phone
+              that offered installation the header broke onto two rows. */}
           {install.available ? (
-            <Button size="sm" variant="ghost" onClick={() => void install.install()} className="hidden md:inline-flex">
-              Installieren
-            </Button>
+            <span className="hidden md:contents">
+              <Button size="sm" variant="ghost" onClick={() => void install.install()}>
+                Installieren
+              </Button>
+            </span>
           ) : null}
           <PaletteHint />
           <PrivacyChip />
@@ -262,14 +269,28 @@ export function SessionBar() {
   )
 }
 
+const footerLink = 'text-ink underline underline-offset-[3px] hover:no-underline'
+
 export function Footer() {
   return (
-    <footer className="shell mt-[36px] flex flex-wrap items-center justify-between gap-[16px] border-t border-line py-[24px] text-small text-muted">
-      <p className="max-w-[60ch] leading-[1.6]">
-        Statisch ausgeliefert, lokal gerechnet. Quelloffene Bausteine: FFmpeg (WebAssembly), ONNX
-        Runtime Web, Wavesurfer, Tone.js.
+    <footer className="shell mt-[36px] flex flex-col gap-[12px] border-t border-line py-[24px] text-small text-muted">
+      <div className="flex flex-wrap items-center justify-between gap-[16px]">
+        <p className="max-w-[60ch] leading-[1.6]">
+          Statisch ausgeliefert, lokal gerechnet. Quelloffene Bausteine: FFmpeg (WebAssembly), ONNX
+          Runtime Web, Wavesurfer, Tone.js.
+        </p>
+        <p>Keine Uploads · keine Cookies · kein Tracking</p>
+      </div>
+      <p className="flex flex-wrap gap-x-[16px] gap-y-[4px]">
+        {IN_DESKTOP_APP ? null : (
+          <a className={footerLink} href={WINDOWS_SETUP} rel="noopener">
+            Sondra für Windows herunterladen
+          </a>
+        )}
+        <a className={footerLink} href="./datenschutz.html">
+          Datenschutz
+        </a>
       </p>
-      <p>Keine Uploads · keine Cookies · kein Tracking</p>
     </footer>
   )
 }

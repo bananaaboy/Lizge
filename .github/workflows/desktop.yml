@@ -1,5 +1,10 @@
 # Builds the Windows installer, installs it, and starts the installed app once.
 #
+# A tag `v<version>`, or a manual run with "release" ticked, additionally publishes the tested installer as a GitHub
+# release — under its versioned name and as `Sondra-Setup.exe`, which the
+# website links through `releases/latest/download/Sondra-Setup.exe`. Path
+# filters are not evaluated for tag pushes, so a tag always builds.
+#
 # Everything runs on windows-latest: an NSIS installer needs Windows to build,
 # and "the installed app opens and shows Sondra" is only worth something when
 # it was checked on Windows. The installer is kept as the artifact
@@ -9,6 +14,8 @@ name: Desktop
 
 on:
   push:
+    branches: ['**']
+    tags: ['v*']
     paths:
       - desktop/**
       - scripts/build-desktop.mjs
@@ -20,6 +27,15 @@ on:
       - package-lock.json
       - .github/workflows/desktop.yml
   workflow_dispatch:
+    inputs:
+      release:
+        description: 'Setup als GitHub Release v<Version aus package.json> veröffentlichen'
+        type: boolean
+        default: false
+      store:
+        description: 'Setup auf Vercel Blob legen (Paket-URL ohne Umleitung für den Microsoft Store)'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -27,6 +43,9 @@ permissions:
 jobs:
   windows:
     runs-on: windows-latest
+    permissions:
+      # Write only for the release step on a tag; nothing else pushes.
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -82,3 +101,62 @@ jobs:
           name: Sondra-Setup
           path: release/Sondra-Setup-*.exe
           retention-days: 30
+
+      - name: Publish the release
+        if: startsWith(github.ref, 'refs/tags/v') || inputs.release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          $tag = "v$version"
+          if ($env:GITHUB_REF_TYPE -eq 'tag' -and $env:GITHUB_REF_NAME -ne $tag) {
+            throw "Tag $env:GITHUB_REF_NAME passt nicht zur Version $version in package.json."
+          }
+          # A release that already exists is left as it is: its files are
+          # what was published, and a rerun for the Store upload below must
+          # not fail on it.
+          gh release view $tag *> $null
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host "Release $tag gibt es schon, bleibt unverändert."
+            exit 0
+          }
+          $setup = Get-ChildItem release -Filter 'Sondra-Setup-*.exe' | Select-Object -First 1
+          Copy-Item $setup.FullName release\Sondra-Setup.exe
+
+          $notes = @"
+          Sondra für Windows, Version $version.
+
+          **Installieren:** Sondra-Setup.exe herunterladen und ausführen. Sondra installiert sich nur für das eigene Benutzerkonto, ohne Administratorrechte, und legt einen Eintrag im Startmenü und eine Verknüpfung auf dem Desktop an.
+
+          **Stille Installation:** ``Sondra-Setup-$version.exe /S``
+
+          Das Setup ist nicht signiert. Windows SmartScreen kann beim ersten Start warnen („Weitere Informationen“ → „Trotzdem ausführen“), und die intelligente App-Steuerung blockiert unsignierte Setups ganz.
+
+          Datenschutz: https://lizge.ch/datenschutz.html
+          "@
+          # On a manual run the tag does not exist yet; --target creates it on
+          # exactly the commit that was just built and tested.
+          gh release create $tag $setup.FullName release\Sondra-Setup.exe `
+            --target $env:GITHUB_SHA --title "Sondra $version" --notes $notes
+
+      # The Microsoft Store refuses an installer URL that redirects, and every
+      # GitHub release download does. Vercel Blob serves the file directly.
+      # Needs the repository secret BLOB_READ_WRITE_TOKEN (from the Blob store
+      # in the Vercel project); without it a tag build skips this quietly.
+      - name: Put the installer on Vercel Blob
+        if: startsWith(github.ref, 'refs/tags/v') || inputs.release || inputs.store
+        shell: pwsh
+        env:
+          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+        run: |
+          if (-not $env:BLOB_READ_WRITE_TOKEN) {
+            $message = 'Repository-Secret BLOB_READ_WRITE_TOKEN fehlt: kein Upload auf Vercel Blob.'
+            if ('${{ inputs.store }}' -eq 'true') { throw $message }
+            Write-Warning $message
+            exit 0
+          }
+          $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          $setup = Get-ChildItem release -Filter "Sondra-Setup-$version.exe" | Select-Object -First 1
+          node desktop/upload-blob.mjs $setup.FullName $version
+          if ($LASTEXITCODE -ne 0) { throw 'Upload auf Vercel Blob fehlgeschlagen.' }
