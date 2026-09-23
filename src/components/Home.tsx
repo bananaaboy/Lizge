@@ -177,7 +177,7 @@ export function Home() {
 
         <div className="flex flex-wrap items-center gap-x-[16px] gap-y-[8px]">
           <OpenFileButton size="md" />
-          <span className="text-small text-muted">oder ins Fenster ziehen</span>
+          <span className="hidden text-small text-muted sm:inline">oder ins Fenster ziehen</span>
           <button
             type="button"
             onClick={() => setPanel('downloader')}
