@@ -149,7 +149,7 @@ function Timeline({
           if (grabbing) return
           onSeek(secondsAt(event.clientX))
         }}
-        className="relative h-[46px] w-full cursor-pointer touch-none select-none overflow-hidden rounded-nav bg-panel-soft"
+        className="relative h-[46px] w-full cursor-pointer touch-none select-none overflow-hidden bg-panel-soft"
       >
         <div className="absolute inset-y-0 left-0 bg-ink/10" style={{ width: `${percent(start)}%` }} />
         <div className="absolute inset-y-0 right-0 bg-ink/10" style={{ width: `${100 - percent(end)}%` }} />

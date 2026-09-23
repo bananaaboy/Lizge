@@ -37,7 +37,9 @@ Das Wenige, was hier stehen muss, weil es jeden Edit betrifft:
   trennt eine Linie und Luft. Rundung nur über die Tokens: `rounded-card`
   (16 px) für Blöcke, Kacheln, Popover; `rounded-nav` (10 px) für Knöpfe und
   Felder; `rounded-pill` für Filter, Schalter, Punkte. „Keine Angst vor
-  Radius" war die ausdrückliche Ansage. Die eine Schattenstufe gehört dem, was wirklich
+  Radius" war die ausdrückliche Ansage. Ausnahme, ebenso gewünscht:
+  Zeitflächen — Zeitleiste, Wellenformen, Klavierrolle, Editorbühne — bleiben
+  eckig. Die eine Schattenstufe gehört dem, was wirklich
   über dem Blatt schwebt: Editor-Platte, Popover, Ablage-Overlay.
 - **Klartext, kein Amtston.** Überschriften heissen, was sie sind —
   „Werkzeuge", nicht „Verfügbare Verfahren". Sie-Form und nüchterner Ton

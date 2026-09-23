@@ -466,6 +466,13 @@ Welt vom 20.9. war durchgehend eckig; beim Umbau der Startseite hiess es
 Was eine Linie ist, bleibt gerade: Abschnittslinien, Haarlinien, der
 Reiter-Unterstrich. Der Fokusring folgt der Rundung des Elements.
 
+**Zeitflächen bleiben eckig** (ebenfalls auf Wunsch, 23.9.2026): die
+Zeitleiste im Video-Editor, jede Wellenform (Ton-Editor, Lautstärke, Player,
+Zerschneiden), die Klavierrolle der Tonart-Ansicht und die Editorbühne. Eine
+Fläche, auf der eine Zeitachse oder ein Bild vermessen wird, beginnt und endet
+an einer Kante; eine Rundung schnitte ihr die ersten und letzten Millisekunden
+optisch ab. Die Bedienelemente daneben bleiben gerundet.
+
 **Struktur wird gezogen, nicht angedeutet.** Zwei Linienstärken, und der
 Unterschied ist nicht Dekoration:
 

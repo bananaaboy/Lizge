@@ -596,7 +596,7 @@ export function SamplerPanel({ theme }: { theme: ResolvedTheme }) {
             </div>
           ) : (
             <>
-              <div className="sondra-wave mt-[16px] overflow-x-auto rounded-card bg-panel-soft p-[16px]">
+              <div className="sondra-wave mt-[16px] overflow-x-auto bg-panel-soft p-[16px]">
                 <div ref={containerRef} />
                 {!audio ? (
                   <p className="py-[28px] text-center text-small text-muted">

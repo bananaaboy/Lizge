@@ -175,7 +175,7 @@ export function AudioPreview({ sources, waveHeight = 56, className = '' }: Audio
         <div
           onClick={seek}
           role="presentation"
-          className="cursor-pointer rounded-nav bg-panel-soft px-[8px] py-[8px]"
+          className="cursor-pointer bg-panel-soft px-[8px] py-[8px]"
           title="Klicken zum Springen"
         >
           <Waveform audio={active.audio} height={waveHeight} position={position || null} />

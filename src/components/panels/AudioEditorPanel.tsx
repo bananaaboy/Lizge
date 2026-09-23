@@ -289,7 +289,7 @@ export function AudioEditorPanel() {
               // A click rather than a drag clears the selection.
               setSelection(next.end - next.start < 0.02 ? null : next)
             }}
-            className="mt-[16px] cursor-text touch-none rounded-card bg-panel-soft p-[12px] select-none"
+            className="mt-[16px] cursor-text touch-none bg-panel-soft p-[12px] select-none"
           >
             <Waveform audio={current} height={130} position={position} selection={live} />
           </div>

@@ -82,7 +82,7 @@ function NoteRoll({ notes }: { notes: Note[] }) {
   const end = Math.max(...notes.map((note) => note.endSeconds))
 
   return (
-    <div className="relative w-full overflow-hidden rounded-nav bg-panel-soft" style={{ height: 120 }}>
+    <div className="relative w-full overflow-hidden bg-panel-soft" style={{ height: 120 }}>
       {notes.map((note, index) => (
         <div
           key={`${note.midi}-${note.startSeconds}-${index}`}

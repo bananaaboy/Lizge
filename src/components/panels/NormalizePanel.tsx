@@ -205,7 +205,7 @@ export function NormalizePanel() {
             </div>
           ) : (
             <>
-              <div className="mt-[28px] rounded-card bg-panel-soft p-[20px]">
+              <div className="mt-[28px] bg-panel-soft p-[20px]">
                 <Waveform audio={audio} height={84} />
               </div>
 
