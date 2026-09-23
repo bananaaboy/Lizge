@@ -857,7 +857,7 @@ export function AdvancedDownloader({ url }: { url: string }) {
                 not asked: the picked path is named, and the override is one
                 click away for the case the guess is wrong. Nothing is gone. */}
             {showPaths ? (
-              <div role="radiogroup" aria-label="Weg" className="flex gap-[4px] bg-panel-soft p-[4px]">
+              <div role="radiogroup" aria-label="Weg" className="flex gap-[4px] rounded-nav bg-panel-soft p-[4px]">
                 {PATHS.map((path) => {
                   const active = path.id === effectiveMode
                   return (
@@ -1315,7 +1315,7 @@ export function AdvancedDownloader({ url }: { url: string }) {
                           <div
                             role="radiogroup"
                             aria-label="Art der Installation"
-                            className="flex flex-wrap gap-[2px] bg-panel-soft p-[4px]"
+                            className="flex flex-wrap gap-[2px] rounded-nav bg-panel-soft p-[4px]"
                           >
                             {(
                               [

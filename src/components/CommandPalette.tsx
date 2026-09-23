@@ -270,7 +270,7 @@ export function PaletteHint() {
       onClick={open}
       title="Werkzeug suchen (⌘K)"
       aria-label="Werkzeug suchen"
-      className="press hidden items-center gap-[8px] px-[8px] py-[8px] text-small text-muted hover:text-ink sm:flex"
+      className="press hidden items-center gap-[8px] rounded-nav px-[8px] py-[8px] text-small text-muted hover:bg-panel-soft hover:text-ink sm:flex"
     >
       <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" aria-hidden>
         <circle cx="7" cy="7" r="4.4" stroke="currentColor" strokeWidth="1.4" />

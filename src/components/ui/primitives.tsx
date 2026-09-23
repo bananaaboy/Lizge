@@ -37,9 +37,9 @@ type Tone = 'cream' | 'keylime' | 'mint' | 'sage' | 'slate'
 const TONE_CLASS: Record<Tone, string> = {
   cream: 'border-t-2 border-rule pt-[20px]',
   keylime: 'border-t-2 border-rule pt-[20px]',
-  mint: 'bg-panel-soft',
-  sage: 'bg-panel-mid',
-  slate: 'bg-panel-cool',
+  mint: 'rounded-card bg-panel-soft',
+  sage: 'rounded-card bg-panel-mid',
+  slate: 'rounded-card bg-panel-cool',
 }
 
 export function Card({
@@ -151,7 +151,7 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
  */
 export function Button({ variant = 'primary', size = 'md', className = '', ...props }: ButtonProps) {
   const base =
-    'press inline-flex items-center justify-center gap-[8px] font-sans font-medium disabled:cursor-not-allowed disabled:opacity-40'
+    'press inline-flex items-center justify-center gap-[8px] rounded-nav font-sans font-medium disabled:cursor-not-allowed disabled:opacity-40'
   const sizes = size === 'sm' ? 'px-[12px] py-[8px] text-small' : 'px-[16px] py-[12px] text-body'
   const variants = {
     primary: 'bg-ink text-on-ink hover:bg-ink-hover',
@@ -189,7 +189,7 @@ export function Field({
 }
 
 const CONTROL =
-  'w-full border-0 bg-raised px-[12px] py-[8px] text-small text-prose outline-none ring-1 ring-inset ring-line focus:ring-ink'
+  'w-full rounded-nav border-0 bg-raised px-[12px] py-[8px] text-small text-prose outline-none ring-1 ring-inset ring-line focus:ring-ink'
 
 /** A choice off a printed list, so it keeps the form's own face. */
 export function Select({ className = '', ...props }: SelectHTMLAttributes<HTMLSelectElement>) {
@@ -240,10 +240,8 @@ export function Toggle({
       onClick={() => onChange(!checked)}
       className="press group flex w-full items-start gap-[12px] text-left disabled:opacity-40"
     >
-      {/* Square body, round knob: the switch is the one physical object on a
-          sheet of paper, so it is the one thing allowed a curve. */}
       <span
-        className={`mt-[2px] flex h-[16px] w-[28px] shrink-0 items-center p-[2px] transition-colors duration-[var(--dur-fast)] ${
+        className={`mt-[2px] flex h-[16px] w-[28px] shrink-0 items-center rounded-pill p-[2px] transition-colors duration-[var(--dur-fast)] ${
           checked ? 'bg-ink' : 'bg-transparent ring-1 ring-inset ring-rule group-hover:ring-ink/60'
         }`}
       >

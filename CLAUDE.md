@@ -19,8 +19,10 @@ die veraltete gewinnt dann den nächsten Edit.
 
 Am 20.9.2026 wurde die visuelle Welt mit Impeccable **ersetzt**, nicht
 aufpoliert. Nur die Farben waren gesetzt; Typografie, Aufbau, Raster und
-Formensprache sind neu: ein ruhiges, flaches Blatt — keine Kästen, keine
-Rundungen, kein Schatten; getrennt wird mit Linie und Luft.
+Formensprache sind neu: ein ruhiges, flaches Blatt — keine Kästen, kein
+Schatten; getrennt wird mit Linie und Luft. Am 23.9.2026 kamen auf Wunsch die
+Rundungen dazu (Blöcke 16 px, Bedienelemente 10 px, Pillen), zusammen mit
+einer neu aufgebauten Startseite.
 
 Der erste Wurf nahm die Messhaltung zu wörtlich und setzte die Oberfläche in
 die Sprache eines Eichscheins: „Prüfgegenstand", „Verfügbare Verfahren", eine
@@ -31,8 +33,11 @@ wie Zahlen berichtet werden, nicht in die Wörter auf der Tür.**
 
 Das Wenige, was hier stehen muss, weil es jeden Edit betrifft:
 
-- **Keine Karten, keine Rundungen, kein Schatten auf dem Blatt.** Abschnitte
-  trennt eine Linie und Luft. Die eine Schattenstufe gehört dem, was wirklich
+- **Keine Karten, kein Schatten auf dem Blatt — aber gerundet.** Abschnitte
+  trennt eine Linie und Luft. Rundung nur über die Tokens: `rounded-card`
+  (16 px) für Blöcke, Kacheln, Popover; `rounded-nav` (10 px) für Knöpfe und
+  Felder; `rounded-pill` für Filter, Schalter, Punkte. „Keine Angst vor
+  Radius" war die ausdrückliche Ansage. Die eine Schattenstufe gehört dem, was wirklich
   über dem Blatt schwebt: Editor-Platte, Popover, Ablage-Overlay.
 - **Klartext, kein Amtston.** Überschriften heissen, was sie sind —
   „Werkzeuge", nicht „Verfügbare Verfahren". Sie-Form und nüchterner Ton

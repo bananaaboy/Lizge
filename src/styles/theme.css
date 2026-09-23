@@ -119,10 +119,11 @@
   --text-heading--line-height: 1.15;
   --text-heading--letter-spacing: -0.5px;
 
-  /* Square. The pill survives for the switch knob and the progress bar,
-     which are objects rather than parts of the form. */
-  --radius-card: 0px;
-  --radius-nav: 0px;
+  /* Rounded since 23.9.2026, at the user's request. Two steps and the pill:
+     blocks, tiles and popovers take `card`; controls take `nav`, a little
+     tighter so a button inside a block sits concentric with it. */
+  --radius-card: 16px;
+  --radius-nav: 10px;
   --radius-pill: 999px;
 }
 
@@ -308,7 +309,6 @@ body {
 :where(a, button, input, select, textarea, [tabindex]):focus-visible {
   outline: 2px solid var(--color-ink);
   outline-offset: 2px;
-  border-radius: 0;
 }
 
 ::selection {
@@ -340,19 +340,19 @@ input[type='range']::-moz-range-track {
 input[type='range']::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 3px;
+  width: 14px;
   height: 14px;
   margin-top: -6.5px;
   background: var(--color-ink);
   border: none;
-  border-radius: 0;
+  border-radius: 999px;
 }
 
 input[type='range']::-moz-range-thumb {
-  width: 3px;
+  width: 14px;
   height: 14px;
   border: none;
-  border-radius: 0;
+  border-radius: 999px;
   background: var(--color-ink);
 }
 
@@ -612,4 +612,10 @@ table,
 .panel-root > :first-child > aside > .border-t-2:first-child {
   border-top-width: 0;
   padding-top: 0;
+}
+
+/* Segmented choices sit inside a rounded tray; their options round a step
+   tighter so the chosen one sits concentric with it. */
+[role='radiogroup'].rounded-nav > button {
+  border-radius: 7px;
 }

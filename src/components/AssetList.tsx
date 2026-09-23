@@ -66,7 +66,7 @@ function IconButton({ label, onClick, children }: { label: string; onClick: () =
       aria-label={label}
       title={label}
       onClick={onClick}
-      className="press flex h-[32px] w-[32px] shrink-0 items-center justify-center text-muted transition-colors hover:text-ink"
+      className="press flex h-[32px] w-[32px] shrink-0 items-center justify-center rounded-nav text-muted transition-colors hover:text-ink"
     >
       {children}
     </button>
@@ -119,7 +119,7 @@ export function SessionMenu() {
         aria-expanded={open}
         aria-haspopup="dialog"
         title="Dateien dieser Sitzung"
-        className="press flex max-w-[15rem] items-center gap-[8px] px-[8px] py-[8px] text-small text-ink hover:bg-panel-soft"
+        className="press flex max-w-[15rem] items-center gap-[8px] rounded-nav px-[8px] py-[8px] text-small text-ink hover:bg-panel-soft"
       >
         <FileIcon />
         {/* The name is what is being worked on; on a phone the header has
@@ -142,7 +142,7 @@ export function SessionMenu() {
         <div
           role="dialog"
           aria-label="Dateien dieser Sitzung"
-          className="rise elevate-lift fixed inset-x-[16px] top-[64px] z-30 flex flex-col gap-[12px] bg-raised p-[16px] ring-1 ring-inset ring-line sm:absolute sm:inset-x-auto sm:right-0 sm:top-[calc(100%+8px)] sm:w-[380px]"
+          className="rise elevate-lift fixed inset-x-[16px] top-[64px] z-30 flex flex-col gap-[12px] rounded-card bg-raised p-[16px] ring-1 ring-inset ring-line sm:absolute sm:inset-x-auto sm:right-0 sm:top-[calc(100%+8px)] sm:w-[380px]"
         >
           <SelectedPlayer />
 
@@ -158,7 +158,7 @@ export function SessionMenu() {
                     className="flex min-w-0 flex-1 items-center gap-[8px] py-[8px] text-left"
                   >
                     {/* The chosen file carries the ink mark, not a filled row. */}
-                    <span aria-hidden className={`h-[6px] w-[6px] shrink-0 ${current ? 'bg-ink' : 'bg-transparent'}`} />
+                    <span aria-hidden className={`h-[6px] w-[6px] shrink-0 rounded-pill ${current ? 'bg-ink' : 'bg-transparent'}`} />
                     <span className="flex min-w-0 flex-col">
                       <span className={`truncate text-small ${current ? 'font-semibold text-ink' : 'text-prose'}`}>
                         {asset.name}

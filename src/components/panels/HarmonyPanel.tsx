@@ -200,7 +200,7 @@ export function HarmonyPanel() {
       <div className="flex flex-col gap-[16px]">
         <Card tone="keylime" size="compact">
           <div className="flex flex-wrap items-center justify-between gap-x-[16px] gap-y-[8px]">
-            <div role="radiogroup" aria-label="Ansicht" className="flex gap-[4px] bg-panel-soft p-[4px]">
+            <div role="radiogroup" aria-label="Ansicht" className="flex gap-[4px] rounded-nav bg-panel-soft p-[4px]">
               {(['einfach', 'detail'] as ViewMode[]).map((entry) => (
                 <button
                   key={entry}

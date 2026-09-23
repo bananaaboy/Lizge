@@ -68,8 +68,8 @@ typography:
     fontWeight: 300
     letterSpacing: "-0.01em"
 rounded:
-  card: "0px"
-  nav: "0px"
+  card: "16px"
+  nav: "10px"
   pill: "999px"
 spacing:
   "0.5": "2px"
@@ -220,7 +220,8 @@ werden, nicht in die Wörter auf der Tür.** Geblieben ist die Form, gegangen is
 die Amtssprache.
 
 Daraus folgt alles Weitere, und zwar als Verzicht. Es gibt keine Karten: ein
-Formular hat keine Kästen, es hat Linien. Es gibt keine runden Ecken, weil eine
+Formular hat keine Kästen, es hat Linien. (Die runden Ecken sind seit dem
+23.9.2026 zurück, siehe „Shapes" — der Rest dieses Absatzes gilt weiter.) Es gab keine runden Ecken, weil eine
 gerasterte Seite keine hat. Es gibt keinen Schatten auf dem Blatt, weil nichts
 auf dem Blatt liegt — die eine Tiefenstufe ist für die drei Dinge reserviert,
 die wirklich darüber schweben. Getrennt wird durch eine gezogene Linie und
@@ -241,7 +242,7 @@ mit grosser Serifen-Schlagzeile — das war diese App vor dem Umbau.
 **Key Characteristics:**
 
 - Jede Zahl trägt, wie sie gemessen wurde — in der Zahl, nicht in der Überschrift
-- Keine Karten, keine runden Ecken, kein Schatten auf dem Blatt
+- Keine Karten und kein Schatten auf dem Blatt; Ecken sind gerundet (16 px Blöcke, 10 px Bedienelemente)
 - Zwei Linienstärken statt Rahmen: die Haarlinie und die schwerere Abschnittslinie
 - Zwei Schriften, getrennt nach Bedeutung: Oberfläche und eingetragener Wert
 - Werkzeuge stehen als getöntes Kachelfeld, gruppiert und filterbar
@@ -450,13 +451,20 @@ Schatten, der ihn als weiteres gestapeltes Objekt behauptet.
 
 ## Shapes
 
-**Ecken sind eckig.** Die Radius-Tokens `card` und `nav` stehen beide auf 0;
-ein gerastertes Formular hat keine runden Ecken, auch nicht kleine. Erhalten
-bleibt `pill` (999 px) für die eine Sache, die ein physisches Objekt ist: den
-Knauf des Schalters. Daneben stehen zwei bewusste Ausnahmen ausserhalb des
-Formulars — die auf der Bühne gezeigte Rasterdatei und die Balken der
-Harmonie-Darstellung tragen 2–3 px, weil sie gezeichnete Objekte sind und keine
-Teile des Formulars.
+**Ecken sind gerundet — seit dem 23.9.2026, auf ausdrücklichen Wunsch.** Die
+Welt vom 20.9. war durchgehend eckig; beim Umbau der Startseite hiess es
+„keine Angst haben, Radius zu benutzen". Zwei Stufen und die Pille:
+
+- **`card` (16 px):** Kacheln, getönte Blöcke (`mint`, `sage`, `slate`), die
+  Ablagefläche, das Windows-Feld, Popover, Formatliste, Editorrahmen.
+- **`nav` (10 px):** Knöpfe, Eingabefelder, Auswahllisten, Chips, der
+  Lokal-Chip, Symbolknöpfe. Etwas enger, damit ein Knopf in einem Block
+  konzentrisch sitzt; die Optionen in einer Segment-Schale nehmen 7 px.
+- **`pill` (999 px):** Filterpillen auf der Startseite, das Suchfeld dort,
+  Schalterkörper und -knauf, der Griff des Schiebereglers, Zustandspunkte.
+
+Was eine Linie ist, bleibt gerade: Abschnittslinien, Haarlinien, der
+Reiter-Unterstrich. Der Fokusring folgt der Rundung des Elements.
 
 **Struktur wird gezogen, nicht angedeutet.** Zwei Linienstärken, und der
 Unterschied ist nicht Dekoration:
@@ -683,9 +691,10 @@ kostet es alle anderen für die Lebensdauer der App; gefaltet kostet es einen
 Klick, einmal.
 
 **Die Werkzeugkachel (`Tool`).** Ein getöntes Feld (`panel-mid`, im Hover
-`panel-strong`), Symbol oben, Beschriftung, Hinweis darunter. Die Tönung gibt
-der Kachel ihre Kante — kein Rahmen auf vier Seiten, kein Schatten, keine
-Rundung. Passt ein Werkzeug nicht zur geöffneten Datei, sagt das allein die
+`panel-strong`), gerundet mit `card`, das Symbol neben der Beschriftung,
+der Hinweis darunter. Die Tönung gibt der Kachel ihre Kante — kein Rahmen auf
+vier Seiten, kein Schatten. Auf der Startseite filtern Pillen (Alle, Ton,
+Video, Bilder, Für Musik) statt fünf Abschnitte untereinander. Passt ein Werkzeug nicht zur geöffneten Datei, sagt das allein die
 Symbolfarbe (`faint`), und auch das erst, wenn überhaupt etwas geöffnet ist.
 Das Feld ist ab der kleinsten Breite zweispaltig und wird ab `lg` dreispaltig;
 einspaltig gestapelt ergaben dreissig Kacheln auf dem Handy eine Seite von
@@ -737,8 +746,9 @@ Kurven (`--ease-out`, `--ease-settle`); alles nur Transform und Deckkraft, und
 - **Don't** eine Karte bauen. Kein weisser Kasten mit Rahmen ringsum und
   Schatten darunter — Weiss markiert ein Feld oder eine Fläche mit eigener
   Mechanik, nicht ein Objekt auf dem Papier.
-- **Don't** eine Ecke runden. `card` und `nav` stehen auf 0, und das ist keine
-  Übergangslösung; `pill` gehört dem Schalterknauf.
+- **Don't** eine Rundung von Hand setzen. Blöcke nehmen `rounded-card`,
+  Bedienelemente `rounded-nav`, Pillen `rounded-pill`; eine vierte Grösse ist
+  eine nicht getroffene Entscheidung.
 - **Don't** einem Element auf dem Blatt einen Schatten geben. `elevate-lift`
   gehört dem, was wirklich darüber schwebt.
 - **Don't** einen Abschnitt nummerieren. 1.1, 1.2.1 und ihresgleichen sind

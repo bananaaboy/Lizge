@@ -129,14 +129,14 @@ function PrivacyChip() {
            saying that something is not running locally. This is that one job,
            and it is why no new colour was needed. Measured on it: APCA Lc 85.8
            light, 75.3 dark. */
-        className={`press flex items-center gap-[8px] px-[12px] py-[8px] text-small text-ink ${
+        className={`press flex items-center gap-[8px] rounded-nav px-[12px] py-[8px] text-small text-ink ${
           connected ? 'bg-panel-cool hover:bg-panel-mid' : 'bg-panel-soft hover:bg-panel-mid'
         }`}
       >
         {/* Filled while everything is local; hollow once something is not, so
             the state is readable without reading. */}
         <span
-          className={`h-[8px] w-[8px] ${connected ? 'ring-2 ring-inset ring-ink' : 'bg-ink'}`}
+          className={`h-[8px] w-[8px] rounded-pill ${connected ? 'ring-2 ring-inset ring-ink' : 'bg-ink'}`}
           aria-hidden
         />
         {/* On a phone the claim shortens, it does not disappear — this is the

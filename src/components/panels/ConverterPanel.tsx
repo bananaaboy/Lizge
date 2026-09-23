@@ -81,7 +81,7 @@ function FormatBlock({
 }) {
   return (
     <div
-      className={`flex min-w-0 flex-col gap-[4px] p-[16px] ${
+      className={`flex min-w-0 flex-col gap-[4px] rounded-card p-[16px] ${
         strong ? 'bg-ink text-on-ink' : 'bg-panel-mid'
       } ${className}`}
     >
@@ -295,7 +295,7 @@ function FormatPicker({
           id="zielformat-liste"
           role="listbox"
           aria-label="Zielformat"
-          className="rise elevate-lift absolute left-0 right-0 top-[calc(100%+4px)] z-30 max-h-[320px] overflow-y-auto bg-raised ring-1 ring-inset ring-rule"
+          className="rise elevate-lift absolute left-0 right-0 top-[calc(100%+4px)] z-30 max-h-[320px] overflow-y-auto rounded-card bg-raised ring-1 ring-inset ring-rule"
         >
           {groups.map((group) => (
             <div key={group.label}>
