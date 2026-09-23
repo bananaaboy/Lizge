@@ -54,7 +54,9 @@ Das Wenige, was hier stehen muss, weil es jeden Edit betrifft:
   Schirms, bevor ein Werkzeug ein Wort gesagt hatte; jetzt 211 px. Auf kleinen
   Breiten kürzt sich der Text, nicht die Zusage: der Chip sagt „Lokal" statt
   „Lokal · 1 Ausnahme", die Sitzungsleiste „1 Datei · 0.0 MB" statt des ganzen
-  Satzes. Ab `sm` steht wieder alles da.
+  Satzes. Ab `sm` steht wieder alles da. Ausblenden über einen Wrapper, nicht
+  mit `hidden` auf einem `Button`: dessen eigenes `inline-flex` gewann, und
+  „Installieren“ brach auf jedem Handy die Kopfzeile auf zwei Zeilen.
 - **Nichts steht vor der Seite.** FFmpeg lädt im Hintergrund, nie hinter einem
   Ladebildschirm. Ein Werkzeug, das wartet, zeigt das Warten bei sich.
 - **Der Einstieg zeigt die nächste Handlung,** nicht den Zustand der leeren

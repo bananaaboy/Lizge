@@ -194,10 +194,16 @@ export function Header({
           <Logo />
         </div>
         <div className="flex items-center gap-[4px] sm:gap-[8px]">
+          {/* The wrapper does the hiding. On the button itself `hidden` lost
+              to the button's own `inline-flex` — two display utilities, and
+              whichever the stylesheet emits last wins — so on every phone
+              that offered installation the header broke onto two rows. */}
           {install.available ? (
-            <Button size="sm" variant="ghost" onClick={() => void install.install()} className="hidden md:inline-flex">
-              Installieren
-            </Button>
+            <span className="hidden md:contents">
+              <Button size="sm" variant="ghost" onClick={() => void install.install()}>
+                Installieren
+              </Button>
+            </span>
           ) : null}
           <PaletteHint />
           <PrivacyChip />

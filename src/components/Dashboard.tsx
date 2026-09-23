@@ -22,7 +22,7 @@ import { AudioEditorPanel } from './panels/AudioEditorPanel'
 import { FileDrop } from './FileDrop'
 import { Home } from './Home'
 import { PANELS } from './panelMeta'
-import { Button, Card, SectionHead } from './ui/primitives'
+import { Button, Card } from './ui/primitives'
 
 function PanelTabs() {
   const panel = useSession((state) => state.panel)
@@ -72,13 +72,13 @@ function PanelTabs() {
     <div className="relative">
       <div
         aria-hidden
-        className={`pointer-events-none absolute inset-y-[6px] left-[6px] z-10 w-[28px] rounded-l-card bg-gradient-to-r from-raised to-transparent transition-opacity duration-[var(--dur-fast)] ${
+        className={`pointer-events-none absolute inset-y-[6px] left-[6px] z-10 hidden w-[28px] rounded-l-card bg-gradient-to-r from-raised to-transparent sm:block transition-opacity duration-[var(--dur-fast)] ${
           edges.start ? 'opacity-100' : 'opacity-0'
         }`}
       />
       <div
         aria-hidden
-        className={`pointer-events-none absolute inset-y-[6px] right-[6px] z-10 w-[28px] rounded-r-card bg-gradient-to-l from-raised to-transparent transition-opacity duration-[var(--dur-fast)] ${
+        className={`pointer-events-none absolute inset-y-[6px] right-[6px] z-10 hidden w-[28px] rounded-r-card bg-gradient-to-l from-raised to-transparent sm:block transition-opacity duration-[var(--dur-fast)] ${
           edges.end ? 'opacity-100' : 'opacity-0'
         }`}
       />
@@ -87,7 +87,11 @@ function PanelTabs() {
         role="tablist"
         aria-label="Werkzeuge"
         onKeyDown={onKeyDown}
-        className="flex gap-[4px] overflow-x-auto bg-raised p-[4px] ring-1 ring-inset ring-line [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        /* On a phone the strip runs to the screen edges, unboxed: a frame
+           around a row that is cut off on the right read as a broken box,
+           while a row that runs off the edge reads as one you can swipe. The
+           frame returns from `sm`, where every tab fits. */
+        className="-mx-[16px] flex gap-[4px] overflow-x-auto px-[16px] py-[4px] [scrollbar-width:none] sm:mx-0 sm:bg-raised sm:p-[4px] sm:ring-1 sm:ring-inset sm:ring-line [&::-webkit-scrollbar]:hidden"
       >
         {PANELS.map((entry) => {
           const active = entry.id === panel
@@ -290,10 +294,14 @@ function NothingLoaded({ label, summary }: { label: string; summary: string }) {
 
   return (
     <Card tone="cream" className="rise">
-      <div className="mx-auto flex max-w-[460px] flex-col items-center gap-[16px] text-center">
+      <div className="flex max-w-[560px] flex-col items-start gap-[16px] sm:mx-auto sm:items-center sm:text-center">
+        {/* The tool's name stood above this in small type — an eyebrow over
+            the real heading, and the tab bar right above says the name
+            already. The summary is the heading. */}
         <div>
-          <SectionHead>{label}</SectionHead>
-          <p className="mt-[8px] text-subheading text-ink">{summary}</p>
+          <h2 className="text-subheading font-semibold text-ink" aria-label={`${label}: ${summary}`}>
+            {summary}
+          </h2>
           <p className="mt-[8px] text-body leading-[1.55] text-prose/85">
             Dafür braucht es erst eine Datei. Alles, was Sie hinzufügen, bleibt in diesem Tab.
           </p>
