@@ -305,8 +305,10 @@ body {
 }
 
 
-/* Focus ring — ink, never a browser default blue. */
-:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+/* Focus ring — ink, never a browser default blue. An element that draws its
+   own ring says so with `data-own-focus`; this rule is unlayered and would
+   otherwise win over any utility and stack a second ring on top. */
+:where(a, button, input, select, textarea, [tabindex]):not([data-own-focus]):focus-visible {
   outline: 2px solid var(--color-ink);
   outline-offset: 2px;
 }

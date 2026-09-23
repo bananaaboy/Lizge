@@ -89,7 +89,7 @@ function Grid({ children }: { children: ReactNode }) {
 
 function UploadIcon() {
   return (
-    <svg viewBox="0 0 24 24" className="h-7 w-7" fill="none" aria-hidden>
+    <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" aria-hidden>
       <path
         d="M12 15V4.5M7.5 9L12 4.5 16.5 9M4.5 14.5v3.5a2 2 0 002 2h11a2 2 0 002-2v-3.5"
         stroke="currentColor"
@@ -102,34 +102,26 @@ function UploadIcon() {
 }
 
 /**
- * Without a file: the drop target.
+ * Without a file: the two ways in, stacked.
  *
- * The whole block is the target for a dragged file (the window-wide drop
- * handler takes it), and it looks like one — a dashed edge on a tint — so the
- * „ziehen" in the sentence is shown rather than only said. On a phone, where
- * nothing is dragged, it is just the button.
+ * This was a dashed drop target of its own, 250px tall, beside the headline —
+ * mostly empty, and the dashes promised a drop zone the whole window already
+ * is (dragging a file anywhere shows the overlay). Now it is just the actions:
+ * the one that starts work, the other way in, and a line saying dragging
+ * works too, on the same block as the headline.
  */
-function DropCard({ onOpen, busy }: { onOpen: () => void; busy: boolean }) {
+function WayIn({ onOpen, busy }: { onOpen: () => void; busy: boolean }) {
   const setPanel = useSession((state) => state.setPanel)
   return (
-    <div className="flex flex-col items-center gap-[16px] rounded-card border-2 border-dashed border-rule bg-panel-soft px-[20px] py-[28px] text-center sm:py-[40px]">
-      <span className="hidden text-ink sm:block">
+    <div className="flex flex-col gap-[10px] sm:w-[280px] sm:shrink-0">
+      <Button onClick={onOpen} disabled={busy} className="w-full">
         <UploadIcon />
-      </span>
-      <p className="hidden text-body text-prose sm:block">Datei hierher ziehen oder</p>
-      <Button onClick={onOpen} disabled={busy}>
         {busy ? 'Wird gelesen…' : 'Datei öffnen'}
       </Button>
-      <p className="text-small text-prose">
-        Ton, Video oder Bild ·{' '}
-        <button
-          type="button"
-          onClick={() => setPanel('downloader')}
-          className="press text-ink underline underline-offset-[3px] hover:no-underline"
-        >
-          von einer Adresse laden
-        </button>
-      </p>
+      <Button variant="quiet" onClick={() => setPanel('downloader')} className="w-full">
+        Von einer Adresse laden
+      </Button>
+      <p className="hidden text-center text-small text-prose sm:block">oder einfach ins Fenster ziehen</p>
     </div>
   )
 }
@@ -225,8 +217,8 @@ export function Home() {
       {picker.input}
 
       {/* -- the way in ----------------------------------------------------- */}
-      <section className="grid items-center gap-[24px] lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:gap-[48px]">
-        {active ? (
+      {active ? (
+        <section className="grid items-center gap-[24px] lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:gap-[48px]">
           <div className="flex min-w-0 flex-col gap-[8px]">
             <h2 className="display-md">Was soll mit der Datei passieren?</h2>
             <p className="value truncate text-body text-ink">{active.name}</p>
@@ -239,58 +231,50 @@ export function Home() {
               ) : null}
             </p>
           </div>
-        ) : (
-          <div className="flex flex-col gap-[12px]">
-            <h2 className="display-lg max-w-[14ch]">Ton, Video und Bilder bearbeiten</h2>
-            <p className="max-w-[34em] text-body leading-[1.55] text-muted">
+          <FileCard onOpen={picker.open} />
+        </section>
+      ) : (
+        /* One block: what the page is, and how to start. The tint holds both,
+           so the headline is not a sentence floating beside a box. */
+        <section className="flex flex-col gap-[24px] rounded-card bg-panel-soft p-[24px] sm:flex-row sm:items-center sm:justify-between sm:gap-[40px] sm:p-[40px]">
+          <div className="flex max-w-[40em] flex-col gap-[12px]">
+            <h2 className="display-md sm:display-lg">Ton, Video und Bilder bearbeiten</h2>
+            <p className="text-body leading-[1.55] text-prose">
               Alles rechnet in diesem Tab. Ihre Dateien werden nirgendwohin hochgeladen, und mit dem
               Schließen des Tabs ist alles weg.
             </p>
           </div>
-        )}
-        {active ? <FileCard onOpen={picker.open} /> : <DropCard onOpen={picker.open} busy={picker.busy} />}
-      </section>
+          <WayIn onOpen={picker.open} busy={picker.busy} />
+        </section>
+      )}
 
       {/* -- the tools ------------------------------------------------------ */}
       <section className="flex flex-col gap-[16px]">
-        <div className="flex flex-col gap-[12px] lg:flex-row lg:items-center lg:justify-between">
-          <h2 className="display-md">Werkzeuge</h2>
-          {/* A one-line field has no business being 1840px wide. */}
-          <div className="relative w-full lg:max-w-[420px]">
-            <svg
-              viewBox="0 0 16 16"
-              aria-hidden
-              className="pointer-events-none absolute left-[14px] top-1/2 h-4 w-4 -translate-y-1/2 text-muted"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.4"
-              strokeLinecap="round"
-            >
-              <circle cx="7" cy="7" r="4.5" />
-              <path d="M10.4 10.4L14 14" />
-            </svg>
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Suchen — „mp3 aus video“, „tonart“ …"
-              aria-label="Werkzeuge durchsuchen"
-              className="w-full rounded-pill border-0 bg-raised py-[10px] pl-[40px] pr-[16px] text-small text-prose outline-none ring-1 ring-inset ring-line placeholder:text-muted focus:ring-ink"
-            />
-          </div>
-        </div>
+        <h2 className="display-md">Werkzeuge</h2>
 
-        {!searching ? (
-          <div role="radiogroup" aria-label="Werkzeuge nach Gruppe" className="flex flex-wrap gap-[8px]">
+        {/* One bar: narrow by group on the left, search on the right. The
+            search was a thin outlined pill parked at the far edge of the
+            heading row, related to nothing next to it; filled and on the same
+            line as the pills it reads as the second half of one control. */}
+        <div className="flex flex-col-reverse gap-[12px] md:flex-row md:items-center md:justify-between">
+          <div
+            role="radiogroup"
+            aria-label="Werkzeuge nach Gruppe"
+            className={`flex flex-wrap gap-[8px] transition-opacity duration-[var(--dur-fast)] ${searching ? 'opacity-40' : ''}`}
+          >
             {(['alle', ...FILTERS] as const).map((group) => {
-              const on = filter === group
+              const on = !searching && filter === group
               return (
                 <button
                   key={group}
                   type="button"
                   role="radio"
                   aria-checked={on}
-                  onClick={() => setFilter(group)}
-                  className={`press rounded-pill px-[14px] py-[6px] text-small transition-colors duration-[var(--dur-fast)] ${
+                  onClick={() => {
+                    setQuery('')
+                    setFilter(group)
+                  }}
+                  className={`press rounded-pill px-[12px] py-[8px] text-small font-medium sm:px-[16px] transition-colors duration-[var(--dur-fast)] ${
                     on ? 'bg-ink text-on-ink' : 'bg-panel-soft text-ink hover:bg-panel-mid'
                   }`}
                 >
@@ -299,7 +283,31 @@ export function Home() {
               )
             })}
           </div>
-        ) : null}
+
+          <label className="relative flex w-full items-center md:w-[320px]">
+            <svg
+              viewBox="0 0 16 16"
+              aria-hidden
+              className="pointer-events-none absolute left-[16px] h-4 w-4 text-ink"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+            >
+              <circle cx="7" cy="7" r="4.5" />
+              <path d="M10.4 10.4L14 14" />
+            </svg>
+            <input
+              type="search"
+              data-own-focus
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Werkzeug suchen"
+              aria-label="Werkzeuge durchsuchen, zum Beispiel „mp3 aus video“ oder „tonart“"
+              className="w-full rounded-pill border-0 bg-panel-soft py-[9px] pl-[42px] pr-[16px] text-small text-ink outline-none ring-1 ring-inset ring-transparent transition-colors duration-[var(--dur-fast)] placeholder:text-muted hover:bg-panel-mid focus:bg-raised focus:ring-2 focus:ring-ink [&::-webkit-search-cancel-button]:hidden"
+            />
+          </label>
+        </div>
 
         {searching ? (
           matches.length > 0 ? (
