@@ -15,7 +15,6 @@ import type { ThemeChoice } from '../lib/theme'
 import { onServiceConnection, serviceConnection } from '../lib/serviceState'
 import { useSession } from '../state/store'
 import { SessionMenu } from './AssetList'
-import { PaletteHint } from './CommandPalette'
 import { PanelTabs } from './PanelTabs'
 import { ThemeToggle } from './ThemeToggle'
 import { Button } from './ui/primitives'
@@ -189,8 +188,9 @@ function PrivacyChip() {
  * on its bottom rule. On the start screen of a phone the tabs stay away: the
  * tiles right below are the same menu, and there it would be a cut-off copy.
  *
- * „Installieren" is gone from here on request. The browser still offers
- * installation in its own menu; the page no longer advertises it.
+ * „Installieren" and the search button are gone from here on request. The
+ * browser still offers installation in its own menu; the search lives on the
+ * start page, and Strg/Cmd + K still opens the command palette anywhere.
  */
 export function Header({
   themeChoice,
@@ -205,7 +205,6 @@ export function Header({
       <div className="shell flex items-center justify-between gap-[12px] pt-[10px] sm:gap-[24px] sm:pt-[12px]">
         <Logo />
         <div className="flex min-w-0 items-center gap-[4px] sm:gap-[8px]">
-          <PaletteHint />
           <SessionMenu />
           <PrivacyChip />
           <ThemeToggle choice={themeChoice} onChange={onThemeChange} />

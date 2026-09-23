@@ -569,11 +569,11 @@ Es gibt **keine Karte**. `Card` ist der Name der Komponente, nicht ihrer Form:
   über Beschriftung in Label-Grösse; ein Werkzeug mit geänderter Einstellung
   trägt ein 5-px-Quadrat oben rechts. Unter 1024 px waagerecht.
 - **Kopfzeile:** klebt oben, schwerere Linie nach unten, Grund `canvas/95` mit
-  Unschärfe. Links die Wortmarke, rechts vier ruhige Bedienelemente: Suchen
-  (ungetönt), das Dateimenü, der Lokal-Chip — als einziges getönt, weil er eine
-  Zusage trägt — und ein einzelner Themenknopf, der durch System, Hell und
-  Dunkel schaltet. „Installieren" ist auf Wunsch entfallen; der Browser bietet
-  es in seinem eigenen Menü an.
+  Unschärfe. Links die Wortmarke, rechts drei ruhige Bedienelemente: das
+  Dateimenü, der Lokal-Chip — als einziges getönt, weil er eine Zusage trägt —
+  und ein einzelner Themenknopf, der durch System, Hell und Dunkel schaltet.
+  „Installieren" und der Suchknopf sind auf Wunsch entfallen; gesucht wird auf
+  der Startseite, und Strg/Cmd + K öffnet die Befehlspalette weiterhin überall.
 - **Dateimenü** (`SessionMenu` in `AssetList.tsx`): nennt die Datei, an der
   gearbeitet wird, und hält die ganze Sitzung einen Klick dahinter — Wiedergabe,
   Wechseln, Speichern, Entfernen, weitere Datei, Arbeitsspeicher, Alles
